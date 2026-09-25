@@ -26,6 +26,15 @@ Deviations from the plan or spec, known issues and follow-ups, recorded as they 
   Server Components and BFF route handlers, through one cached `TenantDirectory`.
 - **`@sm/ui` client boundaries** (T21). Interactive component modules declare `'use client'`, guarded by
   `test/client-boundary.test.ts`, so Server Components can import from the barrel.
+- **Auth screens are client forms over BFF routes** (T22). OIDC runs through GET route handlers
+  (`/auth/start|callback/{provider}` on a workspace, `/signup/callback/{provider}` on the apex) that keep PKCE state in a
+  ten-minute httpOnly cookie. Google/Microsoft sign-up creates the organisation from the apex, revokes the session the
+  cell opened there at once, and continues on the new workspace's own host with a second provider round trip: session
+  cookies are host-only by design, so no token is handed across hosts. The refresh cookie follows §6.1
+  (`SameSite=Lax`); the BFF's exact-Origin check is the CSRF defence.
+- **Refreshes are serialised in the browser** (T22). Refresh tokens are single-use with reuse detection, so the page
+  shares one in-flight refresh and serialises across tabs with a Web Lock; each request then carries the latest cookie.
+- **Next.js telemetry is off** in the web scripts (no third-party calls from CI or dev machines).
 
 ## Known issues and follow-ups
 
@@ -52,3 +61,10 @@ Deviations from the plan or spec, known issues and follow-ups, recorded as they 
 - **Content-Security-Policy** arrives with the app shell (T23), once every script and style source is known. Baseline
   headers (nosniff, frame DENY, referrer and permissions policies) are set now.
 - **Fonts ship the Latin subset only** (English UI in v1). Add latin-ext and the Arabic face when those locales ship.
+- **Google/Microsoft redirect URIs.** Workspace sign-in uses `{slug}.{base}/auth/callback/{provider}`. The fakes accept
+  any redirect URI, but the real providers need every redirect URI registered, and per-workspace hosts cannot be. Before
+  real providers are enabled, route OIDC through one registered apex callback with a signed, single-use handoff to the
+  workspace host (a security-review item alongside the BFF session design).
+- **Refresh races across devices or retries.** Web Locks cover tabs in one browser. A network retry of a refresh whose
+  response was lost still looks like reuse. Consider a short server-side grace window for the just-rotated token (§6.1
+  reuse detection stays) before GA.

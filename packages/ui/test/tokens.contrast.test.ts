@@ -42,6 +42,10 @@ const pairs: Pair[] = [
   ['ai-accent', 'bg-surface', 4.5],
   ['text-on-sidebar', 'bg-sidebar', 4.5],
   ['text-on-sidebar-muted', 'bg-sidebar', 4.5],
+  ['text-on-brand', 'bg-brand-from', 4.5],
+  ['text-on-brand', 'bg-brand-to', 4.5],
+  ['text-on-brand-muted', 'bg-brand-from', 4.5],
+  ['text-on-brand-muted', 'bg-brand-to', 4.5],
   ...([1, 2, 3, 4, 5, 6, 7, 8] as const).map((n): Pair => [
     `cat-${String(n)}-fg` as SemanticToken,
     `cat-${String(n)}-bg` as SemanticToken,

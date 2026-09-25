@@ -1,9 +1,13 @@
 import {
+  EmailRequest,
   LoginRequest,
   LoginResponse,
+  MeResponse,
   MfaChallengeRequest,
   ProblemDetails,
+  ResetPasswordRequest,
   SessionTokens,
+  TokenRequest,
 } from '@sm/contracts';
 import type { z } from 'zod';
 
@@ -20,7 +24,7 @@ export interface BffDeps {
   now?: () => number;
 }
 
-type Handler = (request: Request, deps: BffDeps) => Promise<Response>;
+export type Handler = (request: Request, deps: BffDeps) => Promise<Response>;
 
 /** Resolve the workspace behind this request's host, or the response to send instead. */
 export async function tenantFor(
@@ -50,32 +54,36 @@ export async function tenantFor(
   }
 }
 
-interface CellResult {
+export interface CellResult {
   status: number;
   body: unknown;
   headers: Headers;
 }
 
-/** POST to the tenant's cell API. The base URL comes only from the directory (§3.4). */
-async function callCell(
-  deps: BffDeps,
-  tenant: Tenant,
+/**
+ * One request to a cell API. The base URL always comes from the control plane (the directory or
+ * the cell list), never from configuration (§3.4). Returns null when the cell is unreachable.
+ */
+export async function cellRequest(
+  deps: Pick<BffDeps, 'fetch'>,
+  baseUrl: string,
   path: string,
-  body: unknown,
-  request: Request,
+  init: {
+    method?: 'GET' | 'POST';
+    body?: unknown;
+    headers?: Record<string, string>;
+    request?: Request;
+  },
 ): Promise<CellResult | null> {
-  const headers: Record<string, string> = {
-    'content-type': 'application/json',
-    accept: 'application/json',
-    'x-sm-tenant-id': tenant.tenantId,
-  };
-  const requestId = request.headers.get('x-request-id');
+  const headers: Record<string, string> = { accept: 'application/json', ...init.headers };
+  if (init.body !== undefined) headers['content-type'] = 'application/json';
+  const requestId = init.request?.headers.get('x-request-id');
   if (requestId) headers['x-request-id'] = requestId;
   try {
-    const response = await (deps.fetch ?? fetch)(new URL(path, tenant.cell.apiBaseUrl), {
-      method: 'POST',
+    const response = await (deps.fetch ?? fetch)(new URL(path, baseUrl), {
+      method: init.method ?? 'POST',
       headers,
-      body: JSON.stringify(body),
+      ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
       signal: AbortSignal.timeout(10_000),
     });
     const text = await response.text();
@@ -89,7 +97,22 @@ async function callCell(
   }
 }
 
-function unavailable(): Response {
+/** POST to the tenant's cell, naming the workspace by header. */
+export function callCell(
+  deps: BffDeps,
+  tenant: Tenant,
+  path: string,
+  body: unknown,
+  request: Request,
+): Promise<CellResult | null> {
+  return cellRequest(deps, tenant.cell.apiBaseUrl, path, {
+    body,
+    headers: { 'x-sm-tenant-id': tenant.tenantId },
+    request,
+  });
+}
+
+export function unavailable(): Response {
   return problem(
     503,
     'service_unavailable',
@@ -99,7 +122,10 @@ function unavailable(): Response {
 }
 
 /** Relay a cell problem (status, body, Retry-After) or fail closed if it isn't one. */
-function relayProblem(result: CellResult, extraHeaders: Record<string, string> = {}): Response {
+export function relayProblem(
+  result: CellResult,
+  extraHeaders: Record<string, string> = {},
+): Response {
   const parsed = ProblemDetails.safeParse(result.body);
   if (!parsed.success) return unavailable();
   const headers: Record<string, string> = {
@@ -112,12 +138,12 @@ function relayProblem(result: CellResult, extraHeaders: Record<string, string> =
   return Response.json(parsed.data, { status: result.status, headers });
 }
 
-async function readJson<T extends z.ZodType>(request: Request, schema: T) {
+export async function readJson<T extends z.ZodType>(request: Request, schema: T) {
   const body: unknown = await request.json().catch(() => undefined);
   return schema.safeParse(body);
 }
 
-function invalid(error: z.ZodError): Response {
+export function invalid(error: z.ZodError): Response {
   return problem(
     422,
     'validation_failed',
@@ -128,7 +154,7 @@ function invalid(error: z.ZodError): Response {
 }
 
 /** Tokens from the cell become: refresh token → cookie, access token → page memory. */
-function signedIn(
+export function signedIn(
   deps: BffDeps,
   tokens: z.infer<typeof SessionTokens>,
   extra: Record<string, unknown> = {},
@@ -153,7 +179,7 @@ function signedIn(
   );
 }
 
-function withTenantAndOrigin(
+export function withTenantAndOrigin(
   handler: (request: Request, deps: BffDeps, tenant: Tenant) => Promise<Response>,
 ): Handler {
   return async (request, deps) => {
@@ -167,7 +193,7 @@ function withTenantAndOrigin(
 }
 
 /** Relay a login-shaped answer (ok → cookie; mfa_required → challenge token to the page). */
-function loginOutcome(deps: BffDeps, result: CellResult): Response {
+export function loginOutcome(deps: BffDeps, result: CellResult): Response {
   if (result.status !== 200) return relayProblem(result);
   const parsed = LoginResponse.safeParse(result.body);
   if (!parsed.success) return unavailable();
@@ -189,22 +215,51 @@ export const mfaChallenge: Handler = withTenantAndOrigin(async (request, deps, t
   return result ? loginOutcome(deps, result) : unavailable();
 });
 
+/**
+ * New access token from the refresh cookie (rotating it), plus the current user so a freshly
+ * loaded page can render without its own call. The page keeps the access token in memory.
+ */
 export const refresh: Handler = withTenantAndOrigin(async (request, deps, tenant) => {
   const token = readCookie(request, refreshCookieName(deps.scheme));
   if (!token) return problem(401, 'unauthenticated', 'Sign in to continue');
   const result = await callCell(deps, tenant, '/auth/refresh', { refreshToken: token }, request);
   if (!result) return unavailable();
-  if (result.status === 200) {
-    const tokens = SessionTokens.safeParse(result.body);
-    return tokens.success ? signedIn(deps, tokens.data) : unavailable();
+  if (result.status !== 200) {
+    // A rejected refresh token (expired, revoked or reused) ends the browser session too.
+    const clear: Record<string, string> =
+      result.status === 401 || result.status === 404
+        ? { 'set-cookie': clearRefreshCookie(deps.scheme) }
+        : {};
+    return relayProblem(result, clear);
   }
-  // A rejected refresh token (expired, revoked or reused) ends the browser session too.
-  const clear: Record<string, string> =
-    result.status === 401 || result.status === 404
-      ? { 'set-cookie': clearRefreshCookie(deps.scheme) }
-      : {};
-  return relayProblem(result, clear);
+  const tokens = SessionTokens.safeParse(result.body);
+  if (!tokens.success) return unavailable();
+  const me = await cellRequest(deps, tenant.cell.apiBaseUrl, '/v1/me', {
+    method: 'GET',
+    headers: { authorization: `Bearer ${tokens.data.accessToken}` },
+    request,
+  });
+  const user = me?.status === 200 ? MeResponse.safeParse(me.body) : undefined;
+  // The rotated cookie must be stored even if the profile call failed, or the session is lost.
+  return signedIn(deps, tokens.data, user?.success ? { user: user.data } : {});
 });
+
+/** Relay a tenant-scoped POST whose success carries no data the page needs. */
+function relay(path: string, schema: z.ZodType): Handler {
+  return withTenantAndOrigin(async (request, deps, tenant) => {
+    const input = await readJson(request, schema);
+    if (!input.success) return invalid(input.error);
+    const result = await callCell(deps, tenant, path, input.data, request);
+    if (!result) return unavailable();
+    if (result.status >= 200 && result.status < 300) return json({ status: 'ok' });
+    return relayProblem(result);
+  });
+}
+
+export const verifyEmail = relay('/auth/verify-email', TokenRequest);
+export const resendVerification = relay('/auth/verify-email/resend', EmailRequest);
+export const forgotPassword = relay('/auth/password/forgot', EmailRequest);
+export const resetPassword = relay('/auth/password/reset', ResetPasswordRequest);
 
 export const logout: Handler = withTenantAndOrigin(async (request, deps, tenant) => {
   const token = readCookie(request, refreshCookieName(deps.scheme));

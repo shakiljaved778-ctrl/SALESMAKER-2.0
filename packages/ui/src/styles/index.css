@@ -34,6 +34,10 @@
   --color-link: var(--text-link);
   --color-on-sidebar: var(--text-on-sidebar);
   --color-on-sidebar-muted: var(--text-on-sidebar-muted);
+  --color-brand-from: var(--bg-brand-from);
+  --color-brand-to: var(--bg-brand-to);
+  --color-on-brand: var(--text-on-brand);
+  --color-on-brand-muted: var(--text-on-brand-muted);
 
   /* Borders and focus */
   --color-line-subtle: var(--border-subtle);

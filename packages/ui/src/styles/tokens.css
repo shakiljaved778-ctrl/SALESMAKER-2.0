@@ -93,6 +93,10 @@
   --text-inverse: #FFFFFF;
   --text-link: #0E5F54;
   --text-on-sidebar: #E8EBEF;
+  --bg-brand-from: #0E5F54;
+  --bg-brand-to: #0B3E38;
+  --text-on-brand: #FFFFFF;
+  --text-on-brand-muted: #D3EFEA;
   --text-on-sidebar-muted: #9AA2AD;
   --action-primary-bg: #117567;
   --action-primary-hover: #0E5F54;
@@ -179,6 +183,10 @@
   --text-inverse: #0C0F13;
   --text-link: #72C7BA;
   --text-on-sidebar: #E8EBEF;
+  --bg-brand-from: #0E5F54;
+  --bg-brand-to: #0B3E38;
+  --text-on-brand: #FFFFFF;
+  --text-on-brand-muted: #D3EFEA;
   --text-on-sidebar-muted: #9AA2AD;
   --action-primary-bg: #3FAA9B;
   --action-primary-hover: #72C7BA;
@@ -254,6 +262,10 @@
     --text-inverse: #0C0F13;
     --text-link: #72C7BA;
     --text-on-sidebar: #E8EBEF;
+    --bg-brand-from: #0E5F54;
+    --bg-brand-to: #0B3E38;
+    --text-on-brand: #FFFFFF;
+    --text-on-brand-muted: #D3EFEA;
     --text-on-sidebar-muted: #9AA2AD;
     --action-primary-bg: #3FAA9B;
     --action-primary-hover: #72C7BA;

@@ -105,7 +105,7 @@ describe('BFF login', () => {
     const cookie = res.headers.get('set-cookie') ?? '';
     expect(cookie).toMatch(/^sm_rt=r{43}; /);
     expect(cookie).toContain('HttpOnly');
-    expect(cookie).toContain('SameSite=Strict');
+    expect(cookie).toContain('SameSite=Lax');
     expect(cookie).toContain('Path=/');
     expect(cookie).toContain(`Max-Age=${String(30 * 24 * 3600)}`);
     expect(cookie).not.toContain('Domain=');

@@ -14,11 +14,20 @@
       "loading": "Loading…",
       "saving": "Saving…",
       "required": "Required"
+    },
+    "search": {
+      "placeholder": "Search…",
+      "noResults": "No matches"
     }
   },
   "auth": {
     "brand": {
-      "tagline": "One place for your whole sales motion."
+      "tagline": "One place for your whole sales motion.",
+      "points": {
+        "pipeline": "Every deal, call and follow-up in one pipeline",
+        "teams": "Built for field sales, account managers and telesales alike",
+        "region": "Your data stays in the region you choose"
+      }
     },
     "fields": {
       "email": "Work email",
@@ -27,14 +36,15 @@
       "name": "Your name",
       "orgName": "Organisation name",
       "slug": "Workspace address",
-      "slugHelp": "Your team signs in at {slug}.salesmaker.app",
+      "slugHelp": "Your team signs in at {address}",
       "region": "Data region",
       "regionHelp": "Your CRM data is stored and processed only in this region. You can't change it later.",
       "currency": "Corporate currency",
       "timezone": "Time zone",
       "totpCode": "6-digit code",
       "recoveryCode": "Recovery code",
-      "newPassword": "New password"
+      "newPassword": "New password",
+      "nameHelp": "As your teammates will see it"
     },
     "signIn": {
       "title": "Sign in to {workspace}",
@@ -43,13 +53,18 @@
       "noAccount": "New to SalesMaker? Create an organisation",
       "orContinueWith": "or continue with",
       "google": "Continue with Google",
-      "microsoft": "Continue with Microsoft"
+      "microsoft": "Continue with Microsoft",
+      "otherWorkspace": "Not your workspace? Find yours"
     },
     "signUp": {
       "title": "Create your organisation",
       "subtitle": "Free for 14 days. No card needed.",
       "submit": "Create organisation",
-      "haveAccount": "Already have a workspace? Find it"
+      "haveAccount": "Already have a workspace? Find it",
+      "orgSection": "Your organisation",
+      "accountSection": "Your account",
+      "providerHint": "Google and Microsoft sign-up use your organisation details above.",
+      "legal": "By creating an organisation you agree to the terms of service."
     },
     "verifyEmail": {
       "title": "Check your email",
@@ -57,7 +72,10 @@
       "resend": "Send the link again",
       "verifying": "Verifying your email…",
       "done": "Your email is verified.",
-      "expired": "This link has expired or was already used. Request a new one."
+      "expired": "This link has expired or was already used. Request a new one.",
+      "continue": "Continue to sign in",
+      "resent": "If that address needs verifying, a new link is on its way.",
+      "workspaceAddress": "Your workspace address is {address}."
     },
     "forgotPassword": {
       "title": "Reset your password",
@@ -68,7 +86,9 @@
     "resetPassword": {
       "title": "Choose a new password",
       "submit": "Update password",
-      "done": "Your password is updated. Sign in with your new password."
+      "done": "Your password is updated. Sign in with your new password.",
+      "expired": "This link has expired or was already used. Request a new one.",
+      "requestNew": "Request a new link"
     },
     "mfa": {
       "title": "Two-step verification",
@@ -78,17 +98,24 @@
       "enrollTitle": "Set up two-step verification",
       "enrollBody": "Scan this QR code with your authenticator app, then enter the code it shows.",
       "recoveryTitle": "Save your recovery codes",
-      "recoveryBody": "Each code works once. Store them somewhere safe: they're the only way in if you lose your phone."
+      "recoveryBody": "Each code works once. Store them somewhere safe: they're the only way in if you lose your phone.",
+      "useCode": "Use your authenticator app instead",
+      "expired": "The sign-in step has expired. Sign in again.",
+      "startOver": "Start over"
     },
     "sso": {
+      "title": "Sign in with {provider}",
       "redirecting": "Redirecting you to {provider}…",
-      "failed": "We couldn't sign you in with {provider}. Try again or use your password."
+      "failed": "We couldn't sign you in with {provider}. Try again or use your password.",
+      "noAccount": "There's no account for this email in this workspace. Ask your admin for an invitation.",
+      "usePassword": "Sign in with your password"
     },
     "findWorkspace": {
       "title": "Find your workspace",
       "body": "Enter your work email and we'll send you a list of the workspaces you belong to.",
       "submit": "Email me my workspaces",
-      "sent": "Check your inbox. If {email} belongs to any workspaces, we've sent the list."
+      "sent": "Check your inbox. If {email} belongs to any workspaces, we've sent the list.",
+      "createInstead": "Starting fresh? Create an organisation"
     },
     "acceptInvite": {
       "title": "Join your team on SalesMaker",
@@ -101,8 +128,19 @@
       "passwordTooShort": "Use at least 12 characters.",
       "slugTaken": "That address is taken. Try another.",
       "emailNotVerified": "Verify your email to continue. We can send the link again.",
-      "invalidCode": "That code didn't work. Codes change every 30 seconds, so try the latest one."
-    }
+      "invalidCode": "That code didn't work. Codes change every 30 seconds, so try the latest one.",
+      "invalidEmail": "Enter an email address like name@company.com.",
+      "slugFormat": "Use 3–40 lowercase letters, digits or hyphens.",
+      "required": "This field is required.",
+      "rateLimited": "Too many requests. Wait a moment and try again.",
+      "unavailable": "SalesMaker is briefly unavailable. Try again in a moment.",
+      "regionRequired": "Choose where your data is stored."
+    },
+    "providers": {
+      "google": "Google",
+      "microsoft": "Microsoft"
+    },
+    "backToSignIn": "Back to sign in"
   },
   "emails": {
     "footer": "You received this email because of an action on your SalesMaker account.",

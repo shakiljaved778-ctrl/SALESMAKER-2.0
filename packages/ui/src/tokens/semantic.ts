@@ -30,6 +30,11 @@ function semantic(theme: Theme) {
     'text-inverse': light ? '#FFFFFF' : p.graphite[950],
     'text-link': light ? p.jade[700] : p.jade[300],
     'text-on-sidebar': '#E8EBEF',
+    // T9 auth brand panel (§9.8): Jade 700 → 900 gradient in both themes, light text on it.
+    'bg-brand-from': p.jade[700],
+    'bg-brand-to': p.jade[900],
+    'text-on-brand': '#FFFFFF',
+    'text-on-brand-muted': p.jade[100],
     'text-on-sidebar-muted': p.graphite[400],
     'action-primary-bg': light ? p.jade[600] : p.jade[400],
     'action-primary-hover': light ? p.jade[700] : p.jade[300],

@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "description": "Message catalogues (ICU MessageFormat), locale metadata, pseudo-locales and the i18n key check (§9.12, golden rule 5)",
   "exports": {
     ".": "./dist/index.js",

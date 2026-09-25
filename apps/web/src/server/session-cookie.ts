@@ -1,6 +1,7 @@
 /**
  * The refresh token lives only in an httpOnly cookie on the workspace host; the access token is
- * handed to the page and kept in memory (P00 plan, risk 5). Over HTTPS the `__Host-` prefix pins
+ * handed to the page and kept in memory (P00 plan, risk 5). SameSite=Lax as §6.1 specifies; the
+ * BFF's exact-Origin check is the CSRF defence for its POST routes. Over HTTPS the `__Host-` prefix pins
  * the cookie to this exact host (no Domain, Path=/, Secure), so one workspace can never read
  * another's session. Plain-http local development drops the prefix and Secure.
  */
@@ -20,7 +21,7 @@ export function setRefreshCookie(
     'Path=/',
     `Max-Age=${String(maxAge)}`,
     'HttpOnly',
-    'SameSite=Strict',
+    'SameSite=Lax',
     ...(scheme === 'https' ? ['Secure'] : []),
   ].join('; ');
 }
@@ -31,7 +32,7 @@ export function clearRefreshCookie(scheme: 'http' | 'https'): string {
     'Path=/',
     'Max-Age=0',
     'HttpOnly',
-    'SameSite=Strict',
+    'SameSite=Lax',
     ...(scheme === 'https' ? ['Secure'] : []),
   ].join('; ');
 }
