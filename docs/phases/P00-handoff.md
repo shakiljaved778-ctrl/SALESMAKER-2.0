@@ -44,10 +44,19 @@ tests run on Testcontainers Postgres and Valkey (or the compose stack), includin
 
 ## CI status
 
-CI was red from T12 onwards: on a clean checkout, `control-api` lint ran before its Prisma client was generated. This
-went unnoticed because it passed locally, where the client already existed. Fixed in `fix(ci): generate Prisma
-clients …` (a `generate` turbo task that lint, typecheck, test and build depend on); the full task set was re-run
-locally from a clean generated state with the cache off. The latest CI result is in the P00 summary on the branch.
+CI was red from T12 onwards, and three separate things kept it red:
+
+1. **Prisma client ordering.** On a clean checkout, `control-api` lint ran before its Prisma client was generated
+   (it passed locally, where the client already existed). A `generate` turbo task now runs first; lint, typecheck,
+   test and build depend on it, and `db:setup` and the CI `db` job build through turbo.
+2. **Dependency audit.** Two high advisories in transitive dependencies of the Prisma CLI (`deepmerge-ts` < 8,
+   `mysql2` < 3.22). Pinned to patched versions with pnpm overrides; Prisma config loading, client generation,
+   migrations and the schema-drift check were re-run against them.
+3. **gitleaks false positive.** Re-padding the ROADMAP table made the P03 row's prose ("API keys, matching…")
+   match `generic-api-key`. The prose-only ROADMAP is allow-listed with its reason in `.gitleaks.toml`.
+
+On the run before the last two fixes, every other job was green: lint · typecheck · unit, both e2e shards, db
+(migrate, rls-audit, drift), Storybook axe, and Terraform (fmt, validate, tflint).
 
 ## Known gaps carried into P01
 

@@ -4,5 +4,10 @@ title = "SalesMaker gitleaks config"
 useDefault = true
 
 [allowlist]
-description = "Documented placeholder values in .env.example"
-paths = ['''\.env\.example$''']
+description = "Documented placeholders and prose-only docs"
+paths = [
+  # Local-dev placeholder values, never real secrets.
+  '''\.env\.example$''',
+  # The phase table's prose ("REST API + API keys, matching/…") trips generic-api-key.
+  '''docs/phases/ROADMAP\.md$''',
+]

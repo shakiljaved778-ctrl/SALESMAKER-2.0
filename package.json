@@ -1,7 +1,7 @@
 {
   "name": "salesmaker",
   "private": true,
-  "description": "SalesMaker 2.0 \u2014 multi-tenant, AI-native CRM and sales-execution platform",
+  "description": "SalesMaker 2.0 — multi-tenant, AI-native CRM and sales-execution platform",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22.12"
@@ -31,6 +31,10 @@
     "onlyBuiltDependencies": [
       "argon2",
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "deepmerge-ts@<8.0.0": "8.0.2",
+      "mysql2@<3.22.0": "3.24.4"
+    }
   }
 }
