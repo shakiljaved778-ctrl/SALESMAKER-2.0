@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "salesmaker-dev",
+      "credentials": [{ "accessKey": "sm-dev-access", "secretKey": "sm-dev-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

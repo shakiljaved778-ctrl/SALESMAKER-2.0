@@ -1,0 +1,10 @@
+# Override for restricted-network environments where the Postgres image cannot run apt
+# (for example sandboxed CI). Uses the upstream pgvector image without pg_partman:
+#   docker compose -f docker-compose.yml -f docker-compose.sandbox.yml up -d
+services:
+  postgres:
+    build: !reset null
+    image: pgvector/pgvector:pg16
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/docker/postgres/init:/docker-entrypoint-initdb.d:ro

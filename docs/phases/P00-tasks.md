@@ -4,7 +4,7 @@ Tick each box when the task's PR is merged with CI green. Details are in `P00-pl
 
 - [x] **T01** `chore(repo): monorepo scaffold`
 - [x] **T02** `ci: pipeline and security scans`
-- [ ] **T03** `chore(dev): docker compose stack`
+- [x] **T03** `chore(dev): docker compose stack`
 - [ ] **T04** `feat(db): roles, RLS helper, platform schema`
 - [ ] **T05** `feat(db): withTenant + Kysely bridge + rls-audit`
 - [ ] **T06** `feat(control-api): skeleton + tenant directory`

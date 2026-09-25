@@ -1,0 +1,55 @@
+# Local development stack (§13.6; SeaweedFS stands in for MinIO, see P00 handoff). `docker compose up -d`, then `pnpm dev`.
+# Nothing here talks to a real third-party service: apps/fakes stands in for Google,
+# Microsoft, HIBP and (later) Twilio/Meta/Stripe.
+name: salesmaker
+
+services:
+  postgres:
+    build: ./infra/docker/postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ['5432:5432']
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 5s
+      retries: 20
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    ports: ['6379:6379']
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 5s
+      retries: 20
+
+  # S3-compatible object storage (Apache-2.0). MinIO no longer ships Docker images and is AGPL.
+  s3:
+    image: chrislusf/seaweedfs:latest
+    command: server -dir=/data -s3 -s3.port=9000 -s3.config=/etc/seaweedfs/s3.json
+    ports: ['9000:9000']
+    volumes:
+      - s3data:/data
+      - ./infra/docker/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports: ['1025:1025', '8025:8025']
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    environment:
+      COLLECTOR_OTLP_ENABLED: 'true'
+    ports: ['16686:16686']
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ['--config=/etc/otel/collector.yaml']
+    volumes: ['./infra/docker/otel/collector.yaml:/etc/otel/collector.yaml:ro']
+    ports: ['4317:4317', '4318:4318']
+    depends_on: [jaeger]
+
+volumes:
+  pgdata:
+  s3data:
