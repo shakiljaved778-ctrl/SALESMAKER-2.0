@@ -50,6 +50,17 @@ describe('IconButton', () => {
     );
     expect(screen.getByRole('button', { name: 'Delete record' })).toBeInTheDocument();
   });
+
+  it('shows exactly its own icon, even in the ai variant', () => {
+    render(
+      <IconButton label="AI assistant" variant="ai">
+        <svg data-testid="own-icon" />
+      </IconButton>,
+    );
+    const button = screen.getByRole('button', { name: 'AI assistant' });
+    expect(button.querySelectorAll('svg')).toHaveLength(1);
+    expect(screen.getByTestId('own-icon')).toBeInTheDocument();
+  });
 });
 
 describe('FormField + Input', () => {

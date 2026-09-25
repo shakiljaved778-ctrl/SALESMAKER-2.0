@@ -21,6 +21,10 @@ export function rememberSession(session: Session): void {
   current = session;
 }
 
+export function accessToken(): string | undefined {
+  return current?.accessToken;
+}
+
 export type SessionState =
   | { status: 'loading' }
   | { status: 'signed-in'; session: Session & { user: Me } }

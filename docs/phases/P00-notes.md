@@ -35,6 +35,13 @@ Deviations from the plan or spec, known issues and follow-ups, recorded as they 
 - **Refreshes are serialised in the browser** (T22). Refresh tokens are single-use with reuse detection, so the page
   shares one in-flight refresh and serialises across tabs with a Web Lock; each request then carries the latest cookie.
 - **Next.js telemetry is off** in the web scripts (no third-party calls from CI or dev machines).
+- **Content-Security-Policy** (T23). `proxy.ts` issues a per-request nonce: scripts need it (`'strict-dynamic'`), and
+  nothing loads from another origin. Inline style _attributes_ are allowed (`style-src-attr`) because Radix positions
+  overlays with them; the scroll-lock `<style>` gets the nonce through `get-nonce`.
+- **Top-bar menus are non-modal** (T23). A modal dropdown hides the rest of the page with `aria-hidden` while the skip
+  link stays focusable, which axe reports; menus launched from the top bar don't need a focus trap.
+- **Display preferences** (T23). The profile is the source of truth (§9.6); preference cookies cache it so the next
+  page renders without a flash, and the shell applies the profile's values after the session restores.
 
 ## Known issues and follow-ups
 
@@ -58,8 +65,6 @@ Deviations from the plan or spec, known issues and follow-ups, recorded as they 
 - **Client IP behind the BFF.** Auth calls reach the cell from the web tier, so the cell's pre-auth per-IP limit sees
   the BFF's address. Before GA, the BFF must forward the client IP in a header the cell trusts only from the web tier
   (a service token, like cell-to-control-plane calls), and the lockout must key on it.
-- **Content-Security-Policy** arrives with the app shell (T23), once every script and style source is known. Baseline
-  headers (nosniff, frame DENY, referrer and permissions policies) are set now.
 - **Fonts ship the Latin subset only** (English UI in v1). Add latin-ext and the Arabic face when those locales ship.
 - **Google/Microsoft redirect URIs.** Workspace sign-in uses `{slug}.{base}/auth/callback/{provider}`. The fakes accept
   any redirect URI, but the real providers need every redirect URI registered, and per-workspace hosts cannot be. Before

@@ -24,7 +24,7 @@ Tick each box when the task's PR is merged with CI green. Details are in `P00-pl
 - [x] **T20** `feat(i18n): next-intl + pseudo-locales + key check`
 - [x] **T21** `feat(web): Next.js app skeleton`
 - [x] **T22** `feat(web): T9 auth screens`
-- [ ] **T23** `feat(web): app shell + ⌘K shell + system pages`
+- [x] **T23** `feat(web): app shell + ⌘K shell + system pages`
 - [ ] **T24** `chore(infra): Terraform skeleton`
 - [ ] **T25** `test(e2e): exit-gate journeys`
 - [ ] **T26** `docs: P00 docs + handoff`

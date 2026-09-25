@@ -10,6 +10,7 @@ export const PREFERENCE_COOKIES = {
   theme: 'sm_theme',
   density: 'sm_density',
   locale: 'sm_locale',
+  sidebar: 'sm_sidebar',
 } as const;
 
 export interface Preferences {

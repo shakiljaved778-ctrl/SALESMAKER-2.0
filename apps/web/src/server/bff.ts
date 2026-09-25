@@ -4,6 +4,7 @@ import {
   LoginResponse,
   MeResponse,
   MfaChallengeRequest,
+  PreferencesPatch,
   ProblemDetails,
   ResetPasswordRequest,
   SessionTokens,
@@ -69,7 +70,7 @@ export async function cellRequest(
   baseUrl: string,
   path: string,
   init: {
-    method?: 'GET' | 'POST';
+    method?: 'GET' | 'POST' | 'PATCH';
     body?: unknown;
     headers?: Record<string, string>;
     request?: Request;
@@ -269,4 +270,27 @@ export const logout: Handler = withTenantAndOrigin(async (request, deps, tenant)
     status: 204,
     headers: { 'set-cookie': clearRefreshCookie(deps.scheme), 'cache-control': 'no-store' },
   });
+});
+
+/**
+ * Save display preferences to the profile (§9.6: persisted per user). The page's in-memory access
+ * token authorises it; the cell enforces that the token belongs to this workspace.
+ */
+export const savePreferences: Handler = withTenantAndOrigin(async (request, deps, tenant) => {
+  const authorization = request.headers.get('authorization');
+  if (!authorization?.startsWith('Bearer ')) {
+    return problem(401, 'unauthenticated', 'Sign in to continue');
+  }
+  const input = await readJson(request, PreferencesPatch);
+  if (!input.success) return invalid(input.error);
+  const result = await cellRequest(deps, tenant.cell.apiBaseUrl, '/v1/me/preferences', {
+    method: 'PATCH',
+    body: input.data,
+    headers: { authorization },
+    request,
+  });
+  if (!result) return unavailable();
+  if (result.status !== 200) return relayProblem(result);
+  const user = MeResponse.safeParse(result.body);
+  return user.success ? json(user.data) : unavailable();
 });

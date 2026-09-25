@@ -113,10 +113,10 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
         variant={variant ?? 'ghost'}
         size={size}
         className={cn(square, className)}
+        // The icon is the button's own icon, so the ai variant does not add a second sparkle.
+        icon={children}
         {...props}
-      >
-        {children}
-      </Button>
+      />
     </Tooltip>
   );
 });

@@ -1,5 +1,6 @@
 'use client';
 
+import { Check } from 'lucide-react';
 import { DropdownMenu as MenuPrimitive } from 'radix-ui';
 import type { ReactNode } from 'react';
 
@@ -17,7 +18,15 @@ export type MenuEntry =
       onSelect: () => void;
     }
   | { type: 'separator' }
-  | { type: 'label'; label: string };
+  | { type: 'label'; label: string }
+  | {
+      /** A set of exclusive choices (e.g. theme); exposed as menuitemradio with aria-checked. */
+      type: 'radio';
+      label: string;
+      value: string;
+      options: { value: string; label: string }[];
+      onValueChange: (value: string) => void;
+    };
 
 /** Dropdown menu (§9.10): keyboard navigable, icons, shortcut hints, destructive items last. */
 export function DropdownMenu({
@@ -54,6 +63,32 @@ export function DropdownMenu({
                   className="my-1 h-px bg-line-subtle"
                 />
               );
+            if (entry.type === 'radio') {
+              return (
+                <MenuPrimitive.Group key={`radio-${entry.label}`}>
+                  <MenuPrimitive.Label className="px-2 pb-1 pt-1.5 text-label text-fg-secondary">
+                    {entry.label}
+                  </MenuPrimitive.Label>
+                  <MenuPrimitive.RadioGroup value={entry.value} onValueChange={entry.onValueChange}>
+                    {entry.options.map((option) => (
+                      <MenuPrimitive.RadioItem
+                        key={option.value}
+                        value={option.value}
+                        onSelect={(event) => {
+                          event.preventDefault();
+                        }}
+                        className="flex h-8 cursor-default select-none items-center gap-2 rounded-sm ps-8 pe-2 text-body outline-none data-[highlighted]:bg-hover relative [&_svg]:size-4"
+                      >
+                        <MenuPrimitive.ItemIndicator className="absolute start-2 inline-flex text-primary">
+                          <Check aria-hidden="true" />
+                        </MenuPrimitive.ItemIndicator>
+                        {option.label}
+                      </MenuPrimitive.RadioItem>
+                    ))}
+                  </MenuPrimitive.RadioGroup>
+                </MenuPrimitive.Group>
+              );
+            }
             if (entry.type === 'label') {
               return (
                 <MenuPrimitive.Label

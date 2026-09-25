@@ -69,6 +69,40 @@ describe('DropdownMenu', () => {
     await userEvent.click(screen.getByRole('menuitem', { name: 'Edit' }));
     expect(onEdit).toHaveBeenCalledOnce();
   });
+
+  it('offers exclusive choices as checked radio items and stays open to show the change', async () => {
+    const onTheme = vi.fn();
+    render(
+      <DropdownMenu
+        label="Account"
+        trigger={<button type="button">Account</button>}
+        items={[
+          {
+            type: 'radio',
+            label: 'Theme',
+            value: 'dark',
+            options: [
+              { value: 'light', label: 'Light' },
+              { value: 'dark', label: 'Dark' },
+            ],
+            onValueChange: onTheme,
+          },
+        ]}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Account' }));
+    expect(screen.getByRole('menuitemradio', { name: 'Dark' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    expect(screen.getByRole('menuitemradio', { name: 'Light' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Light' }));
+    expect(onTheme).toHaveBeenCalledWith('light');
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+  });
 });
 
 describe('Tabs', () => {

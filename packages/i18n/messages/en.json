@@ -183,14 +183,16 @@
       "setup": "Setup",
       "help": "Help",
       "collapse": "Collapse sidebar",
-      "expand": "Expand sidebar"
+      "expand": "Expand sidebar",
+      "label": "Main navigation"
     },
     "topBar": {
       "search": "Search or run a command",
       "new": "New",
       "assistant": "AI assistant",
       "notifications": "Notifications",
-      "account": "Account menu"
+      "account": "Account menu",
+      "breadcrumbs": "Breadcrumb"
     },
     "display": {
       "title": "Display",
@@ -209,14 +211,30 @@
       "navigation": "Go to",
       "noResults": "No matches. Try a different word.",
       "switchTheme": "Switch to {theme} theme",
-      "setDensity": "Set density to {density}"
+      "setDensity": "Set density to {density}",
+      "label": "Command palette",
+      "hints": {
+        "navigate": "Navigate",
+        "select": "Open",
+        "scope": "Scope",
+        "close": "Close"
+      },
+      "showShortcuts": "Show keyboard shortcuts"
     },
     "tabs": {
       "empty": "Records you open appear here as tabs.",
-      "close": "Close tab"
+      "close": "Close tab",
+      "label": "Open records"
     },
     "shortcuts": {
-      "title": "Keyboard shortcuts"
+      "title": "Keyboard shortcuts",
+      "global": "Anywhere",
+      "goTo": "Go to",
+      "then": "then",
+      "palette": "Open the command palette",
+      "assistant": "Open the AI assistant",
+      "sidebar": "Collapse or expand the sidebar",
+      "help": "Show keyboard shortcuts"
     },
     "home": {
       "greeting": "Good {period, select, morning {morning} afternoon {afternoon} other {evening}}, {name}",
@@ -224,7 +242,24 @@
       "emptyBody": "Once you import leads or connect your email, your queue, tasks and meetings show up on this page.",
       "emptyAction": "Import leads"
     },
-    "comingSoon": "This area arrives in a later release."
+    "comingSoon": "This area arrives in a later release.",
+    "skipToContent": "Skip to content",
+    "new": {
+      "lead": "Lead",
+      "account": "Account",
+      "contact": "Contact",
+      "opportunity": "Opportunity",
+      "task": "Task"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "empty": "Nothing new. Mentions, approvals and assignments show up here."
+    },
+    "account": {
+      "signedInAs": "Signed in as {email}",
+      "shortcuts": "Keyboard shortcuts"
+    },
+    "comingSoonTitle": "{section} is on its way"
   },
   "system": {
     "notFound": {
@@ -244,7 +279,8 @@
     },
     "maintenance": {
       "title": "We're making improvements",
-      "body": "SalesMaker is briefly unavailable for maintenance. Your data is safe. Please check back soon."
+      "body": "SalesMaker is briefly unavailable for maintenance. Your data is safe. Please check back soon.",
+      "action": "Try again"
     }
   }
 }
