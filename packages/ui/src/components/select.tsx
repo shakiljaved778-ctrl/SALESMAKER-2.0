@@ -1,3 +1,5 @@
+'use client';
+
 import { Check, ChevronDown } from 'lucide-react';
 import { Select as SelectPrimitive } from 'radix-ui';
 import type { ReactNode } from 'react';

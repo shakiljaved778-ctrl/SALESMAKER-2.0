@@ -1,0 +1,13 @@
+{
+  "extends": "@sm/config/tsconfig/react.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowJs": false,
+    "jsx": "preserve",
+    "incremental": true,
+    "types": ["node"],
+    "plugins": [{ "name": "next" }]
+  },
+  "include": ["src", "test", "next.config.ts", "vitest.config.ts", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}

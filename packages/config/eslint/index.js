@@ -78,6 +78,6 @@ export function ui({ tokenFiles = ['**/tokens/**'] } = {}) {
         'sm/design-tokens': 'error',
       },
     },
-    { files: tokenFiles, rules: { 'sm/design-tokens': 'off' } },
+    ...(tokenFiles.length ? [{ files: tokenFiles, rules: { 'sm/design-tokens': 'off' } }] : []),
   ];
 }

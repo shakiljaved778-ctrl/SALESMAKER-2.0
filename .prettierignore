@@ -8,3 +8,4 @@ docs/spec/MASTER_SPEC.md
 **/generated
 packages/i18n/messages/en-XA.json
 packages/ui/src/styles/tokens.css
+**/next-env.d.ts

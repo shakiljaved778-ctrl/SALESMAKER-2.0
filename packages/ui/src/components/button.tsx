@@ -1,3 +1,5 @@
+'use client';
+
 import { cva, type VariantProps } from 'class-variance-authority';
 import { LoaderCircle, Sparkles } from 'lucide-react';
 import { Slot } from 'radix-ui';

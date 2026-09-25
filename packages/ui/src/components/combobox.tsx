@@ -1,3 +1,5 @@
+'use client';
+
 import { Command } from 'cmdk';
 import { Check, ChevronsUpDown, LoaderCircle, Plus } from 'lucide-react';
 import { Popover } from 'radix-ui';

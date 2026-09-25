@@ -23,6 +23,10 @@ pnpm db:setup            # roles, extensions and migrations for the cell and con
 pnpm dev                 # api :4000, control-api :4100, fakes :4200, web :3000
 ```
 
+The apex is http://localhost:3000 (sign up, find your workspace), and each workspace lives at
+`http://{slug}.localhost:3000`: the web app resolves the host through the control plane to the workspace's cell.
+Chromium and Firefox resolve `*.localhost` to loopback with no hosts-file changes.
+
 Mail sent locally lands in Mailpit at http://localhost:8025, and nothing is delivered. "Continue with Google/Microsoft"
 uses the fake identity providers in `apps/fakes`. In restricted networks where the Postgres image cannot install
 packages, use `docker compose -f docker-compose.yml -f docker-compose.sandbox.yml up -d`.

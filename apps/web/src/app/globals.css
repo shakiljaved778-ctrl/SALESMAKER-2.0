@@ -1,0 +1,13 @@
+@import '@sm/ui/styles.css';
+
+/* Tailwind scans this app and the compiled component library for class names. */
+@source '../../../../packages/ui/dist';
+
+/* next/font generates the font-face names; put them first in the token stacks (§9.3). */
+:root {
+  --font-family-sans:
+    var(--font-inter), 'Inter Variable', Inter, 'IBM Plex Sans Arabic', -apple-system, 'Segoe UI',
+    Roboto, sans-serif;
+  --font-family-mono:
+    var(--font-jetbrains-mono), 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}

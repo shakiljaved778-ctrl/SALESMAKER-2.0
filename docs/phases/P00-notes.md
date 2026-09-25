@@ -19,6 +19,13 @@ Deviations from the plan or spec, known issues and follow-ups, recorded as they 
   transaction-local setting has ended, and `''` must never be cast to uuid.
 - **Version pins** (ADR-0002 addendum): TypeScript 6.0.3 (typescript-eslint does not support 7 yet) and Prisma 7.10.0
   (npm `latest` is an 8.0 release candidate).
+- **No theme script** (T21). The plan listed a no-flash theme script. Theme, density, locale and direction are
+  rendered on `<html>` from preference cookies, and `system` resolves in CSS (`prefers-color-scheme` in `tokens.css`),
+  so the first paint is already right with no inline script and no CSP nonce.
+- **Next.js 16** (T21). The current stable release. Middleware is not used: tenant resolution happens per request in
+  Server Components and BFF route handlers, through one cached `TenantDirectory`.
+- **`@sm/ui` client boundaries** (T21). Interactive component modules declare `'use client'`, guarded by
+  `test/client-boundary.test.ts`, so Server Components can import from the barrel.
 
 ## Known issues and follow-ups
 
@@ -39,3 +46,9 @@ Deviations from the plan or spec, known issues and follow-ups, recorded as they 
   (§13.3), because font rendering can differ slightly between environments. The axe pass is blocking.
 - **Tailwind needs literal class names.** A story built `text-${name}` dynamically and the classes were never
   generated; the visual baseline caught it. Components must use literal class maps.
+- **Client IP behind the BFF.** Auth calls reach the cell from the web tier, so the cell's pre-auth per-IP limit sees
+  the BFF's address. Before GA, the BFF must forward the client IP in a header the cell trusts only from the web tier
+  (a service token, like cell-to-control-plane calls), and the lockout must key on it.
+- **Content-Security-Policy** arrives with the app shell (T23), once every script and style source is known. Baseline
+  headers (nosniff, frame DENY, referrer and permissions policies) are set now.
+- **Fonts ship the Latin subset only** (English UI in v1). Add latin-ext and the Arabic face when those locales ship.

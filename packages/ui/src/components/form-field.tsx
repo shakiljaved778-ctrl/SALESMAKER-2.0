@@ -1,3 +1,5 @@
+'use client';
+
 import { createContext, useContext, useId, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn.js';

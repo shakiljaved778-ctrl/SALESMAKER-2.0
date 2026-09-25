@@ -1,0 +1,39 @@
+{
+  "name": "@sm/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Web app (Next.js App Router): tenant resolution via the control plane, BFF auth route handlers that own the session cookie, and the product UI (\u00a73.1, \u00a79)",
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@sm/contracts": "workspace:*",
+    "@sm/i18n": "workspace:*",
+    "@sm/ui": "workspace:*",
+    "next": "16.3.6",
+    "next-intl": "4.14.7",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "0.0.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "26.6.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.11.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}
