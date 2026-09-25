@@ -3,14 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Cell API (NestJS on Fastify): the regional data plane (\u00a73.1, \u00a73.6)",
+  "description": "Cell API (NestJS on Fastify): the regional data plane (§3.1, §3.6)",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --env-file-if-exists=../../.env --watch dist/main.js",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "openapi:write": "node scripts/write-openapi.js"
   },
   "dependencies": {

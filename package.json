@@ -23,6 +23,7 @@
     "db:setup": "node --env-file=.env scripts/db-setup.mjs"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "5.0.2",
     "prettier": "3.9.9",
     "turbo": "2.11.4",
     "typescript": "6.0.3"

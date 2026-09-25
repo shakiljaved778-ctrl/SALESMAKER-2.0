@@ -2,7 +2,7 @@ import { Writable } from 'node:stream';
 
 import { describe, expect, it } from 'vitest';
 
-import { createLogger, requestContext, scrubPii } from '../src/index.js';
+import { createLogger, PinoNestLogger, requestContext, scrubPii } from '../src/index.js';
 
 describe('scrubPii (§11.4)', () => {
   it('masks emails and phone numbers', () => {
@@ -23,7 +23,7 @@ describe('scrubPii (§11.4)', () => {
   });
 });
 
-function capture() {
+function capture(level?: string) {
   const lines: Record<string, unknown>[] = [];
   const destination = new Writable({
     write(chunk: Buffer, _enc, cb) {
@@ -31,7 +31,10 @@ function capture() {
       cb();
     },
   });
-  return { lines, logger: createLogger({ service: 'test', destination }) };
+  return {
+    lines,
+    logger: createLogger({ service: 'test', destination, ...(level ? { level } : {}) }),
+  };
 }
 
 describe('createLogger', () => {
@@ -66,5 +69,25 @@ describe('createLogger', () => {
       tenantId: '01920000-0000-7000-8000-00000000000a',
       userId: '01920000-0000-7000-8000-0000000000ff',
     });
+  });
+});
+
+describe('PinoNestLogger', () => {
+  it('maps every NestJS log level onto pino with its context', () => {
+    const { lines, logger } = capture('trace');
+    const nest = new PinoNestLogger(logger);
+    nest.log('started', 'App');
+    nest.error('boom', 'Error: boom\n    at x', 'Router');
+    nest.warn('careful', 'Router');
+    nest.debug('detail', 'Router');
+    nest.verbose('noise');
+    expect(lines.map((l) => [l['level'], l['msg'], l['context']])).toEqual([
+      [30, 'started', 'App'],
+      [50, 'boom', 'Router'],
+      [40, 'careful', 'Router'],
+      [20, 'detail', 'Router'],
+      [10, 'noise', undefined],
+    ]);
+    expect(lines[1]).toMatchObject({ trace: 'Error: boom\n    at x' });
   });
 });

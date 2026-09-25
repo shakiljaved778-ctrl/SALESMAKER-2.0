@@ -61,3 +61,32 @@ describe('untrusted (§8.2)', () => {
     );
   });
 });
+
+describe('AIGateway.complete (§8.1)', () => {
+  it('meters a successful call with the provider usage', async () => {
+    const usage: AIUsageRecord[] = [];
+    const llm = new FakeLLMProvider().queue('hello back');
+    const result = await new AIGateway(llm, (u) => usage.push(u)).complete(request);
+    expect(result.text).toBe('hello back');
+    expect(usage).toEqual([
+      expect.objectContaining({ model: 'fake-model', inputTokens: 10, outcome: 'ok' }),
+    ]);
+  });
+
+  it('meters a provider failure and rethrows it', async () => {
+    const usage: AIUsageRecord[] = [];
+    const gateway = new AIGateway(new FakeLLMProvider(), (u) => usage.push(u));
+    await expect(gateway.complete(request)).rejects.toThrow('no queued response');
+    expect(usage).toEqual([
+      {
+        promptRef: 'classify-intent@1',
+        model: 'fake-llm',
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: 0,
+        attempt: 1,
+        outcome: 'provider_error',
+      },
+    ]);
+  });
+});

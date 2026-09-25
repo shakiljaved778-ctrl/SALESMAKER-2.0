@@ -6,5 +6,5 @@
     "jsx": "react-jsx",
     "lib": ["ES2023", "DOM"]
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "vitest.config.ts"]
 }

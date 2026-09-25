@@ -3,14 +3,14 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Web app (Next.js App Router): tenant resolution via the control plane, BFF auth route handlers that own the session cookie, and the product UI (\u00a73.1, \u00a79)",
+  "description": "Web app (Next.js App Router): tenant resolution via the control plane, BFF auth route handlers that own the session cookie, and the product UI (§3.1, §9)",
   "scripts": {
     "dev": "NEXT_TELEMETRY_DISABLED=1 next dev --port 3000",
     "build": "NEXT_TELEMETRY_DISABLED=1 next build",
     "start": "NEXT_TELEMETRY_DISABLED=1 next start --port 3000",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:e2e": "playwright test -c e2e/playwright.config.ts"
   },
   "dependencies": {

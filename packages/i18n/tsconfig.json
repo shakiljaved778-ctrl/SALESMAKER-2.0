@@ -1,5 +1,8 @@
 {
   "extends": "@sm/config/tsconfig/node.json",
-  "compilerOptions": { "rootDir": ".", "outDir": "dist" },
-  "include": ["src", "test", "messages/*.json"]
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist"
+  },
+  "include": ["src", "test", "messages/*.json", "vitest.config.ts"]
 }

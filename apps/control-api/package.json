@@ -11,7 +11,7 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "db:migrate": "prisma migrate deploy",
     "openapi:write": "node scripts/write-openapi.js"
   },

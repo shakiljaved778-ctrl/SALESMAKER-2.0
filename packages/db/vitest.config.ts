@@ -1,3 +1,4 @@
+import { coverage } from '@sm/config/vitest';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -6,5 +7,6 @@ export default defineConfig({
     globalSetup: ['test/global-setup.ts'],
     testTimeout: 60_000,
     hookTimeout: 120_000,
+    coverage: coverage(),
   },
 });

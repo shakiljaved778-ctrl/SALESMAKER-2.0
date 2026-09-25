@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Adapter interfaces for third-party services, with real and fake implementations (\u00a710.5). No real third-party call ever happens in CI.",
+  "description": "Adapter interfaces for third-party services, with real and fake implementations (§10.5). No real third-party call ever happens in CI.",
   "exports": {
     ".": "./dist/index.js"
   },
@@ -12,7 +12,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "nodemailer": "10.0.10",
@@ -23,6 +23,7 @@
     "@types/node": "26.6.2",
     "@types/nodemailer": "8.0.2",
     "eslint": "10.11.0",
+    "jose": "6.2.12",
     "typescript": "6.0.3",
     "vitest": "5.0.2"
   }

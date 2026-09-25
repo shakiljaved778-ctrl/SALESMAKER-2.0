@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Shared NestJS/Fastify plumbing for SalesMaker services: request context, logging with PII redaction, RFC 9457 errors, zod validation, rate limiting and telemetry (\u00a73.6, \u00a711.4)",
+  "description": "Shared NestJS/Fastify plumbing for SalesMaker services: request context, logging with PII redaction, RFC 9457 errors, zod validation, rate limiting and telemetry (§3.6, §11.4)",
   "exports": {
     ".": "./dist/index.js",
     "./telemetry": "./dist/telemetry.js"
@@ -13,7 +13,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@nestjs/common": "12.1.0",

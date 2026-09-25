@@ -9,11 +9,15 @@
     "./eslint/plugin": "./eslint/plugin.js",
     "./tsconfig/base.json": "./tsconfig/base.json",
     "./tsconfig/node.json": "./tsconfig/node.json",
-    "./tsconfig/react.json": "./tsconfig/react.json"
+    "./tsconfig/react.json": "./tsconfig/react.json",
+    "./vitest": {
+      "types": "./vitest/coverage.d.ts",
+      "default": "./vitest/coverage.js"
+    }
   },
   "scripts": {
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@eslint/js": "10.0.1",

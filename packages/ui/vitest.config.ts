@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react';
+import { coverage } from '@sm/config/vitest';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -6,5 +7,6 @@ export default defineConfig({
   test: {
     include: ['test/**/*.test.ts', 'src/**/*.test.tsx'],
     setupFiles: ['test/setup.ts'],
+    coverage: coverage(),
   },
 });

@@ -2,7 +2,7 @@
 
 Tick each box when the task's commit is pushed with CI green. Details are in `P01-plan.md`.
 
-- [ ] **T01** `ci: coverage gates`
+- [x] **T01** `ci: coverage gates` — shared `coverage()` gate in `@sm/config/vitest` (80% lines; 90% for formula, permissions and query-engine, guarded by a test); every vitest workspace runs `--coverage`. Web gates the BFF (`src/server`); pages are covered by e2e.
 - [ ] **T02** `feat(metadata): standard object catalogue`
 - [ ] **T03** `feat(db): hierarchy schema`
 - [ ] **T04** `feat(db): permission schema`

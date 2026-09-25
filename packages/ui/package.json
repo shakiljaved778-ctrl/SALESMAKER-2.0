@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "SalesMaker Design Language (\u00a79): tokens, Tailwind v4 theme and the component library. No data fetching.",
+  "description": "SalesMaker Design Language (§9): tokens, Tailwind v4 theme and the component library. No data fetching.",
   "exports": {
     ".": "./dist/index.js",
     "./tokens": "./dist/tokens/index.js",
@@ -16,7 +16,7 @@
     "tokens": "tsc -p tsconfig.build.json && node scripts/write-tokens.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o storybook-static --quiet",
     "test:stories": "playwright test -c playwright.config.ts"

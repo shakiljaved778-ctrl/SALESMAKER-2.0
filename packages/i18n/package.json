@@ -14,7 +14,7 @@
     "build": "tsc -p tsconfig.build.json && node scripts/i18n.js generate",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "i18n:check": "node scripts/i18n.js check"
   },
   "dependencies": {

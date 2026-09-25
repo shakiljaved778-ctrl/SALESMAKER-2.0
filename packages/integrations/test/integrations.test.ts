@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   FakeEmailSender,
@@ -6,6 +6,7 @@ import {
   sha1Upper,
   SmtpEmailSender,
 } from '../src/index.js';
+import { startFakeSmtpServer, type FakeSmtpServer } from './fake-smtp-server.js';
 
 describe('RangeApiBreachedPasswordChecker', () => {
   it('sends only the 5-character prefix and finds the suffix in the response', async () => {
@@ -54,9 +55,17 @@ describe('FakeEmailSender', () => {
 });
 
 describe('SmtpEmailSender', () => {
-  it.skipIf(!process.env['TEST_SMTP_URL'])('delivers to the local SMTP catcher', async () => {
+  let smtp: FakeSmtpServer;
+  beforeAll(async () => {
+    smtp = await startFakeSmtpServer();
+  });
+  afterAll(async () => {
+    await smtp.close();
+  });
+
+  it('delivers over SMTP with the idempotency and tag headers', async () => {
     const sender = new SmtpEmailSender(
-      process.env['TEST_SMTP_URL'] ?? '',
+      `smtp://127.0.0.1:${String(smtp.port)}`,
       'SalesMaker <no-reply@salesmaker.localhost>',
     );
     const { messageId } = await sender.send({
@@ -64,7 +73,22 @@ describe('SmtpEmailSender', () => {
       subject: 'Test',
       html: '<p>t</p>',
       text: 't',
+      idempotencyKey: 'key-1',
+      tags: { kind: 'verify' },
     });
     expect(messageId).toMatch(/@/);
+    const [mail] = smtp.messages;
+    expect(mail?.from).toBe('no-reply@salesmaker.localhost');
+    expect(mail?.to).toEqual(['dev@salesmaker.localhost']);
+    expect(mail?.data).toMatch(/^Subject: Test$/m);
+    expect(mail?.data).toMatch(/^X-SM-Idempotency-Key: key-1$/im);
+    expect(mail?.data).toMatch(/^X-SM-Tag-kind: verify$/im);
+  });
+
+  it('sends no custom headers when none are given', async () => {
+    const sender = new SmtpEmailSender(`smtp://127.0.0.1:${String(smtp.port)}`, 'a@b.test');
+    await sender.send({ to: 'x@y.test', subject: 'Plain', html: '<p>p</p>', text: 'p' });
+    const mail = smtp.messages.at(-1);
+    expect(mail?.data).not.toMatch(/X-SM-/i);
   });
 });
