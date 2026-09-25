@@ -1,0 +1,27 @@
+{
+  "name": "@sm/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "zod contracts shared by web and API, and the OpenAPI 3.1 generator (golden rule 7)",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@types/node": "26.6.2",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}
