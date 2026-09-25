@@ -1,12 +1,14 @@
 import { RangeApiBreachedPasswordChecker } from '@sm/integrations';
+import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { buildFakesServer } from '../src/server.js';
+import { buildFakesServer } from '../src/index.js';
 
-const app = buildFakesServer();
+let app: FastifyInstance;
 let baseUrl = '';
 
 beforeAll(async () => {
+  app = await buildFakesServer({ baseUrl: 'http://127.0.0.1', providers: {} });
   baseUrl = `${await app.listen({ port: 0, host: '127.0.0.1' })}/hibp`;
 });
 

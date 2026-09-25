@@ -41,6 +41,19 @@ export const ApiConfigSchema = z.object({
   ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
 
+  // ── Social sign-in (§6.1). A provider is enabled when its issuer is set. ─────
+  OIDC_GOOGLE_ISSUER: z.url().optional(),
+  OIDC_GOOGLE_CLIENT_ID: z.string().optional(),
+  OIDC_GOOGLE_CLIENT_SECRET: z.string().optional(),
+  OIDC_MICROSOFT_ISSUER: z.url().optional(),
+  OIDC_MICROSOFT_CLIENT_ID: z.string().optional(),
+  OIDC_MICROSOFT_CLIENT_SECRET: z.string().optional(),
+  /** Only for the local HTTP fakes. Refused when NODE_ENV=production. */
+  OIDC_ALLOW_INSECURE_HTTP: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
+
   // ── Secrets at rest (§6.6): AES-256-GCM key ring; KMS-provided in deployed cells ──
   SECRETS_KEY_ID: z.string().min(1).default('local-1'),
   /** 32 random bytes, base64. */
@@ -60,5 +73,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     keyPath && !env['AUTH_JWT_PRIVATE_KEY_PEM']
       ? { ...env, AUTH_JWT_PRIVATE_KEY_PEM: readFileSync(keyPath, 'utf8') }
       : env;
-  return ApiConfigSchema.parse(withKey);
+  const config = ApiConfigSchema.parse(withKey);
+  if (config.OIDC_ALLOW_INSECURE_HTTP && env['NODE_ENV'] === 'production') {
+    throw new Error('OIDC_ALLOW_INSECURE_HTTP must not be enabled in production');
+  }
+  return config;
 }

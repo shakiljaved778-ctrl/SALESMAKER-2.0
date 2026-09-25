@@ -252,3 +252,62 @@ export const mfaRoutes = {
     },
   }),
 };
+
+export const OidcProviderParam = z.object({ provider: z.enum(['google', 'microsoft']) });
+
+export const OidcStartRequest = z.object({ redirectUri: z.url() }).meta({ id: 'OidcStartRequest' });
+
+/** The BFF keeps state, nonce and codeVerifier in a short-lived httpOnly cookie, never in the URL. */
+export const OidcStartResponse = z
+  .object({
+    authorizationUrl: z.url(),
+    state: z.string(),
+    nonce: z.string(),
+    codeVerifier: z.string(),
+  })
+  .meta({ id: 'OidcStartResponse' });
+
+export const OidcCallbackRequest = z
+  .object({
+    callbackUrl: z.url(),
+    redirectUri: z.url(),
+    state: z.string().min(16).max(256),
+    nonce: z.string().min(16).max(256),
+    codeVerifier: z.string().min(43).max(128),
+  })
+  .meta({ id: 'OidcCallbackRequest' });
+
+export const oidcRoutes = {
+  start: defineRoute({
+    method: 'post',
+    path: '/auth/oidc/{provider}/start',
+    operationId: 'startOidcSignIn',
+    summary: 'Begin Google or Microsoft sign-in (authorization code + PKCE)',
+    tags: ['auth'],
+    auth: 'public',
+    visibility: 'internal',
+    request: { params: OidcProviderParam, body: OidcStartRequest },
+    responses: {
+      200: {
+        description: 'Where to send the browser, and the values to keep',
+        body: OidcStartResponse,
+      },
+    },
+  }),
+  callback: defineRoute({
+    method: 'post',
+    path: '/auth/oidc/{provider}/callback',
+    operationId: 'completeOidcSignIn',
+    summary: 'Finish Google or Microsoft sign-in into a workspace',
+    description:
+      'Signs in a user already linked to this identity, or links it to an existing user with the same verified email. There is no auto-join: without an account in the workspace the answer is 403 (§6.1).',
+    tags: ['auth'],
+    auth: 'public',
+    visibility: 'internal',
+    request: { params: OidcProviderParam, headers: TenantHeader, body: OidcCallbackRequest },
+    responses: {
+      200: { description: 'Signed in, or a second factor is required', body: LoginResponse },
+      403: { description: 'No account for this identity in the workspace' },
+    },
+  }),
+};

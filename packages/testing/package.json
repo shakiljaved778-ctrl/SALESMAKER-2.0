@@ -1,9 +1,9 @@
 {
-  "name": "@sm/integrations",
+  "name": "@sm/testing",
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Adapter interfaces for third-party services, with real and fake implementations (\u00a710.5). No real third-party call ever happens in CI.",
+  "description": "Test support shared across the repo: fake third-party servers (OIDC IdPs, HIBP range API) used by apps/fakes, integration tests and e2e (§10.5, §13.3). Factories join in P01+.",
   "exports": {
     ".": "./dist/index.js"
   },
@@ -15,14 +15,16 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "nodemailer": "10.0.10",
-    "openid-client": "6.8.8"
+    "@fastify/formbody": "9.0.0",
+    "fastify": "5.12.5",
+    "jose": "6.2.12"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
+    "@sm/integrations": "workspace:*",
     "@types/node": "26.6.2",
-    "@types/nodemailer": "8.0.2",
     "eslint": "10.11.0",
+    "openid-client": "6.8.8",
     "typescript": "6.0.3",
     "vitest": "5.0.2"
   }

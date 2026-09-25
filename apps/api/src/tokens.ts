@@ -5,4 +5,5 @@ export const REDIS = Symbol('Redis');
 export const LOGGER = Symbol('Logger');
 export const EMAIL_SENDER = Symbol('EmailSender');
 export const SECRET_BOX = Symbol('SecretBox');
+export const OIDC_PROVIDERS = Symbol('OidcProviders');
 export const BREACHED_PASSWORDS = Symbol('BreachedPasswordChecker');

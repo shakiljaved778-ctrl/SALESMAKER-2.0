@@ -3,21 +3,20 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Local stand-ins for third-party services (HIBP range API; fake Google/Microsoft OIDC from T12). Used by dev, e2e and CI so no real third-party call is ever made (§10.5, §13.6).",
+  "description": "Serves the local stand-ins for third-party services from @sm/testing (fake Google/Microsoft OIDC, HIBP range API) on :4200 for dev and e2e, so no real third-party call is ever made (\u00a710.5, \u00a713.6).",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --watch dist/main.js",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "echo \"fakes are tested in @sm/testing\""
   },
   "dependencies": {
-    "fastify": "5.12.5"
+    "@sm/testing": "workspace:*"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
-    "@sm/integrations": "workspace:*",
     "@types/node": "26.6.2",
     "eslint": "10.11.0",
     "typescript": "6.0.3",

@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
+    "@sm/testing": "workspace:*",
     "@swc/core": "1.16.2",
     "@types/node": "26.6.2",
     "@types/pg": "8.23.1",

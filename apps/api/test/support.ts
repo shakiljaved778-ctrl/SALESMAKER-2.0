@@ -5,6 +5,7 @@ import { createTestCellDatabase, type TestCellDatabase } from '@sm/db/testing';
 import { FakeBreachedPasswordChecker, FakeEmailSender } from '@sm/integrations';
 import { uuidv7 } from 'uuidv7';
 import { inject } from 'vitest';
+import type { z } from 'zod';
 
 import { AuthService } from '../src/auth/auth.service.js';
 import { PasswordService } from '../src/auth/password.service.js';
@@ -38,7 +39,10 @@ export const JWT_KEYS = (() => {
 })();
 
 /** A real API on a fresh cell database and a Valkey namespace; nothing is mocked. */
-export async function startTestApi(overrides: Partial<ApiConfig> = {}): Promise<TestApi> {
+/** `overrides` are raw config inputs, as they would appear in the environment. */
+export async function startTestApi(
+  overrides: Partial<z.input<typeof ApiConfigSchema>> = {},
+): Promise<TestApi> {
   const db = await createTestCellDatabase(inject('pgServerAdminUrl'));
   const config = ApiConfigSchema.parse({
     CELL_ID: 'eu-central-1',

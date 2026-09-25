@@ -1,6 +1,10 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createCellPrisma, disposeCellPrisma } from '@sm/db';
-import { RangeApiBreachedPasswordChecker, SmtpEmailSender } from '@sm/integrations';
+import {
+  OpenIdConnectProvider,
+  RangeApiBreachedPasswordChecker,
+  SmtpEmailSender,
+} from '@sm/integrations';
 import {
   createFastifyApp,
   createLogger,
@@ -71,13 +75,23 @@ export async function createApiApp(
       ...config.SECRETS_PREVIOUS_KEYS,
       [config.SECRETS_KEY_ID]: config.SECRETS_KEY,
     });
+  const oidcProviders = overrides.oidcProviders ?? oidcProvidersFrom(config);
   const breachedPasswords =
     overrides.breachedPasswords ??
     new RangeApiBreachedPasswordChecker(config.BREACHED_PASSWORD_API_URL);
   const servedRoutes: string[] = [];
 
   const app = await createFastifyApp(
-    AppModule.forRoot({ config, prisma, redis, logger, email, breachedPasswords, secretBox }),
+    AppModule.forRoot({
+      config,
+      prisma,
+      redis,
+      logger,
+      email,
+      breachedPasswords,
+      secretBox,
+      oidcProviders,
+    }),
     {
       logger,
       configure(nest) {
@@ -129,4 +143,37 @@ export async function createApiApp(
       if (!overrides.redis) redis.disconnect();
     },
   };
+}
+
+/** Google and Microsoft are enabled when their issuer, client id and secret are configured. */
+function oidcProvidersFrom(config: ApiConfig): ApiDependencies['oidcProviders'] {
+  const providers: ApiDependencies['oidcProviders'] = {};
+  const allowInsecureHttp = config.OIDC_ALLOW_INSECURE_HTTP;
+  if (
+    config.OIDC_GOOGLE_ISSUER &&
+    config.OIDC_GOOGLE_CLIENT_ID &&
+    config.OIDC_GOOGLE_CLIENT_SECRET
+  ) {
+    providers.google = new OpenIdConnectProvider({
+      id: 'google',
+      issuer: config.OIDC_GOOGLE_ISSUER,
+      clientId: config.OIDC_GOOGLE_CLIENT_ID,
+      clientSecret: config.OIDC_GOOGLE_CLIENT_SECRET,
+      allowInsecureHttp,
+    });
+  }
+  if (
+    config.OIDC_MICROSOFT_ISSUER &&
+    config.OIDC_MICROSOFT_CLIENT_ID &&
+    config.OIDC_MICROSOFT_CLIENT_SECRET
+  ) {
+    providers.microsoft = new OpenIdConnectProvider({
+      id: 'microsoft',
+      issuer: config.OIDC_MICROSOFT_ISSUER,
+      clientId: config.OIDC_MICROSOFT_CLIENT_ID,
+      clientSecret: config.OIDC_MICROSOFT_CLIENT_SECRET,
+      allowInsecureHttp,
+    });
+  }
+  return providers;
 }

@@ -13,7 +13,7 @@ Tick each box when the task's PR is merged with CI green. Details are in `P00-pl
 - [x] **T09** `feat(integrations): adapter interfaces + fakes`
 - [x] **T10** `feat(auth): password, sessions, email verification`
 - [x] **T11** `feat(auth): TOTP MFA + recovery codes`
-- [ ] **T12** `feat(auth): Google/Microsoft OIDC`
+- [x] **T12** `feat(auth): Google/Microsoft OIDC`
 - [ ] **T13** `feat(tenancy): signup provisions a tenant`
 - [ ] **T14** `feat(ui): design tokens + themes + density`
 - [ ] **T15** `feat(ui): Storybook + RTL/pseudo-locale + visual harness`

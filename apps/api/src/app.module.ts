@@ -13,6 +13,8 @@ import { LockoutService } from './auth/lockout.service.js';
 import { MeController } from './auth/me.controller.js';
 import { MfaController } from './auth/mfa.controller.js';
 import { MfaService } from './auth/mfa.service.js';
+import { OidcController } from './auth/oidc.controller.js';
+import { OidcService, type OidcProviders } from './auth/oidc.service.js';
 import { PasswordService } from './auth/password.service.js';
 import { SessionService } from './auth/session.service.js';
 import { TokenService } from './auth/token.service.js';
@@ -26,6 +28,7 @@ import {
   EMAIL_SENDER,
   LOGGER,
   PRISMA,
+  OIDC_PROVIDERS,
   REDIS,
   SECRET_BOX,
 } from './tokens.js';
@@ -38,6 +41,7 @@ export interface ApiDependencies {
   email: EmailSender;
   breachedPasswords: BreachedPasswordChecker;
   secretBox: SecretBox;
+  oidcProviders: OidcProviders;
 }
 
 @Module({})
@@ -52,6 +56,7 @@ export class AppModule {
         AuthController,
         MeController,
         MfaController,
+        OidcController,
       ],
       providers: [
         { provide: CONFIG, useValue: deps.config },
@@ -62,6 +67,8 @@ export class AppModule {
         { provide: BREACHED_PASSWORDS, useValue: deps.breachedPasswords },
         { provide: SECRET_BOX, useValue: deps.secretBox },
         MfaService,
+        { provide: OIDC_PROVIDERS, useValue: deps.oidcProviders },
+        OidcService,
         TenantContextGuard,
         AuthGuard,
         TokenService,

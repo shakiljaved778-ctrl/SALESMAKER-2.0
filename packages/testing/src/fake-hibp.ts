@@ -14,7 +14,7 @@ const sha1 = (s: string) => createHash('sha1').update(s, 'utf8').digest('hex').t
 const BREACHED = new Map(BREACHED_PASSWORDS.map((p, i) => [sha1(p), 1000 + i]));
 
 /** Fake Have I Been Pwned k-anonymity range API: `GET /hibp/range/{prefix}` → `SUFFIX:COUNT` lines. */
-export function registerHibp(app: FastifyInstance): void {
+export function registerFakeHibp(app: FastifyInstance): void {
   app.get<{ Params: { prefix: string } }>('/hibp/range/:prefix', async (request, reply) => {
     const prefix = request.params.prefix.toUpperCase();
     if (!/^[0-9A-F]{5}$/.test(prefix))

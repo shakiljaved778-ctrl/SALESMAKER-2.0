@@ -1,0 +1,35 @@
+# P00 working notes (input for the handoff)
+
+Deviations from the plan or spec, known issues and follow-ups, recorded as they happen.
+
+## Deviations (each with its reason)
+
+- **SeaweedFS instead of MinIO** for local S3 (T03). MinIO no longer publishes Docker images, and it is AGPL.
+  SeaweedFS is Apache-2.0 and S3-compatible. Production still uses AWS S3.
+- **`docker-compose.sandbox.yml`** (T03). Restricted networks such as this build sandbox cannot `apt-get` pg_partman
+  inside the Postgres image build. The override boots the upstream pgvector image. The real image is built in CI (`db` job).
+- **Extensions live in an `extensions` schema** on the database `search_path` (T05). Prisma's drift check resets
+  `public` in its shadow database, and that must not drop the extensions.
+- **Extra packages `@sm/server-kit` and `@sm/testing`**. server-kit is the NestJS/Fastify pipeline shared by `apps/api`
+  and `apps/control-api`, which would otherwise be duplicated. `@sm/testing` (listed in §3.3) hosts the fake third-party
+  servers, so tests and `apps/fakes` share them (apps cannot import apps).
+- **Auth routes are POST and cookie-less** (T10–T12). The plan listed `GET /auth/oidc/*/start|callback`. Because the web
+  BFF owns every cookie, the API takes and returns tokens and OIDC state in JSON instead.
+- **`app_current_tenant_id()` uses `NULLIF(..., '')`** (T04). A pooled connection reports `''` rather than NULL once a
+  transaction-local setting has ended, and `''` must never be cast to uuid.
+- **Version pins** (ADR-0002 addendum): TypeScript 6.0.3 (typescript-eslint does not support 7 yet) and Prisma 7.10.0
+  (npm `latest` is an 8.0 release candidate).
+
+## Known issues and follow-ups
+
+- **Microsoft multi-tenant issuer.** The real `common`/`organizations` endpoints issue tenant-specific `iss` values, which
+  strict issuer validation rejects. Before real Microsoft sign-in is enabled, add tenant-aware issuer validation to
+  `OpenIdConnectProvider`. The fakes use a fixed issuer.
+- **Access tokens are stateless for up to 15 minutes.** Revoking a session takes effect at its next refresh. A
+  per-request session check can be added if §6.1 "remote sign-out" needs to be immediate.
+- **Rate limits.** P00 has the pre-auth per-IP limit. Per-tenant and per-user limits driven by the plan arrive with
+  entitlements in P05.
+- **Control plane database role.** `apps/control-api` connects as the database owner. A least-privilege runtime role
+  like the cell's `sm_app` should be added with the Terraform work.
+- **Licences to note.** nodemailer is MIT-0 (more permissive than MIT). The OFL fonts, Valkey and SeaweedFS were
+  approved or chosen under the v1.2 answers.

@@ -14,3 +14,7 @@ export {
   type BreachedPasswordChecker,
 } from './passwords/breached-password-checker.js';
 export { FakeStorageProvider, type StorageProvider } from './storage/storage-provider.js';
+export {
+  OpenIdConnectProvider,
+  type OpenIdConnectProviderOptions,
+} from './oidc/openid-connect-provider.js';
