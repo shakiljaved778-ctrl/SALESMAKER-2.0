@@ -8,7 +8,9 @@ approval record it in `docs/spec/CHANGELOG_SPEC.md` and then edit the section.
 ## What this is
 
 SalesMaker 2.0 is a multi-tenant, AI-native CRM and sales-execution SaaS in the class of
-Salesforce Sales Cloud. It has a telesales-first execution layer and is sold self-serve at a
+Salesforce Sales Cloud. It serves the **entire sales and business-development force**: field
+sales, account and relationship managers, business development, inside sales, and telesales.
+Telesales is one first-class motion among several, not the product's focus. It is sold self-serve at a
 **flat price per organisation** to teams of 5 to 1,000+ reps. It is a completely separate
 product from WealthEngine, and reuses nothing from it.
 Namespace `salesmaker`, package scope `@sm/*`.

@@ -2,7 +2,7 @@ SALESMAKER 2.0 — MASTER BUILD PROMPT
 
 > **What this is:** the constitution for building SalesMaker 2.0 with Claude Code on GitHub. Paste this whole file into Claude Code in an empty repository as the **first message of the project**. Everything after it (phase prompts P00–P12) refers back to section numbers in this document.
 >
-> **Version:** 1.0 · **Owner:** Shakil Javed · **Date:** 25 Sep 2026
+> **Version:** 1.1 · **Owner:** Shakil Javed · **Date:** 25 Sep 2026 (changes: `docs/spec/CHANGELOG_SPEC.md`)
 
 ---
 
@@ -51,18 +51,20 @@ Everything else: make the call, document it in the plan or an ADR, and move on.
 ## §1. PRODUCT DEFINITION
 
 ### 1.1 One-line
-SalesMaker 2.0 is one platform for the whole sales motion: generate and capture leads, route them, work them (calls, email, WhatsApp, SMS), qualify and convert them, build and forecast pipeline, quote and close, and hand off to fulfilment. It has an AI layer that scores, recommends, drafts, summarises and, with human approval, acts. It is sold as self-serve multi-tenant SaaS to organisations with **5 to 1,000+ sales users**.
+SalesMaker 2.0 is one platform for the whole sales motion: generate and capture leads, route them, work them (calls, email, WhatsApp, SMS), qualify and convert them, build and forecast pipeline, quote and close, and hand off to fulfilment. It has an AI layer that scores, recommends, drafts, summarises and, with human approval, acts. It serves the **entire sales and business-development force**: field sales, account managers and relationship managers, business development, inside sales, and telesales, together with their managers and sales operations. It is sold as self-serve multi-tenant SaaS to organisations with **5 to 1,000+ sales users**.
 
 ### 1.2 Positioning
-- **Salesforce-grade depth** (metadata-driven objects, role hierarchy, sharing rules, territories, approvals, forecasting) **without Salesforce's weight**: live in a day for a 5-person team, and able to scale to a 1,000-rep telesales floor.
+- **Salesforce-grade depth** (metadata-driven objects, role hierarchy, sharing rules, territories, approvals, forecasting) **without Salesforce's weight**: live in a day for a 5-person team, and able to scale to a 1,000-person sales organisation that mixes field, account-management, business-development and telesales teams.
 - **AI-native, not AI-bolted-on.** Every screen has an AI affordance in the same place, and every AI action is explainable and reversible.
-- **Telesales-first execution.** Dialer queues, dispositions, SLA timers, wallboards and gamification are first-class, not add-ons.
+- **Execution for every sales motion.** The product serves the whole sales and business-development force, not a single team type. Field and account-based selling (accounts, contacts, meetings, pipeline, forecasting, quotes), business development (prospecting, lead capture, qualification, partnerships), and high-volume telesales (dialer queues, dispositions, SLA timers, wallboards) are all first-class. Gamification and performance tooling apply to every team. Telesales is one motion among several and is not the product's centre of gravity.
 - **Global from day one.** Multi-currency, multi-timezone, locale formatting, regional data residency, English UI in v1, and an architecture that is ready for Arabic RTL.
 
 ### 1.3 Personas (design every screen for a named persona)
 | Persona | Scale context | Top jobs-to-be-done | Primary surfaces |
 |---|---|---|---|
-| **Sales Rep / Telesales Agent** | 1 of 5–1,000 | Work my queue fast, log without typing, hit my target | Home "Today", Call Queue, Lead/Opp record, Softphone, Kanban |
+| **Field Sales Rep / Account Manager / Relationship Manager** | 1 of 5–1,000 | Plan my meetings, prepare for them, log outcomes quickly (often on mobile), move deals forward, hit my target | Home "Today", Account/Opp record, Calendar, Kanban, mobile PWA |
+| **Business Development Rep / Inside Sales** | 1 of 5–1,000 | Prospect and qualify fast, run multi-channel follow-ups, hand qualified pipeline over cleanly | Home "Today", Lead list/record, Composer (email/WhatsApp), Queue |
+| **Telesales Agent** | 1 of 5–1,000 | Work my call queue fast, log without typing, hit my target | Call Queue, Softphone, Lead/Opp record |
 | **Team Leader / Sales Manager** | Leads 5–15 reps | See who is behind, coach, approve discounts, commit forecast | Team dashboard, Forecast, Approvals inbox, Wallboard |
 | **Regional / Sales Director** | 50–500 reps | Roll-up forecast, territory performance, pipeline coverage | Forecast roll-up, Dashboards, Territory reports |
 | **Sales Ops / CRM Admin** | 1–10 per org | Configure objects, fields, rules, automations, users, permissions | Setup (admin console), Builders, Import |
@@ -114,7 +116,7 @@ SalesMaker 2.0 is one platform for the whole sales motion: generate and capture 
 
 ### 1.5 Product principles (tie-breakers when requirements conflict)
 Priority order: **Security and tenant isolation > Data integrity > Speed of the rep's daily loop > Configurability > Visual polish > Feature breadth.**
-1. **The rep's loop is sacred.** Open queue → call/message → disposition → next record must take **≤ 3 clicks and < 2 seconds of UI latency** end to end.
+1. **The rep's loop is sacred, whatever the motion.** Telesales: open queue → call/message → disposition → next record. Field, account-management and business-development work: open Today → open record or meeting → log the outcome and next step → next item. Each loop must take **≤ 3 clicks and < 2 seconds of UI latency** end to end.
 2. **Configure, don't code.** Anything an admin at a normal company would want to change (fields, stages, picklists, rules, layouts, automations) is metadata, not a deploy.
 3. **One engine per concern.** One query engine, one record service, one permission engine, one expression language, one automation runtime. Features compose these engines; they never re-implement them.
 4. **Explainable automation.** Every automated or AI-driven change leaves a visible trail: who or what did it, why, and how to undo it.

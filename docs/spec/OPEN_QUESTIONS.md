@@ -29,3 +29,11 @@ also log it in `CHANGELOG_SPEC.md`. **(Blocks Pxx)** marks the phase that cannot
 19. **Domains and accounts.** Is `salesmaker.app` owned? Which AWS organisation, Vercel team and Stripe account should be used, and when will test-mode keys be available?
 20. **Opportunity sharing default.** §6.3 lists "Opportunity→Account optional" for controlled-by-parent, but the default is PRIVATE. Confirm that PRIVATE plus the account-team extension is the intended default.
 21. **Flat-pricing user caps.** §12.1 asks you to confirm the per-plan user caps (25/150/500/1,000+) and whether the MVP has a free tier or only a trial. **(Blocks P05)**
+
+## Raised by the v1.1 scope clarification (whole sales and BD force, not only telesales)
+
+22. **Field-sales capabilities not in §2.1.** The spec's modules lean towards desk-based selling. For field and relationship teams, do you want any of these in v1, and in which phase? (a) visit check-in/check-out with geolocation on meetings; (b) a day or route plan for visits; (c) a mobile meeting-outcome capture flow (voice note → AI summary, on the §8.5 pipeline); (d) business-card scan to lead or contact. My default is to leave them out of v1 unless you add them. **(Blocks P04, if any are in the MVP)**
+23. **Account planning for key-account and relationship managers.** Account plans, relationship maps (org charts / stakeholder influence) and whitespace analysis are not in §2.1. Should they be v1, v2, or covered by custom objects?
+24. **Partner / channel business development.** Does "business development" include managing partners or resellers (partner accounts, deal registration)? It is not in scope today, and §2.2 excludes a marketplace but says nothing about partner relationship management (PRM).
+25. **Demo data.** Both seeds are telesales-heavy or small-agency. Should Aurelia Bank also get a relationship-manager / field-sales division (e.g. corporate banking RMs with account plans and meetings), or should there be a third demo tenant (e.g. a B2B field-sales company)?
+26. **Load-test profile.** §11.2's P12 scenario is a telesales floor only. Proposal: add a mixed profile (field reps on mobile logging meetings, BD reps doing multi-channel follow-ups) alongside it.
