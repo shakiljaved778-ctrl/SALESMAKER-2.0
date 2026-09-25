@@ -54,6 +54,13 @@ export const ApiConfigSchema = z.object({
     .default('false')
     .transform((v) => v === 'true'),
 
+  // ── Cell ↔ control plane service identity (§3.4) ─────────────────────────
+  /** Ed25519 private key (PKCS#8 PEM) this cell signs control-plane calls with; or _PATH. */
+  CELL_SERVICE_PRIVATE_KEY_PEM: z.string().includes('PRIVATE KEY'),
+  CELL_SERVICE_KID: z.string().min(1).default('cell-1'),
+  /** Signups per client IP per hour. */
+  SIGNUP_RATE_PER_HOUR: z.coerce.number().int().positive().default(10),
+
   // ── Secrets at rest (§6.6): AES-256-GCM key ring; KMS-provided in deployed cells ──
   SECRETS_KEY_ID: z.string().min(1).default('local-1'),
   /** 32 random bytes, base64. */
@@ -68,11 +75,15 @@ export const ApiConfigSchema = z.object({
 export type ApiConfig = z.infer<typeof ApiConfigSchema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
-  const keyPath = env['AUTH_JWT_PRIVATE_KEY_PATH'];
-  const withKey =
-    keyPath && !env['AUTH_JWT_PRIVATE_KEY_PEM']
-      ? { ...env, AUTH_JWT_PRIVATE_KEY_PEM: readFileSync(keyPath, 'utf8') }
-      : env;
+  const fromFile = (pemVar: string, pathVar: string) => {
+    const path = env[pathVar];
+    return path && !env[pemVar] ? { [pemVar]: readFileSync(path, 'utf8') } : {};
+  };
+  const withKey = {
+    ...env,
+    ...fromFile('AUTH_JWT_PRIVATE_KEY_PEM', 'AUTH_JWT_PRIVATE_KEY_PATH'),
+    ...fromFile('CELL_SERVICE_PRIVATE_KEY_PEM', 'CELL_SERVICE_PRIVATE_KEY_PATH'),
+  };
   const config = ApiConfigSchema.parse(withKey);
   if (config.OIDC_ALLOW_INSECURE_HTTP && env['NODE_ENV'] === 'production') {
     throw new Error('OIDC_ALLOW_INSECURE_HTTP must not be enabled in production');

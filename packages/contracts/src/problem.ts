@@ -14,6 +14,7 @@ export const ErrorCode = z
     'mfa_required',
     'account_locked',
     'email_not_verified',
+    'service_unavailable',
     'internal_error',
   ])
   .meta({ id: 'ErrorCode' });

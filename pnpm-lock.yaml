@@ -505,12 +505,18 @@ importers:
       '@fastify/formbody':
         specifier: 9.0.0
         version: 9.0.0
+      '@sm/server-kit':
+        specifier: workspace:*
+        version: link:../server-kit
       fastify:
         specifier: 5.12.5
         version: 5.12.5
       jose:
         specifier: 6.2.12
         version: 6.2.12
+      uuidv7:
+        specifier: 1.2.1
+        version: 1.2.1
     devDependencies:
       '@sm/config':
         specifier: workspace:*

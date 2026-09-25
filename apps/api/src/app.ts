@@ -8,9 +8,11 @@ import {
 import {
   createFastifyApp,
   createLogger,
+  HttpControlPlane,
+  importEd25519PrivateKey,
   rateLimitHeaders,
-  SecretBox,
   requestContext,
+  SecretBox,
   TokenBucketRateLimiter,
 } from '@sm/server-kit';
 import { Redis } from 'ioredis';
@@ -31,7 +33,7 @@ const UNLIMITED_PREFIXES = ['/health'];
 /**
  * Build the cell API. Infrastructure can be injected (tests); otherwise it is created from
  * config. The pre-auth rate limit is per client IP (§3.6); per-tenant and per-user limits from
- * the plan are applied after authentication (T10, P05).
+ * the plan are applied after authentication (P05).
  */
 export async function createApiApp(
   config: ApiConfig,
@@ -67,70 +69,74 @@ export async function createApiApp(
       logger.warn({ err }, 'cache unavailable at startup; continuing degraded');
     });
   }
-  const limiter = new TokenBucketRateLimiter(redis, config.RATE_LIMIT_NAMESPACE);
-  const email = overrides.email ?? new SmtpEmailSender(config.SMTP_URL, config.EMAIL_FROM);
-  const secretBox =
-    overrides.secretBox ??
-    new SecretBox(config.SECRETS_KEY_ID, {
-      ...config.SECRETS_PREVIOUS_KEYS,
-      [config.SECRETS_KEY_ID]: config.SECRETS_KEY,
-    });
-  const oidcProviders = overrides.oidcProviders ?? oidcProvidersFrom(config);
-  const breachedPasswords =
-    overrides.breachedPasswords ??
-    new RangeApiBreachedPasswordChecker(config.BREACHED_PASSWORD_API_URL);
+  const limiter =
+    overrides.limiter ?? new TokenBucketRateLimiter(redis, config.RATE_LIMIT_NAMESPACE);
+  const deps: ApiDependencies = {
+    config,
+    prisma,
+    redis,
+    logger,
+    limiter,
+    email: overrides.email ?? new SmtpEmailSender(config.SMTP_URL, config.EMAIL_FROM),
+    breachedPasswords:
+      overrides.breachedPasswords ??
+      new RangeApiBreachedPasswordChecker(config.BREACHED_PASSWORD_API_URL),
+    secretBox:
+      overrides.secretBox ??
+      new SecretBox(config.SECRETS_KEY_ID, {
+        ...config.SECRETS_PREVIOUS_KEYS,
+        [config.SECRETS_KEY_ID]: config.SECRETS_KEY,
+      }),
+    oidcProviders: overrides.oidcProviders ?? oidcProvidersFrom(config),
+    controlPlane:
+      overrides.controlPlane ??
+      new HttpControlPlane(
+        config.CONTROL_API_BASE_URL,
+        config.CELL_ID,
+        await importEd25519PrivateKey(config.CELL_SERVICE_PRIVATE_KEY_PEM),
+        config.CELL_SERVICE_KID,
+      ),
+  };
   const servedRoutes: string[] = [];
 
-  const app = await createFastifyApp(
-    AppModule.forRoot({
-      config,
-      prisma,
-      redis,
-      logger,
-      email,
-      breachedPasswords,
-      secretBox,
-      oidcProviders,
-    }),
-    {
-      logger,
-      configure(nest) {
-        const fastify = nest.getHttpAdapter().getInstance();
-        fastify.addHook('onRoute', (route) => {
-          const methods = Array.isArray(route.method) ? route.method : [route.method];
-          for (const m of methods) if (m !== 'HEAD') servedRoutes.push(`${m} ${route.url}`);
-        });
-        fastify.addHook('onRequest', async (request, reply) => {
-          if (UNLIMITED_PREFIXES.some((p) => request.url.startsWith(p))) return;
-          try {
-            const result = await limiter.consume(`ip:${request.ip}`, {
-              capacity: config.RATE_LIMIT_IP_BURST,
-              refillPerSecond: config.RATE_LIMIT_IP_PER_SECOND,
-            });
-            void reply.headers(rateLimitHeaders(result));
-            if (!result.allowed) {
-              await reply
-                .status(429)
-                .header('content-type', 'application/problem+json')
-                .header('retry-after', String(Math.max(1, result.resetSeconds)))
-                .send({
-                  type: 'https://developers.salesmaker.app/problems/rate-limited',
-                  title: 'Too many requests',
-                  status: 429,
-                  code: 'rate_limited',
-                  detail: 'Too many requests. Wait a moment and try again.',
-                  instance: request.url.split('?')[0],
-                  traceId: request.id,
-                });
-            }
-          } catch (err) {
-            // Fail open: an unavailable cache must not take the CRM down (§11.3). Alerting covers it.
-            logger.warn({ err }, 'rate limiter unavailable; allowing request');
+  const app = await createFastifyApp(AppModule.forRoot(deps), {
+    logger,
+    configure(nest) {
+      const fastify = nest.getHttpAdapter().getInstance();
+      fastify.addHook('onRoute', (route) => {
+        const methods = Array.isArray(route.method) ? route.method : [route.method];
+        for (const m of methods) if (m !== 'HEAD') servedRoutes.push(`${m} ${route.url}`);
+      });
+      fastify.addHook('onRequest', async (request, reply) => {
+        if (UNLIMITED_PREFIXES.some((p) => request.url.startsWith(p))) return;
+        try {
+          const result = await limiter.consume(`ip:${request.ip}`, {
+            capacity: config.RATE_LIMIT_IP_BURST,
+            refillPerSecond: config.RATE_LIMIT_IP_PER_SECOND,
+          });
+          void reply.headers(rateLimitHeaders(result));
+          if (!result.allowed) {
+            await reply
+              .status(429)
+              .header('content-type', 'application/problem+json')
+              .header('retry-after', String(Math.max(1, result.resetSeconds)))
+              .send({
+                type: 'https://developers.salesmaker.app/problems/rate-limited',
+                title: 'Too many requests',
+                status: 429,
+                code: 'rate_limited',
+                detail: 'Too many requests. Wait a moment and try again.',
+                instance: request.url.split('?')[0],
+                traceId: request.id,
+              });
           }
-        });
-      },
+        } catch (err) {
+          // Fail open: an unavailable cache must not take the CRM down (§11.3). Alerting covers it.
+          logger.warn({ err }, 'rate limiter unavailable; allowing request');
+        }
+      });
     },
-  );
+  });
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 

@@ -3,23 +3,24 @@ import { generateKeyPairSync, randomBytes } from 'node:crypto';
 import { withTenant, type CellPrisma } from '@sm/db';
 import { createTestCellDatabase, type TestCellDatabase } from '@sm/db/testing';
 import { FakeBreachedPasswordChecker, FakeEmailSender } from '@sm/integrations';
+import { FakeControlPlane } from '@sm/testing';
 import { uuidv7 } from 'uuidv7';
 import { inject } from 'vitest';
 import type { z } from 'zod';
 
+import { createApiApp, type ApiApp } from '../src/app.js';
 import { AuthService } from '../src/auth/auth.service.js';
 import { PasswordService } from '../src/auth/password.service.js';
-import { PRISMA } from '../src/tokens.js';
-
-import { createApiApp, type ApiApp } from '../src/app.js';
 import { ApiConfigSchema, type ApiConfig } from '../src/config.js';
+import { PRISMA } from '../src/tokens.js';
 
 export interface TestApi extends ApiApp {
   db: TestCellDatabase;
   config: ApiConfig;
   email: FakeEmailSender;
+  controlPlane: FakeControlPlane;
   /** Create a workspace (tenant_settings) directly in the cell database. */
-  seedTenant(slug: string): Promise<string>;
+  seedTenant(slug: string, tenantId?: string): Promise<string>;
   /** Create a user with a password identity; verified unless stated. */
   seedUser(
     tenantId: string,
@@ -30,16 +31,22 @@ export interface TestApi extends ApiApp {
   dispose(): Promise<void>;
 }
 
-export const JWT_KEYS = (() => {
+function ed25519() {
   const { privateKey, publicKey } = generateKeyPairSync('ed25519');
   return {
     privatePem: privateKey.export({ type: 'pkcs8', format: 'pem' }),
     publicPem: publicKey.export({ type: 'spki', format: 'pem' }),
   };
-})();
+}
 
-/** A real API on a fresh cell database and a Valkey namespace; nothing is mocked. */
-/** `overrides` are raw config inputs, as they would appear in the environment. */
+export const JWT_KEYS = ed25519();
+const CELL_SERVICE_KEYS = ed25519();
+
+/**
+ * A real API on a fresh cell database and a Valkey namespace. Only third parties are faked:
+ * email, the breach API and the control plane (whose HTTP contract is tested in control-api).
+ * `overrides` are raw config inputs, as they would appear in the environment.
+ */
 export async function startTestApi(
   overrides: Partial<z.input<typeof ApiConfigSchema>> = {},
 ): Promise<TestApi> {
@@ -60,13 +67,16 @@ export async function startTestApi(
     EMAIL_ROUTING_PEPPER: 'test-pepper-0123456789abcdef',
     AUTH_JWT_PRIVATE_KEY_PEM: JWT_KEYS.privatePem,
     AUTH_JWT_KID: 'test-1',
+    CELL_SERVICE_PRIVATE_KEY_PEM: CELL_SERVICE_KEYS.privatePem,
     SECRETS_KEY: randomBytes(32).toString('base64'),
     ...overrides,
   });
   const email = new FakeEmailSender();
+  const controlPlane = new FakeControlPlane(config.CELL_ID);
   const api = await createApiApp(config, {
     email,
     breachedPasswords: new FakeBreachedPasswordChecker(),
+    controlPlane,
   });
   const prisma = api.app.get<symbol, CellPrisma>(PRISMA);
   return {
@@ -74,8 +84,8 @@ export async function startTestApi(
     db,
     config,
     email,
-    async seedTenant(slug) {
-      const tenantId = uuidv7();
+    controlPlane,
+    async seedTenant(slug, tenantId = uuidv7()) {
       await withTenant(prisma, { tenantId }, ({ prisma: tx }) =>
         tx.tenantSettings.create({
           data: {

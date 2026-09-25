@@ -1,9 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { withTenant, type CellPrisma, type TenantTransaction } from '@sm/db';
-import { DomainError, emailRoutingHmac, errors } from '@sm/server-kit';
+import {
+  ControlPlaneUnavailableError,
+  DomainError,
+  emailRoutingHmac,
+  errors,
+  type ControlPlane,
+} from '@sm/server-kit';
 
 import type { ApiConfig } from '../config.js';
-import { CONFIG, PRISMA } from '../tokens.js';
+import { CONFIG, CONTROL_PLANE, PRISMA } from '../tokens.js';
 import {
   AuthEmailService,
   RESET_PASSWORD_TTL_MINUTES,
@@ -44,6 +50,7 @@ export class AuthService {
   constructor(
     @Inject(CONFIG) private readonly config: ApiConfig,
     @Inject(PRISMA) private readonly prisma: CellPrisma,
+    @Inject(CONTROL_PLANE) private readonly controlPlane: ControlPlane,
     private readonly passwords: PasswordService,
     private readonly lockout: LockoutService,
     private readonly sessions: SessionService,
@@ -171,14 +178,45 @@ export class AuthService {
     );
   }
 
-  /** Returns the verified user's id (T13 activates the tenant when this is its owner). */
+  /**
+   * Verify an email with its one-time token. When the user is the organisation's owner and the
+   * tenant is not yet active, the control plane activates it **before** the token is consumed:
+   * if the control plane is unreachable, nothing changes and the same link works on retry.
+   */
   async verifyEmail(tenantId: string, token: string): Promise<{ userId: string }> {
+    const check = await withTenant(this.prisma, { tenantId }, async (tx) => {
+      const record = await this.findValidToken(tx, token, 'verify_email');
+      const settings = await tx.prisma.tenantSettings.findUnique({ where: { tenantId } });
+      return {
+        userId: record.userId,
+        activate: settings?.ownerUserId === record.userId && !settings.activatedAt,
+      };
+    });
+    if (check.activate) {
+      try {
+        await this.controlPlane.activateTenant(tenantId);
+      } catch (err) {
+        if (err instanceof ControlPlaneUnavailableError) {
+          throw new DomainError(
+            'service_unavailable',
+            503,
+            "We couldn't finish setting up your workspace. Try the link again in a moment.",
+          );
+        }
+        throw err;
+      }
+    }
     return withTenant(this.prisma, { tenantId }, async (tx) => {
       const record = await this.consumeToken(tx, token, 'verify_email');
       await tx.prisma.user.update({
         where: { tenantId_id: { tenantId, id: record.userId } },
         data: { emailVerifiedAt: new Date(), status: 'ACTIVE' },
       });
+      if (check.activate)
+        await tx.prisma.tenantSettings.update({
+          where: { tenantId },
+          data: { activatedAt: new Date() },
+        });
       return { userId: record.userId };
     });
   }
@@ -298,7 +336,7 @@ export class AuthService {
     return { token, tokenId: record.id };
   }
 
-  private async consumeToken(
+  private async findValidToken(
     { prisma, context }: TenantTransaction,
     token: string,
     purpose: 'verify_email' | 'reset_password',
@@ -315,10 +353,29 @@ export class AuthService {
         },
       ]);
     }
-    await prisma.authToken.update({
-      where: { tenantId_id: { tenantId: context.tenantId, id: record.id } },
+    return record;
+  }
+
+  private async consumeToken(
+    tx: TenantTransaction,
+    token: string,
+    purpose: 'verify_email' | 'reset_password',
+  ) {
+    const record = await this.findValidToken(tx, token, purpose);
+    // Conditional update: if a concurrent request consumed it first, this one fails.
+    const consumed = await tx.prisma.authToken.updateMany({
+      where: { id: record.id, usedAt: null },
       data: { usedAt: new Date() },
     });
+    if (consumed.count !== 1) {
+      throw new DomainError('validation_failed', 400, 'This link has expired or was already used', [
+        {
+          field: 'token',
+          code: 'invalid_token',
+          message: 'This link has expired or was already used. Request a new one.',
+        },
+      ]);
+    }
     return record;
   }
 

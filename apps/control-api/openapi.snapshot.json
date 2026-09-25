@@ -683,6 +683,7 @@
           "mfa_required",
           "account_locked",
           "email_not_verified",
+          "service_unavailable",
           "internal_error"
         ]
       },

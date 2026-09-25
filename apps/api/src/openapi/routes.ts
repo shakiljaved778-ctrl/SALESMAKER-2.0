@@ -3,6 +3,7 @@ import {
   mfaRoutes,
   oidcRoutes,
   openApiRoute,
+  signupRoutes,
   systemRoutes,
   type RouteContract,
 } from '@sm/contracts';
@@ -19,6 +20,7 @@ export const apiRoutes: readonly RouteContract[] = [
   ...Object.values(authRoutes),
   ...Object.values(mfaRoutes),
   ...Object.values(oidcRoutes),
+  ...Object.values(signupRoutes),
 ];
 
 export const API_INFO = {

@@ -6,3 +6,4 @@ export {
   type FakeOidcOptions,
 } from './fake-oidc.js';
 export { buildFakesServer, type FakesServerOptions } from './fakes-server.js';
+export { FakeControlPlane } from './fake-control-plane.js';

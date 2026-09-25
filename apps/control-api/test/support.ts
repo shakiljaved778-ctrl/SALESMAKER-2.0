@@ -28,6 +28,8 @@ export interface TestControlApi extends ControlApiApp {
   config: ControlApiConfig;
   email: FakeEmailSender;
   dbUrl: string;
+  /** Private key PEM of a registered cell (for building real clients in tests). */
+  privateKeyPem(cell: 'eu-central-1' | 'me-central-1' | 'rogue'): string;
   /** A service token for a registered cell, or signed by an unregistered key ("rogue"). */
   tokenFor(cell: 'eu-central-1' | 'me-central-1' | 'rogue'): Promise<string>;
   hmac(email: string): string;
@@ -91,6 +93,7 @@ export async function startTestControlApi(): Promise<TestControlApi> {
       });
     },
     hmac: (address) => emailRoutingHmac(address, PEPPER).toString('base64url'),
+    privateKeyPem: (cell) => keys[cell].privatePem,
     async dispose() {
       await api.close();
       const c = new pg.Client({ connectionString: serverUrl });

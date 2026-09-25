@@ -840,6 +840,195 @@
         }
       }
     },
+    "/auth/signup": {
+      "post": {
+        "operationId": "signup",
+        "summary": "Create an organisation and its owner in this cell; the owner verifies by email",
+        "tags": [
+          "signup"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128,
+              "description": "Required: retries with the same key replay the first response"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Organisation created (pending email verification)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The workspace address is taken"
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "description": "Reserves the slug with the control plane, provisions the workspace and owner in one tenant transaction (releasing the reservation if that fails), and emails a verification link. Retries with the same Idempotency-Key replay the first result.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/signup/oidc/{provider}": {
+      "post": {
+        "operationId": "signupWithOidc",
+        "summary": "Create an organisation with a Google or Microsoft identity (already verified) and sign in",
+        "tags": [
+          "signup"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "google",
+                "microsoft"
+              ]
+            }
+          },
+          {
+            "name": "idempotency-key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 128,
+              "description": "Required: retries with the same key replay the first response"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Organisation created and active; signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OidcSignupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The workspace address is taken"
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OidcSignupRequest"
+              }
+            }
+          }
+        }
+      }
+    },
     "/auth/verify-email": {
       "post": {
         "operationId": "verifyEmail",
@@ -1379,6 +1568,11 @@
   },
   "components": {
     "schemas": {
+      "CurrencyCode": {
+        "type": "string",
+        "pattern": "^[A-Z]{3}$",
+        "example": "USD"
+      },
       "Email": {
         "type": "string",
         "maxLength": 254,
@@ -1410,6 +1604,7 @@
           "mfa_required",
           "account_locked",
           "email_not_verified",
+          "service_unavailable",
           "internal_error"
         ]
       },
@@ -1730,6 +1925,85 @@
           "codeVerifier"
         ]
       },
+      "OidcSignupRequest": {
+        "type": "object",
+        "properties": {
+          "callbackUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "redirectUri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "state": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256
+          },
+          "nonce": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 256
+          },
+          "codeVerifier": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128
+          },
+          "orgName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "slug": {
+            "$ref": "#/components/schemas/TenantSlug"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyCode"
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "locale": {
+            "type": "string",
+            "maxLength": 16
+          }
+        },
+        "required": [
+          "callbackUrl",
+          "redirectUri",
+          "state",
+          "nonce",
+          "codeVerifier",
+          "orgName",
+          "slug",
+          "currency",
+          "timezone"
+        ]
+      },
+      "OidcSignupResponse": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "slug": {
+            "$ref": "#/components/schemas/TenantSlug"
+          },
+          "login": {
+            "$ref": "#/components/schemas/LoginResponse"
+          }
+        },
+        "required": [
+          "tenantId",
+          "slug",
+          "login"
+        ],
+        "additionalProperties": false
+      },
       "OidcStartRequest": {
         "type": "object",
         "properties": {
@@ -1936,6 +2210,81 @@
           "refreshTokenExpiresAt"
         ],
         "additionalProperties": false
+      },
+      "SignupRequest": {
+        "type": "object",
+        "properties": {
+          "orgName": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 120
+          },
+          "slug": {
+            "$ref": "#/components/schemas/TenantSlug"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyCode"
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "locale": {
+            "type": "string",
+            "maxLength": 16
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "email": {
+            "$ref": "#/components/schemas/Email"
+          },
+          "password": {
+            "$ref": "#/components/schemas/NewPassword"
+          }
+        },
+        "required": [
+          "orgName",
+          "slug",
+          "currency",
+          "timezone",
+          "name",
+          "email",
+          "password"
+        ]
+      },
+      "SignupResponse": {
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "slug": {
+            "$ref": "#/components/schemas/TenantSlug"
+          },
+          "status": {
+            "type": "string",
+            "const": "PENDING"
+          },
+          "verificationSentTo": {
+            "$ref": "#/components/schemas/Email"
+          }
+        },
+        "required": [
+          "tenantId",
+          "slug",
+          "status",
+          "verificationSentTo"
+        ],
+        "additionalProperties": false
+      },
+      "TenantSlug": {
+        "type": "string",
+        "pattern": "^(?=.{3,40}$)[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "example": "pixelcraft"
       },
       "Timestamp": {
         "type": "string",

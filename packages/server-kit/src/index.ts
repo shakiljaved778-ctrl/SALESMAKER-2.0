@@ -20,3 +20,9 @@ export {
   type SigningKey,
 } from './service-token.js';
 export { SecretBox } from './secret-box.js';
+export {
+  ControlPlaneUnavailableError,
+  HttpControlPlane,
+  type ControlPlane,
+  type ReservedTenantDto,
+} from './control-plane-client.js';

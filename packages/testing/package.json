@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Test support shared across the repo: fake third-party servers (OIDC IdPs, HIBP range API) used by apps/fakes, integration tests and e2e (§10.5, §13.3). Factories join in P01+.",
+  "description": "Test support shared across the repo: fake third-party servers (OIDC IdPs, HIBP range API) used by apps/fakes, integration tests and e2e (\u00a710.5, \u00a713.3). Factories join in P01+.",
   "exports": {
     ".": "./dist/index.js"
   },
@@ -16,8 +16,10 @@
   },
   "dependencies": {
     "@fastify/formbody": "9.0.0",
+    "@sm/server-kit": "workspace:*",
     "fastify": "5.12.5",
-    "jose": "6.2.12"
+    "jose": "6.2.12",
+    "uuidv7": "1.2.1"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",

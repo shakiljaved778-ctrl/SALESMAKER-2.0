@@ -69,20 +69,24 @@ model Currency {
 }
 
 model TenantSettings {
-  tenantId             String   @id @map("tenant_id") @db.Uuid
+  tenantId             String    @id @map("tenant_id") @db.Uuid
   name                 String
-  slug                 String   @db.Citext
+  slug                 String    @db.Citext
   region               String
-  corporateCurrency    String   @map("corporate_currency") @db.Char(3)
-  defaultLocale        String   @default("en") @map("default_locale")
-  defaultTimezone      String   @map("default_timezone")
-  fiscalYearStartMonth Int      @default(1) @map("fiscal_year_start_month") @db.SmallInt
-  metadataVersion      Int      @default(1) @map("metadata_version")
-  permVersion          Int      @default(1) @map("perm_version")
-  logoFileId           String?  @map("logo_file_id") @db.Uuid
-  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  version              Int      @default(1)
+  corporateCurrency    String    @map("corporate_currency") @db.Char(3)
+  defaultLocale        String    @default("en") @map("default_locale")
+  defaultTimezone      String    @map("default_timezone")
+  fiscalYearStartMonth Int       @default(1) @map("fiscal_year_start_month") @db.SmallInt
+  metadataVersion      Int       @default(1) @map("metadata_version")
+  permVersion          Int       @default(1) @map("perm_version")
+  logoFileId           String?   @map("logo_file_id") @db.Uuid
+  /// The user who created the organisation at signup.
+  ownerUserId          String?   @map("owner_user_id") @db.Uuid
+  /// Set once the control plane has activated the tenant (owner verified, §7.20a).
+  activatedAt          DateTime? @map("activated_at") @db.Timestamptz(6)
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version              Int       @default(1)
 
   @@map("tenant_settings")
 }

@@ -14,7 +14,18 @@ pnpm install
 pnpm verify        # format check, lint, typecheck, unit tests — must be green before every PR
 ```
 
-The local stack (`docker compose up`), `pnpm dev` and the seed commands arrive during phase P00. This README grows with them.
+### Run it locally
+
+```bash
+docker compose up -d     # Postgres 16, Valkey, SeaweedFS (S3), Mailpit, OTel + Jaeger
+pnpm setup:dev           # dev keys in .secrets/ and a .env (idempotent)
+pnpm db:setup            # roles, extensions and migrations for the cell and control-plane databases
+pnpm dev                 # api :4000, control-api :4100, fakes :4200, web :3000
+```
+
+Mail sent locally lands in Mailpit at http://localhost:8025, and nothing is delivered. "Continue with Google/Microsoft"
+uses the fake identity providers in `apps/fakes`. In restricted networks where the Postgres image cannot install
+packages, use `docker compose -f docker-compose.yml -f docker-compose.sandbox.yml up -d`.
 
 ## Layout
 

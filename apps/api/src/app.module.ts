@@ -1,7 +1,7 @@
 import { Module, type DynamicModule } from '@nestjs/common';
 import type { CellPrisma } from '@sm/db';
 import type { BreachedPasswordChecker, EmailSender } from '@sm/integrations';
-import type { SecretBox } from '@sm/server-kit';
+import type { ControlPlane, SecretBox, TokenBucketRateLimiter } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
 
@@ -21,14 +21,18 @@ import { TokenService } from './auth/token.service.js';
 import type { ApiConfig } from './config.js';
 import { HealthController } from './health/health.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
+import { SignupController } from './signup/signup.controller.js';
+import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
 import {
   BREACHED_PASSWORDS,
   CONFIG,
+  CONTROL_PLANE,
   EMAIL_SENDER,
   LOGGER,
   PRISMA,
   OIDC_PROVIDERS,
+  RATE_LIMITER,
   REDIS,
   SECRET_BOX,
 } from './tokens.js';
@@ -42,6 +46,8 @@ export interface ApiDependencies {
   breachedPasswords: BreachedPasswordChecker;
   secretBox: SecretBox;
   oidcProviders: OidcProviders;
+  controlPlane: ControlPlane;
+  limiter: TokenBucketRateLimiter;
 }
 
 @Module({})
@@ -57,6 +63,7 @@ export class AppModule {
         MeController,
         MfaController,
         OidcController,
+        SignupController,
       ],
       providers: [
         { provide: CONFIG, useValue: deps.config },
@@ -66,9 +73,9 @@ export class AppModule {
         { provide: EMAIL_SENDER, useValue: deps.email },
         { provide: BREACHED_PASSWORDS, useValue: deps.breachedPasswords },
         { provide: SECRET_BOX, useValue: deps.secretBox },
-        MfaService,
         { provide: OIDC_PROVIDERS, useValue: deps.oidcProviders },
-        OidcService,
+        { provide: CONTROL_PLANE, useValue: deps.controlPlane },
+        { provide: RATE_LIMITER, useValue: deps.limiter },
         TenantContextGuard,
         AuthGuard,
         TokenService,
@@ -77,6 +84,9 @@ export class AppModule {
         SessionService,
         AuthEmailService,
         AuthService,
+        MfaService,
+        OidcService,
+        SignupService,
       ],
       exports: [
         CONFIG,
