@@ -1,0 +1,8 @@
+title = "SalesMaker gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented placeholder values in .env.example"
+paths = ['''\.env\.example$''']
