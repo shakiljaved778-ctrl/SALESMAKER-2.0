@@ -7,7 +7,7 @@ also log it in `CHANGELOG_SPEC.md`. **(Blocks Pxx)** marks the phase that cannot
 
 ## Contradictions
 
-1. **Trial plan.** §7.20a says "14-day trial of the *top* plan", but §12.2 says "14-day trial of *Business*". The top plan is Enterprise. Proposal: trial Business. **(Blocks P05)**
+1. **Trial plan.** §7.20a says "14-day trial of the _top_ plan", but §12.2 says "14-day trial of _Business_". The top plan is Enterprise. Proposal: trial Business. **(Blocks P05)**
 2. **Control plane vs "tenant data never leaves its cell".** §3.4 puts global `user-email → tenant` routing (`cp_user_routing`) and Stripe customer data in the control plane. Both are personal data. Proposal: store only a keyed hash of the email (HMAC) in the control plane and let the cell hold the address, then document Stripe as a global sub-processor in the residency ADR. **(Blocks P00)**
 3. **Staging platform.** #25 allows Railway for staging, but §13.5 `deploy-staging.yml` targets ECR/ECS. Proposal: staging on AWS ECS so it mirrors prod, and drop Railway. **(Blocks P00)**
 4. **Pack contents.** #36 says "CLAUDE.md + repo scaffold supplied", and §3.3 points to `REPO_SCAFFOLD.md`. Neither was included. CLAUDE.md has been derived from §0/§3/§13. Do you have the scaffold file, or should P00 derive it from §3.3? **(Blocks P00)**

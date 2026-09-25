@@ -1,0 +1,25 @@
+{
+  "name": "salesmaker",
+  "private": true,
+  "description": "SalesMaker 2.0 — multi-tenant, AI-native CRM and sales-execution platform",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "verify": "pnpm format:check && turbo run lint typecheck test"
+  },
+  "devDependencies": {
+    "prettier": "3.9.9",
+    "turbo": "2.11.4",
+    "typescript": "6.0.3"
+  }
+}

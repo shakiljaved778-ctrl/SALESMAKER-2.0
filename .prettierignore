@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+docs/spec/MASTER_SPEC.md
+**/dist
+**/.next
+**/coverage
+**/storybook-static
+**/openapi.snapshot.json

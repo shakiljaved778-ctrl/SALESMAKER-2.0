@@ -26,7 +26,7 @@ Namespace `salesmaker`, package scope `@sm/*`.
 3. **Every CRM read goes through the Query Engine** (§3.8), which applies sharing (§6.4) and
    FLS (§6.5). Controllers never run ad-hoc queries against CRM tables.
 4. **LLM output is never executed as SQL or code.** AI emits zod-validated JSON that runs
-   through the same engines as a human, *as that human* (§8).
+   through the same engines as a human, _as that human_ (§8).
 5. **No hard-coded user-facing strings** (`next-intl` keys). **Logical CSS only**
    (`ms-/me-/ps-/pe-/start-/end-`; `ml-/mr-/pl-/pr-/left-/right-/text-left/…` are lint errors).
 6. **Design tokens only** (§9). Feature code contains no raw hex values, px font sizes or ad-hoc shadows.

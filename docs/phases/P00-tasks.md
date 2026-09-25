@@ -2,7 +2,7 @@
 
 Tick each box when the task's PR is merged with CI green. Details are in `P00-plan.md`.
 
-- [ ] **T01** `chore(repo): monorepo scaffold`
+- [x] **T01** `chore(repo): monorepo scaffold`
 - [ ] **T02** `ci: pipeline and security scans`
 - [ ] **T03** `chore(dev): docker compose stack`
 - [ ] **T04** `feat(db): roles, RLS helper, platform schema`
