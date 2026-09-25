@@ -1,6 +1,6 @@
 # P01 — Identity, hierarchy and permissions: plan
 
-Status: **DRAFT, awaiting owner approval** · Weeks 2–3 · Spec: §6, §3.7–§3.10, §4.2 (Identity, Hierarchy and access,
+Status: **APPROVED 2026-09-25** (with the §0 assumed answers) · Weeks 2–3 · Spec: §6, §3.7–§3.10, §4.2 (Identity, Hierarchy and access,
 Governance), §9.15 (Setup, Personal settings, Accept invite), §13.3 · ADRs: 0001, 0005, 0006, 0007, 0008 · Previous:
 [P00-handoff.md](P00-handoff.md)
 

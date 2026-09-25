@@ -1,6 +1,7 @@
 # Open questions for the owner (kick-off review of MASTER_SPEC v1.0)
 
-**Answered 2026-09-25 (P00 plan approval):** Q2, Q3, Q4, Q5, Q7 and Q8 were approved as proposed. See CHANGELOG_SPEC v1.2. All other questions remain open.
+**Answered 2026-09-25 (P00 plan approval):** Q2, Q3, Q4, Q5, Q7 and Q8 were approved as proposed. See CHANGELOG_SPEC v1.2.
+**Answered 2026-09-25 (P01 plan approval):** Q10, Q15 and Q20 were approved as proposed. See CHANGELOG_SPEC v1.3 and the ADR-0008 addendum. All other questions remain open.
 
 Raised under §0.1 step 5. When a question is answered, record the answer here. If it changes the spec,
 also log it in `CHANGELOG_SPEC.md`. **(Blocks Pxx)** marks the phase that cannot finish planning until the question is answered.

@@ -378,7 +378,7 @@ Every metadata change bumps `tenant_settings.metadata_version`, writes `setup_au
 Permission sets are **additive only**; there are no deny rules in v1. Permission set groups bundle sets, with an optional **muting set** (a single subtractive exception, like Salesforce).
 
 ### 6.3 Record sharing model
-- **Org-wide defaults (OWD)** per object: `PRIVATE`, `PUBLIC_READ`, `PUBLIC_READ_WRITE`, `CONTROLLED_BY_PARENT` (Contact→Account, Opportunity→Account optional, master-detail children). Defaults: Lead `PRIVATE`, Account `PRIVATE`, Contact `CONTROLLED_BY_PARENT`, Opportunity `PRIVATE`, Activity `CONTROLLED_BY_PARENT`, Campaign `PUBLIC_READ`, Product `PUBLIC_READ`.
+- **Org-wide defaults (OWD)** per object: `PRIVATE`, `PUBLIC_READ`, `PUBLIC_READ_WRITE`, `CONTROLLED_BY_PARENT` (Contact→Account, Opportunity→Account optional, master-detail children). A contact's access is controlled by its **primary** account; contacts without an account fall back to owner + hierarchy (v1.3). Defaults: Lead `PRIVATE`, Account `PRIVATE`, Contact `CONTROLLED_BY_PARENT`, Opportunity `PRIVATE`, Activity `CONTROLLED_BY_PARENT`, Campaign `PUBLIC_READ`, Product `PUBLIC_READ`.
 - **Hierarchy access:** users see and edit records owned by users in **descendant org units** (and their direct reports via `manager_id`) when "grant access using hierarchies" is on for the object (on by default, can be turned off for custom objects).
 - **Sharing rules:**
   - owner-based: records owned by members of group, role, role+subordinates or territory X → shared with Y at Read or Read-Write;

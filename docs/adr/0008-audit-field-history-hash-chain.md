@@ -23,3 +23,12 @@ RecordService writes `field_history` rows for tracked fields (≤ 60 per object;
 Plain audit table (not tamper-evident); external ledger service (cost, and residency).
 
 > Changing this decision requires the owner's approval (§0.3) and a new superseding ADR.
+
+## Addendum (2026-09-25, P01 plan approval, Q15)
+
+Appends are serialised with the **sequence-then-chain batcher**, not a per-tenant lock. Each audited transaction
+inserts its `audit_log` row with a per-tenant sequence number and no hash. A per-tenant chaining job (serialised by a
+BullMQ group key) hashes committed rows in sequence order, `hash = SHA-256(prev_hash ‖ canonical(row))`, and records
+an `audit_batch` row with the batch's Merkle root and the previous root. Only the `sm_audit` role may set a row's hash,
+once. Rolled-back sequence numbers are recorded as explicit gaps. The verifier re-walks rows and batch roots. Details:
+`docs/phases/P01-plan.md` §3.3.
