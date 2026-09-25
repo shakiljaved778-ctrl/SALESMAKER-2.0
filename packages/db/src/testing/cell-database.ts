@@ -20,10 +20,22 @@ export interface TestCellDatabase {
   drop(): Promise<void>;
 }
 
-const PASSWORDS = {
-  migratorPassword: 'sm_migrator_test',
-  appPassword: 'sm_app_test',
-  reportsPassword: 'sm_reports_test',
+type Passwords = typeof PASSWORDS;
+interface BootstrapLib {
+  ensureCellRoles(c: pg.Client, p: Passwords): Promise<void>;
+  bootstrapCell(c: pg.Client, p: Passwords, o?: { manageRoles?: boolean }): Promise<void>;
+}
+
+async function loadBootstrap(): Promise<BootstrapLib> {
+  return (await import(join(packageRoot, 'scripts', 'bootstrap-lib.js'))) as BootstrapLib;
+}
+
+// Same values as the local-dev defaults (.env.example): roles are cluster-wide, so tests run
+// against the docker compose server must not change the passwords the dev app uses.
+export const PASSWORDS = {
+  migratorPassword: 'sm_migrator_dev',
+  appPassword: 'sm_app_dev',
+  reportsPassword: 'sm_reports_dev',
 };
 
 function withDatabase(url: string, database: string, user?: string, password?: string): string {
@@ -32,6 +44,20 @@ function withDatabase(url: string, database: string, user?: string, password?: s
   if (user) u.username = user;
   if (password) u.password = password;
   return u.toString();
+}
+
+/**
+ * Create the cluster-wide cell roles once per test server (roles are shared by every database,
+ * and concurrent CREATE ROLE statements from parallel test files would race).
+ */
+export async function ensureTestCellRoles(serverAdminUrl: string): Promise<void> {
+  const client = new pg.Client({ connectionString: serverAdminUrl });
+  await client.connect();
+  try {
+    await (await loadBootstrap()).ensureCellRoles(client, PASSWORDS);
+  } finally {
+    await client.end();
+  }
 }
 
 /**

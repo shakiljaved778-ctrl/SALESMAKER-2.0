@@ -15,17 +15,20 @@
     "test": "vitest run",
     "db:bootstrap": "node scripts/bootstrap.js",
     "db:migrate": "prisma migrate deploy",
-    "db:schema-drift": "prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code"
+    "db:schema-drift": "prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code",
+    "db:rls-audit": "node scripts/rls-audit.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "kysely": "0.29.6",
     "pg": "8.23.0",
     "uuidv7": "1.2.1"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
     "@testcontainers/postgresql": "12.1.0",
+    "testcontainers": "12.1.0",
     "@types/node": "26.6.2",
     "@types/pg": "8.23.1",
     "eslint": "10.11.0",

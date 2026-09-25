@@ -1,6 +1,8 @@
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import type { TestProject } from 'vitest/node';
 
+import { ensureTestCellRoles } from '../src/testing/cell-database.js';
+
 declare module 'vitest' {
   export interface ProvidedContext {
     pgServerAdminUrl: string;
@@ -20,6 +22,7 @@ export async function setup(project: TestProject): Promise<void> {
     container = await new PostgreSqlContainer('pgvector/pgvector:pg16').start();
     url = container.getConnectionUri();
   }
+  await ensureTestCellRoles(url);
   project.provide('pgServerAdminUrl', url);
 }
 

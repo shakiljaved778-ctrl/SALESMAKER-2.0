@@ -5,5 +5,9 @@ import { defineConfig } from 'prisma/config';
 export default defineConfig({
   schema: 'prisma/schema.prisma',
   migrations: { path: 'prisma/migrations' },
-  datasource: { url: process.env['CELL_DATABASE_URL_MIGRATOR'] ?? '' },
+  datasource: {
+    url: process.env['CELL_DATABASE_URL_MIGRATOR'] ?? '',
+    // Throwaway database used only by the schema-drift check (`pnpm db:schema-drift`).
+    shadowDatabaseUrl: process.env['CELL_SHADOW_DATABASE_URL'],
+  },
 });

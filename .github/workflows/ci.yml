@@ -43,3 +43,38 @@ jobs:
       - uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  db:
+    name: db · migrate · rls-audit · drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ADMIN: postgresql://postgres:postgres@localhost:5432
+      CELL_DATABASE_URL_MIGRATOR: postgresql://sm_migrator:sm_migrator_dev@localhost:5432/salesmaker_cell
+      CELL_SHADOW_DATABASE_URL: postgresql://sm_migrator:sm_migrator_dev@localhost:5432/sm_shadow
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build and start the project Postgres image (all §3.2 extensions)
+        run: |
+          docker build -t sm-postgres infra/docker/postgres
+          docker run -d --name pg -e POSTGRES_PASSWORD=postgres -p 5432:5432 sm-postgres
+          for i in $(seq 1 30); do docker exec pg pg_isready -U postgres && break; sleep 2; done
+          docker exec pg psql -U postgres -c 'CREATE DATABASE sm_shadow'
+      - name: Bootstrap roles and extensions
+        run: |
+          CELL_ADMIN_DATABASE_URL=$ADMIN/salesmaker_cell pnpm --filter @sm/db db:bootstrap
+          CELL_ADMIN_DATABASE_URL=$ADMIN/sm_shadow pnpm --filter @sm/db db:bootstrap
+          docker exec pg psql -U postgres -d salesmaker_cell -Atc "SELECT extname FROM pg_extension ORDER BY 1"
+      - run: pnpm --filter @sm/db build
+      - name: Apply migrations as sm_migrator
+        run: pnpm --filter @sm/db db:migrate
+      - name: db:rls-audit
+        run: pnpm --filter @sm/db db:rls-audit
+      - name: Prisma schema matches the migrations (drift)
+        run: pnpm --filter @sm/db db:schema-drift
