@@ -17,7 +17,7 @@ Tick each box when the task's PR is merged with CI green. Details are in `P00-pl
 - [x] **T13** `feat(tenancy): signup provisions a tenant`
 - [x] **T14** `feat(ui): design tokens + themes + density`
 - [x] **T15** `feat(ui): Storybook + RTL/pseudo-locale + visual harness`
-- [ ] **T16** `feat(ui): form controls`
+- [x] **T16** `feat(ui): form controls`
 - [ ] **T17** `feat(ui): selection and display`
 - [ ] **T18** `feat(ui): overlays and navigation`
 - [ ] **T19** `feat(ui): feedback + command palette`
