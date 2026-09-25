@@ -18,7 +18,7 @@
     "verify": "pnpm format:check && turbo run lint typecheck test i18n:check",
     "db:bootstrap": "pnpm --filter @sm/db db:bootstrap",
     "db:migrate": "pnpm --filter @sm/db db:migrate",
-    "db:rls-audit": "pnpm --filter @sm/db build && pnpm --filter @sm/db db:rls-audit",
+    "db:rls-audit": "turbo run build --filter=@sm/db && pnpm --filter @sm/db db:rls-audit",
     "setup:dev": "node scripts/setup-dev.mjs",
     "db:setup": "node --env-file=.env scripts/db-setup.mjs"
   },

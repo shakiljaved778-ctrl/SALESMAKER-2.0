@@ -2,18 +2,21 @@
   "$schema": "https://turborepo.com/schema.json",
   "ui": "stream",
   "tasks": {
+    "generate": {
+      "outputs": ["src/generated/**"]
+    },
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "generate"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "storybook-static/**"]
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "generate"]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build", "generate"]
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "generate"],
       "outputs": []
     },
     "dev": {

@@ -5,10 +5,11 @@
   "type": "module",
   "description": "Global control plane: tenant directory, login routing (email HMACs only), signup reservations. Holds no CRM data (§3.4).",
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "generate": "prisma generate",
+    "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --env-file-if-exists=../../.env --watch dist/main.js",
     "start": "node dist/main.js",
-    "typecheck": "prisma generate && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
     "db:migrate": "prisma migrate deploy",

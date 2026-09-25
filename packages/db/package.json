@@ -10,8 +10,9 @@
   },
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "prisma generate && tsc -p tsconfig.build.json",
-    "typecheck": "prisma generate && tsc --noEmit",
+    "generate": "prisma generate",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
     "db:bootstrap": "node scripts/bootstrap.js",
