@@ -1,0 +1,36 @@
+{
+  "name": "@sm/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Cell database: Prisma schema and migrations, roles, RLS helpers and the tenant transaction wrapper",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "db:bootstrap": "node scripts/bootstrap.js",
+    "db:migrate": "prisma migrate deploy",
+    "db:schema-drift": "prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "pg": "8.23.0",
+    "uuidv7": "1.2.1"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@testcontainers/postgresql": "12.1.0",
+    "@types/node": "26.6.2",
+    "@types/pg": "8.23.1",
+    "eslint": "10.11.0",
+    "prisma": "7.10.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}

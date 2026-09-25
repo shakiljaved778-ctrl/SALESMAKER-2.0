@@ -1,0 +1,255 @@
+// Cell database schema (one per regional cell, §3.4).
+//
+// Conventions (§4.1): UUIDv7 ids; tenant_id leads every primary key and index; timestamps are
+// timestamptz in UTC; snake_case in SQL. Row-level security is not expressible in Prisma, so each
+// migration enables it with enable_tenant_rls() and `pnpm db:rls-audit` enforces it.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  DISABLED
+
+  @@map("user_status")
+}
+
+enum ThemePreference {
+  light
+  dark
+  system
+
+  @@map("theme_preference")
+}
+
+enum DensityPreference {
+  comfortable
+  default
+  compact
+
+  @@map("density_preference")
+}
+
+enum IdentityProvider {
+  password
+  google
+  microsoft
+
+  @@map("identity_provider")
+}
+
+enum MfaFactorType {
+  totp
+
+  @@map("mfa_factor_type")
+}
+
+enum AuthTokenPurpose {
+  verify_email
+  reset_password
+
+  @@map("auth_token_purpose")
+}
+
+/// Global reference data (no tenant_id; allow-listed in the RLS audit).
+model Currency {
+  code       String @id @db.Char(3)
+  name       String
+  minorUnits Int    @map("minor_units") @db.SmallInt
+
+  @@map("currency")
+}
+
+model TenantSettings {
+  tenantId             String   @id @map("tenant_id") @db.Uuid
+  name                 String
+  slug                 String   @db.Citext
+  region               String
+  corporateCurrency    String   @map("corporate_currency") @db.Char(3)
+  defaultLocale        String   @default("en") @map("default_locale")
+  defaultTimezone      String   @map("default_timezone")
+  fiscalYearStartMonth Int      @default(1) @map("fiscal_year_start_month") @db.SmallInt
+  metadataVersion      Int      @default(1) @map("metadata_version")
+  permVersion          Int      @default(1) @map("perm_version")
+  logoFileId           String?  @map("logo_file_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version              Int      @default(1)
+
+  @@map("tenant_settings")
+}
+
+model User {
+  tenantId        String            @map("tenant_id") @db.Uuid
+  id              String            @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  email           String            @db.Citext
+  emailVerifiedAt DateTime?         @map("email_verified_at") @db.Timestamptz(6)
+  name            String
+  locale          String?
+  timezone        String?
+  theme           ThemePreference   @default(system)
+  density         DensityPreference @default(default)
+  status          UserStatus        @default(PENDING)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy       String?           @map("created_by") @db.Uuid
+  updatedAt       DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy       String?           @map("updated_by") @db.Uuid
+  version         Int               @default(1)
+  deletedAt       DateTime?         @map("deleted_at") @db.Timestamptz(6)
+
+  identities    UserIdentity[]
+  sessions      Session[]
+  mfaFactors    MfaFactor[]
+  recoveryCodes MfaRecoveryCode[]
+  authTokens    AuthToken[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, email])
+  @@map("user")
+}
+
+model UserIdentity {
+  tenantId     String           @map("tenant_id") @db.Uuid
+  id           String           @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  provider     IdentityProvider
+  subject      String
+  passwordHash String?          @map("password_hash")
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, provider, subject])
+  @@index([tenantId, userId])
+  @@map("user_identity")
+}
+
+model Session {
+  tenantId    String    @map("tenant_id") @db.Uuid
+  id          String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt  DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  ip          String?
+  userAgent   String?   @map("user_agent")
+  mfaVerified Boolean   @default(false) @map("mfa_verified")
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  user          User           @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@id([tenantId, id])
+  @@index([tenantId, userId])
+  @@map("session")
+}
+
+/// Rotating refresh tokens. All tokens of one login share a family_id; presenting a token that
+/// was already used revokes the whole family (reuse detection, §6.1).
+model RefreshToken {
+  tenantId  String    @map("tenant_id") @db.Uuid
+  id        String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  sessionId String    @map("session_id") @db.Uuid
+  familyId  String    @map("family_id") @db.Uuid
+  parentId  String?   @map("parent_id") @db.Uuid
+  tokenHash Bytes     @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  session Session @relation(fields: [tenantId, sessionId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, tokenHash])
+  @@index([tenantId, familyId])
+  @@map("refresh_token")
+}
+
+model MfaFactor {
+  tenantId    String        @map("tenant_id") @db.Uuid
+  id          String        @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  type        MfaFactorType
+  /// Envelope-encrypted secret: `<keyId>:<base64 ciphertext>` (§6.6).
+  secretEnc   String        @map("secret_enc")
+  confirmedAt DateTime?     @map("confirmed_at") @db.Timestamptz(6)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@index([tenantId, userId])
+  @@map("mfa_factor")
+}
+
+model MfaRecoveryCode {
+  tenantId  String    @map("tenant_id") @db.Uuid
+  id        String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  codeHash  Bytes     @map("code_hash")
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@index([tenantId, userId])
+  @@map("mfa_recovery_code")
+}
+
+model AuthToken {
+  tenantId  String           @map("tenant_id") @db.Uuid
+  id        String           @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  purpose   AuthTokenPurpose
+  tokenHash Bytes            @map("token_hash")
+  expiresAt DateTime         @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime?        @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, tokenHash])
+  @@index([tenantId, userId, purpose])
+  @@map("auth_token")
+}
+
+/// Login attempts for lockout (10 failures / 15 min, §6.1). Becomes login_history in P01.
+model AuthAttempt {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  id        String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  emailHash Bytes    @map("email_hash")
+  ip        String?
+  success   Boolean
+  at        DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@index([tenantId, emailHash, at])
+  @@map("auth_attempt")
+}
+
+model IdempotencyKey {
+  tenantId       String   @map("tenant_id") @db.Uuid
+  key            String
+  requestHash    Bytes    @map("request_hash")
+  responseStatus Int      @map("response_status")
+  responseBody   Json     @map("response_body")
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([tenantId, key])
+  @@index([tenantId, expiresAt])
+  @@map("idempotency_key")
+}

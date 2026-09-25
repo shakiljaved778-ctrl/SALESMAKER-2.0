@@ -1,0 +1,91 @@
+import { execFile } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+
+import pg from 'pg';
+
+const run = promisify(execFile);
+const require = createRequire(import.meta.url);
+const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+export interface TestCellDatabase {
+  name: string;
+  adminUrl: string;
+  migratorUrl: string;
+  appUrl: string;
+  reportsUrl: string;
+  drop(): Promise<void>;
+}
+
+const PASSWORDS = {
+  migratorPassword: 'sm_migrator_test',
+  appPassword: 'sm_app_test',
+  reportsPassword: 'sm_reports_test',
+};
+
+function withDatabase(url: string, database: string, user?: string, password?: string): string {
+  const u = new URL(url);
+  u.pathname = `/${database}`;
+  if (user) u.username = user;
+  if (password) u.password = password;
+  return u.toString();
+}
+
+/**
+ * Create a fresh cell database on the server behind `serverAdminUrl`, bootstrap roles and run
+ * every migration as sm_migrator, exactly as a deployed cell does. Used by integration tests.
+ */
+export async function createTestCellDatabase(serverAdminUrl: string): Promise<TestCellDatabase> {
+  const name = `sm_test_${randomBytes(6).toString('hex')}`;
+  const server = new pg.Client({ connectionString: serverAdminUrl });
+  await server.connect();
+  try {
+    await server.query(`CREATE DATABASE ${name}`);
+  } finally {
+    await server.end();
+  }
+
+  const adminUrl = withDatabase(serverAdminUrl, name);
+  const admin = new pg.Client({ connectionString: adminUrl });
+  await admin.connect();
+  try {
+    const { bootstrapCell } = (await import(join(packageRoot, 'scripts', 'bootstrap-lib.js'))) as {
+      bootstrapCell: (c: pg.Client, p: typeof PASSWORDS) => Promise<void>;
+    };
+    await bootstrapCell(admin, PASSWORDS);
+  } finally {
+    await admin.end();
+  }
+
+  const migratorUrl = withDatabase(serverAdminUrl, name, 'sm_migrator', PASSWORDS.migratorPassword);
+  const prismaCli = join(dirname(require.resolve('prisma/package.json')), 'build', 'index.js');
+  await run(process.execPath, [prismaCli, 'migrate', 'deploy'], {
+    cwd: packageRoot,
+    env: { ...process.env, CELL_DATABASE_URL_MIGRATOR: migratorUrl },
+  });
+
+  return {
+    name,
+    adminUrl,
+    migratorUrl,
+    appUrl: withDatabase(serverAdminUrl, name, 'sm_app', PASSWORDS.appPassword),
+    reportsUrl: withDatabase(
+      serverAdminUrl,
+      name,
+      'sm_readonly_reports',
+      PASSWORDS.reportsPassword,
+    ),
+    async drop() {
+      const c = new pg.Client({ connectionString: serverAdminUrl });
+      await c.connect();
+      try {
+        await c.query(`DROP DATABASE IF EXISTS ${name} WITH (FORCE)`);
+      } finally {
+        await c.end();
+      }
+    },
+  };
+}
