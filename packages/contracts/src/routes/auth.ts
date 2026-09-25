@@ -180,3 +180,75 @@ export const authRoutes = {
     responses: { 200: { description: 'Updated user', body: MeResponse } },
   }),
 };
+
+export const TotpCode = z
+  .string()
+  .regex(/^\d{6}$/, 'Enter the 6-digit code')
+  .meta({ id: 'TotpCode' });
+
+export const MfaEnrollResponse = z
+  .object({
+    factorId: Uuid,
+    otpauthUri: z.string().startsWith('otpauth://totp/'),
+    secret: z.string(),
+  })
+  .meta({ id: 'MfaEnrollResponse' });
+
+export const MfaConfirmRequest = z.object({ code: TotpCode }).meta({ id: 'MfaConfirmRequest' });
+
+export const MfaConfirmResponse = z
+  .object({ recoveryCodes: z.array(z.string()).length(10) })
+  .meta({ id: 'MfaConfirmResponse' });
+
+export const MfaChallengeRequest = z
+  .union([
+    z.object({ mfaToken: z.string().min(20).max(2048), code: TotpCode }).strict(),
+    z
+      .object({
+        mfaToken: z.string().min(20).max(2048),
+        recoveryCode: z.string().regex(/^[a-z2-7]{4}-[a-z2-7]{4}$/i),
+      })
+      .strict(),
+  ])
+  .meta({ id: 'MfaChallengeRequest' });
+
+export const mfaRoutes = {
+  enrollTotp: defineRoute({
+    method: 'post',
+    path: '/auth/mfa/totp/enroll',
+    operationId: 'enrollTotp',
+    summary: 'Start TOTP enrolment: returns the secret and an otpauth:// URI for the QR code',
+    tags: ['auth'],
+    auth: 'session',
+    visibility: 'internal',
+    responses: {
+      200: { description: 'Unconfirmed factor created', body: MfaEnrollResponse },
+      409: { description: 'Two-step verification is already on' },
+    },
+  }),
+  confirmTotp: defineRoute({
+    method: 'post',
+    path: '/auth/mfa/totp/confirm',
+    operationId: 'confirmTotp',
+    summary: 'Confirm TOTP with a first code; returns 10 single-use recovery codes, shown once',
+    tags: ['auth'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { body: MfaConfirmRequest },
+    responses: { 200: { description: 'Two-step verification is on', body: MfaConfirmResponse } },
+  }),
+  challenge: defineRoute({
+    method: 'post',
+    path: '/auth/mfa/challenge',
+    operationId: 'mfaChallenge',
+    summary: 'Complete sign-in with a TOTP or recovery code after the password step',
+    tags: ['auth'],
+    auth: 'public',
+    visibility: 'internal',
+    request: { headers: TenantHeader, body: MfaChallengeRequest },
+    responses: {
+      200: { description: 'Signed in', body: LoginResponse },
+      423: { description: 'Locked after too many failed codes' },
+    },
+  }),
+};

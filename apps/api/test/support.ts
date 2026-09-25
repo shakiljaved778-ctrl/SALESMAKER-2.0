@@ -56,6 +56,7 @@ export async function startTestApi(overrides: Partial<ApiConfig> = {}): Promise<
     EMAIL_ROUTING_PEPPER: 'test-pepper-0123456789abcdef',
     AUTH_JWT_PRIVATE_KEY_PEM: JWT_KEYS.privatePem,
     AUTH_JWT_KID: 'test-1',
+    SECRETS_KEY: randomBytes(32).toString('base64'),
     ...overrides,
   });
   const email = new FakeEmailSender();

@@ -19,3 +19,4 @@ export {
   verifyServiceToken,
   type SigningKey,
 } from './service-token.js';
+export { SecretBox } from './secret-box.js';

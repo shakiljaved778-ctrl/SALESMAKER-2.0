@@ -40,6 +40,16 @@ export const ApiConfigSchema = z.object({
     ),
   ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+
+  // ── Secrets at rest (§6.6): AES-256-GCM key ring; KMS-provided in deployed cells ──
+  SECRETS_KEY_ID: z.string().min(1).default('local-1'),
+  /** 32 random bytes, base64. */
+  SECRETS_KEY: z.string().min(40),
+  /** Older keys still able to decrypt: JSON { "<id>": "<base64 key>" }. */
+  SECRETS_PREVIOUS_KEYS: z
+    .string()
+    .default('{}')
+    .transform((raw) => z.record(z.string(), z.string()).parse(JSON.parse(raw))),
 });
 
 export type ApiConfig = z.infer<typeof ApiConfigSchema>;

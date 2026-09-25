@@ -169,6 +169,260 @@
         }
       }
     },
+    "/auth/mfa/challenge": {
+      "post": {
+        "operationId": "mfaChallenge",
+        "summary": "Complete sign-in with a TOTP or recovery code after the password step",
+        "tags": [
+          "auth"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "x-sm-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "423": {
+            "description": "Locked after too many failed codes"
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaChallengeRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/mfa/totp/confirm": {
+      "post": {
+        "operationId": "confirmTotp",
+        "summary": "Confirm TOTP with a first code; returns 10 single-use recovery codes, shown once",
+        "tags": [
+          "auth"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Two-step verification is on",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaConfirmResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaConfirmRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/mfa/totp/enroll": {
+      "post": {
+        "operationId": "enrollTotp",
+        "summary": "Start TOTP enrolment: returns the secret and an otpauth:// URI for the QR code",
+        "tags": [
+          "auth"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Unconfirmed factor created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaEnrollResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Two-step verification is already on"
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/auth/password/forgot": {
       "post": {
         "operationId": "forgotPassword",
@@ -1161,6 +1415,97 @@
         ],
         "additionalProperties": false
       },
+      "MfaChallengeRequest": {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "mfaToken": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 2048
+              },
+              "code": {
+                "$ref": "#/components/schemas/TotpCode"
+              }
+            },
+            "required": [
+              "mfaToken",
+              "code"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "mfaToken": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 2048
+              },
+              "recoveryCode": {
+                "type": "string",
+                "pattern": "^[a-z2-7]{4}-[a-z2-7]{4}$"
+              }
+            },
+            "required": [
+              "mfaToken",
+              "recoveryCode"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "MfaConfirmRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/TotpCode"
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "MfaConfirmResponse": {
+        "type": "object",
+        "properties": {
+          "recoveryCodes": {
+            "minItems": 10,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "recoveryCodes"
+        ],
+        "additionalProperties": false
+      },
+      "MfaEnrollResponse": {
+        "type": "object",
+        "properties": {
+          "factorId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "otpauthUri": {
+            "type": "string",
+            "format": "starts_with",
+            "pattern": "^otpauth:\\/\\/totp\\/.*"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "factorId",
+          "otpauthUri",
+          "secret"
+        ],
+        "additionalProperties": false
+      },
       "NewPassword": {
         "type": "string",
         "minLength": 12,
@@ -1354,6 +1699,10 @@
         "required": [
           "token"
         ]
+      },
+      "TotpCode": {
+        "type": "string",
+        "pattern": "^\\d{6}$"
       },
       "Uuid": {
         "type": "string",

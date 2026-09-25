@@ -5,6 +5,7 @@ import {
   createFastifyApp,
   createLogger,
   rateLimitHeaders,
+  SecretBox,
   requestContext,
   TokenBucketRateLimiter,
 } from '@sm/server-kit';
@@ -64,13 +65,19 @@ export async function createApiApp(
   }
   const limiter = new TokenBucketRateLimiter(redis, config.RATE_LIMIT_NAMESPACE);
   const email = overrides.email ?? new SmtpEmailSender(config.SMTP_URL, config.EMAIL_FROM);
+  const secretBox =
+    overrides.secretBox ??
+    new SecretBox(config.SECRETS_KEY_ID, {
+      ...config.SECRETS_PREVIOUS_KEYS,
+      [config.SECRETS_KEY_ID]: config.SECRETS_KEY,
+    });
   const breachedPasswords =
     overrides.breachedPasswords ??
     new RangeApiBreachedPasswordChecker(config.BREACHED_PASSWORD_API_URL);
   const servedRoutes: string[] = [];
 
   const app = await createFastifyApp(
-    AppModule.forRoot({ config, prisma, redis, logger, email, breachedPasswords }),
+    AppModule.forRoot({ config, prisma, redis, logger, email, breachedPasswords, secretBox }),
     {
       logger,
       configure(nest) {

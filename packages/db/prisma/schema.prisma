@@ -176,14 +176,16 @@ model RefreshToken {
 }
 
 model MfaFactor {
-  tenantId    String        @map("tenant_id") @db.Uuid
-  id          String        @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  userId      String        @map("user_id") @db.Uuid
-  type        MfaFactorType
+  tenantId     String        @map("tenant_id") @db.Uuid
+  id           String        @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId       String        @map("user_id") @db.Uuid
+  type         MfaFactorType
   /// Envelope-encrypted secret: `<keyId>:<base64 ciphertext>` (§6.6).
-  secretEnc   String        @map("secret_enc")
-  confirmedAt DateTime?     @map("confirmed_at") @db.Timestamptz(6)
-  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  secretEnc    String        @map("secret_enc")
+  confirmedAt  DateTime?     @map("confirmed_at") @db.Timestamptz(6)
+  /// Last TOTP time step accepted; a code can never be used twice (replay protection).
+  lastUsedStep BigInt?       @map("last_used_step")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
   user User @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
 

@@ -1,6 +1,7 @@
 import { Module, type DynamicModule } from '@nestjs/common';
 import type { CellPrisma } from '@sm/db';
 import type { BreachedPasswordChecker, EmailSender } from '@sm/integrations';
+import type { SecretBox } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
 
@@ -10,6 +11,8 @@ import { AuthGuard } from './auth/auth.guard.js';
 import { AuthService } from './auth/auth.service.js';
 import { LockoutService } from './auth/lockout.service.js';
 import { MeController } from './auth/me.controller.js';
+import { MfaController } from './auth/mfa.controller.js';
+import { MfaService } from './auth/mfa.service.js';
 import { PasswordService } from './auth/password.service.js';
 import { SessionService } from './auth/session.service.js';
 import { TokenService } from './auth/token.service.js';
@@ -17,7 +20,15 @@ import type { ApiConfig } from './config.js';
 import { HealthController } from './health/health.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
-import { BREACHED_PASSWORDS, CONFIG, EMAIL_SENDER, LOGGER, PRISMA, REDIS } from './tokens.js';
+import {
+  BREACHED_PASSWORDS,
+  CONFIG,
+  EMAIL_SENDER,
+  LOGGER,
+  PRISMA,
+  REDIS,
+  SECRET_BOX,
+} from './tokens.js';
 
 export interface ApiDependencies {
   config: ApiConfig;
@@ -26,6 +37,7 @@ export interface ApiDependencies {
   logger: Logger;
   email: EmailSender;
   breachedPasswords: BreachedPasswordChecker;
+  secretBox: SecretBox;
 }
 
 @Module({})
@@ -34,7 +46,13 @@ export class AppModule {
     return {
       module: AppModule,
       global: true,
-      controllers: [HealthController, OpenApiController, AuthController, MeController],
+      controllers: [
+        HealthController,
+        OpenApiController,
+        AuthController,
+        MeController,
+        MfaController,
+      ],
       providers: [
         { provide: CONFIG, useValue: deps.config },
         { provide: PRISMA, useValue: deps.prisma },
@@ -42,6 +60,8 @@ export class AppModule {
         { provide: LOGGER, useValue: deps.logger },
         { provide: EMAIL_SENDER, useValue: deps.email },
         { provide: BREACHED_PASSWORDS, useValue: deps.breachedPasswords },
+        { provide: SECRET_BOX, useValue: deps.secretBox },
+        MfaService,
         TenantContextGuard,
         AuthGuard,
         TokenService,
