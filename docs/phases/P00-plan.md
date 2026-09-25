@@ -1,6 +1,6 @@
 # P00 — Foundation and design system: plan
 
-- **Status:** PLANNING. Awaiting owner approval (§0.2 step 2). No application code is written until this plan is approved.
+- **Status:** APPROVED 2026-09-25 with the assumed answers in §0 (see CHANGELOG_SPEC v1.2).
 - **Weeks:** 1–2 · **Spec:** §3, §4.1, §6.1, §9, §10.5, §13, §14 (P00 row) · **ADRs:** 0001–0006, 0015–0018, 0024, 0028
 - **Exit gate (§14):** sign up → empty app shell in light / dark / compact; `db:rls-audit` green; Storybook published.
 

@@ -84,6 +84,8 @@ For anything else, make the call, record it in the phase plan or an ADR, and mov
 - **Phases P00–P12** (see `docs/phases/ROADMAP.md`). For each phase: re-read this file, the spec
   sections, the ADRs and the previous `Pxx-handoff.md`. Then write `docs/phases/Pxx-plan.md` and **stop for approval**.
   Then run task by task, updating `Pxx-tasks.md`. Finish with `Pxx-handoff.md` and a ROADMAP update.
+- **Environment deviation (owner-approved 2026-09-25):** cloud sessions commit each task as one Conventional Commit on the
+  session's assigned branch and open PRs only on request. The `feat/Pxx-*` convention below applies when working locally.
 - Branches: `feat/Pxx-<slug>`, `fix/<slug>`, `chore/<slug>`. Trunk is `main` (protected).
   **Conventional Commits**, squash-merge, **one PR per feature task** (≤ ~600 changed lines
   excluding generated code, lockfiles and snapshots), using the PR template. Self-merge only once CI is green.
@@ -99,7 +101,7 @@ For anything else, make the call, record it in the phase plan or an ADR, and mov
 ## Commands (available once P00 lands)
 
 ```bash
-docker compose up                 # Postgres 16, Redis 7, MinIO, Mailpit, fakes, OTel + Jaeger
+docker compose up                 # Postgres 16, Valkey 8, MinIO, Mailpit, fakes, OTel + Jaeger
 pnpm install && pnpm dev          # web, api, worker, realtime with hot reload
 pnpm verify                       # the full local gate — must be green before any PR
 pnpm db:seed --scenario=agency|bank --scale=demo|load

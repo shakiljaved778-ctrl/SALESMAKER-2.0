@@ -2,7 +2,7 @@ SALESMAKER 2.0 — MASTER BUILD PROMPT
 
 > **What this is:** the constitution for building SalesMaker 2.0 with Claude Code on GitHub. Paste this whole file into Claude Code in an empty repository as the **first message of the project**. Everything after it (phase prompts P00–P12) refers back to section numbers in this document.
 >
-> **Version:** 1.1 · **Owner:** Shakil Javed · **Date:** 25 Sep 2026 (changes: `docs/spec/CHANGELOG_SPEC.md`)
+> **Version:** 1.2 · **Owner:** Shakil Javed · **Date:** 25 Sep 2026 (changes: `docs/spec/CHANGELOG_SPEC.md`)
 
 ---
 
@@ -99,7 +99,7 @@ SalesMaker 2.0 is one platform for the whole sales motion: generate and capture 
 | 22 | Mobile | **Responsive web + installable PWA in v1**; native (React Native/Expo) in v2 |
 | 23 | Design spec | **Full mandatory design-system spec** (§9) |
 | 24 | Stack | **Turborepo monorepo: Next.js (App Router) + TypeScript, NestJS API, PostgreSQL 16 + Prisma (+ Kysely for dynamic queries), Redis + BullMQ, S3-compatible storage, search behind an interface** |
-| 25 | Hosting | **Vercel (web) + AWS (API, workers, DB, Redis, S3) in production**; Railway allowed for staging |
+| 25 | Hosting | **Vercel (web) + AWS (API, workers, DB, Valkey/Redis-protocol cache, S3) in production and staging** (v1.2: Railway dropped; staging mirrors prod on ECS) |
 | 26 | Data residency | **Per-tenant region selection** at signup (regional "cells", §3.4) |
 | 27 | Auth | **Built in-house:** email/password + Google/Microsoft SSO + enterprise SAML/OIDC + MFA (TOTP, WebAuthn/passkeys) |
 | 28 | Public API | **REST + webhooks + OAuth 2.0 connected apps in v1**; GraphQL later |
@@ -206,7 +206,7 @@ Service/cases module; marketing automation (email campaigns at scale, nurture jo
 | Validation / contracts | **zod** schemas in `@sm/contracts` → **OpenAPI 3.1** generated | Same schemas in web and api |
 | ORM / SQL | **Prisma** (schema, migrations, platform tables) + **Kysely** (Query Engine, dynamic metadata SQL) | ADR-0004 |
 | DB | **PostgreSQL 16** (RDS Multi-AZ), extensions: `pgcrypto`, `pg_trgm`, `citext`, `pgvector`, `btree_gin`, `pg_partman` | Declarative partitioning for activities, history, audit |
-| Cache / queues | **Redis 7 (ElastiCache) + BullMQ** | Per-tenant fairness groups |
+| Cache / queues | **Valkey 8** (BSD-licensed, Redis-protocol; ElastiCache Valkey engine) **+ BullMQ** | Per-tenant fairness groups. v1.2: replaces Redis 7 for licence reasons; "Redis" elsewhere in this spec means this Redis-protocol store |
 | Realtime | **WebSocket gateway (NestJS + ws/Socket.IO) with Redis adapter** | Invalidation events only, never full records |
 | Files | **S3** (MinIO locally), pre-signed URLs, AV scanning (ClamAV worker) | |
 | Search | `SearchProvider` interface: **Postgres FTS + pg_trgm** (MVP) → **OpenSearch** adapter (P12) | |
@@ -224,7 +224,7 @@ Service/cases module; marketing automation (email campaigns at scale, nurture jo
 ### 3.4 Regional cells and data residency
 - A **cell** is a complete regional stack (API, workers, realtime, Postgres, Redis, S3, search) in one AWS region. Tenant data **never leaves its cell**, except aggregated, non-personal billing and usage counters sent to the control plane.
 - Launch regions: **us-east-1 (US)**, **eu-central-1 (EU)**, **me-central-1 (UAE, serving GCC)**, **ap-south-1 (India)**. MVP runs **one cell (eu-central-1)**, but all code is cell-aware from P00: the cell base URL comes from the tenant directory and is never hard-coded.
-- **Control plane** (`apps/control-api`, its own small Postgres): tenant directory (`tenant_id, slug, region, status, plan`), global user-email → tenant routing for login, Stripe webhooks, and plan entitlements. It holds **no CRM data**.
+- **Control plane** (`apps/control-api`, its own small Postgres): tenant directory (`tenant_id, slug, region, status, plan`), global login routing keyed by a **keyed hash (HMAC) of the user email**, never the plaintext address (v1.2); "find my workspaces" emails the list, so membership cannot be enumerated; Stripe webhooks, and plan entitlements. It holds **no CRM data**.
 - Web (Vercel, global) resolves `{slug}.salesmaker.app` → region → calls `https://{region}.api.salesmaker.app`. Cookies are scoped per tenant subdomain.
 - Enterprise tenants can later be placed on a **dedicated cell**. The design must not prevent this: no cross-cell joins, and all tenant-scoped config lives in the cell.
 
@@ -696,7 +696,7 @@ Primitive scales (use via semantic tokens only):
 `cat-1 Jade #1E8E80` · `cat-2 Cobalt #3B6FD4` · `cat-3 Iris #6D5BD0` (charts only, never an AI implication on stage chips; stage chips skip slot 3) · `cat-4 Rose #C2527A` · `cat-5 Amber #D07A1F` · `cat-6 Olive #5E8F2E` · `cat-7 Cyan #2E9BB8` · `cat-8 Clay #8A6A4F`.
 Sequential (heatmaps, gauges): jade-50 → jade-900. Diverging (variance vs target): danger-500 ← graphite-200 → success-500.
 **Won** = success, **Lost** = graphite-400 (not red: a loss is information, not an error). **Overdue/breach** = danger. **At-risk** = warning.
-**Contrast rule:** all text/background pairs ≥ 4.5:1 (≥ 3:1 for ≥ 18 px semibold and for UI component boundaries). A token-contrast unit test (`tokens.contrast.test.ts`) fails CI on violations.
+**Contrast rule:** all text/background pairs ≥ 4.5:1 (≥ 3:1 for ≥ 18 px semibold and for UI component boundaries). `--text-disabled` is exempt, as in WCAG 1.4.3 (v1.2). Lost chips render graphite-600 text on a graphite-100 background; graphite-400 is used only for non-text marks (chart bars, dots). A token-contrast unit test (`tokens.contrast.test.ts`) fails CI on violations.
 
 ### 9.3 Typography
 - **UI font:** **Inter Variable** (self-hosted via `next/font`), features `"cv11","ss01","tnum"` in tables and number cells (`font-variant-numeric: tabular-nums`). **Mono:** **JetBrains Mono** for IDs, API keys, formulas and code. **Future Arabic:** **IBM Plex Sans Arabic** is declared in the font stack now (not loaded until RTL is enabled).
@@ -998,7 +998,7 @@ Test data: `packages/testing` provides factories (`makeLead()`, `makeTenantWithH
 - `nightly.yml`: k6 load against staging with the scale seed, dependency updates, backup-restore drill (weekly).
 
 ### 13.6 Local development
-`docker compose up` → Postgres 16 (with extensions), Redis 7, MinIO, Mailpit, a Twilio/Meta/Stripe **fake** server (`apps/fakes`), and an OTel collector + Jaeger. `pnpm dev` runs web, api, worker and realtime with hot reload. `pnpm db:seed --scenario=agency|bank --scale=demo|load`. `.env.example` is complete and documented. A new machine reaches a working app in ≤ 15 minutes by following `README.md`.
+`docker compose up` → Postgres 16 (with extensions), Valkey 8, MinIO, Mailpit, a Twilio/Meta/Stripe **fake** server (`apps/fakes`), and an OTel collector + Jaeger. `pnpm dev` runs web, api, worker and realtime with hot reload. `pnpm db:seed --scenario=agency|bank --scale=demo|load`. `.env.example` is complete and documented. A new machine reaches a working app in ≤ 15 minutes by following `README.md`.
 
 ### 13.7 Documentation set (maintained by Claude Code)
 `docs/spec/MASTER_SPEC.md` · `docs/spec/ERD.md` (Mermaid, generated from Prisma + hand notes) · `docs/adr/*` · `docs/phases/*` (plan, tasks, handoff per phase) · `docs/modules/*` (behavioural docs per module) · `docs/runbooks/*` (deploy, rollback, restore, incident, breach, rotate keys, add region cell) · `docs/api/` (generated) · `CHANGELOG.md` (release notes in user language).

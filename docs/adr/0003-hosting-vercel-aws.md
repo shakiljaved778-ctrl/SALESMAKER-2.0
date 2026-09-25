@@ -9,7 +9,7 @@
 The web tier benefits from a global edge. The API and data must be regional for residency.
 
 ## Decision
-Production runs `apps/web` on **Vercel**. API, workers, realtime, RDS PostgreSQL (Multi-AZ + read replica), ElastiCache Redis, S3, and optionally OpenSearch run on **AWS** per cell, deployed with ECS rolling deploys and provisioned with Terraform. Railway is allowed for staging. Deploys use GitHub Actions (staging on merge to main; prod on a `v*` tag with manual approval, canary cell first).
+Production runs `apps/web` on **Vercel**. API, workers, realtime, RDS PostgreSQL (Multi-AZ + read replica), ElastiCache Redis, S3, and optionally OpenSearch run on **AWS** per cell, deployed with ECS rolling deploys and provisioned with Terraform. Staging also runs on AWS ECS (Railway dropped on 2026-09-25, spec v1.2). Deploys use GitHub Actions (staging on merge to main; prod on a `v*` tag with manual approval, canary cell first).
 
 ## Consequences
 + Best-in-class Next.js hosting, and AWS regional coverage for GCC (me-central-1).
