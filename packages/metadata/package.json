@@ -1,0 +1,25 @@
+{
+  "name": "@sm/metadata",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standard object catalogue (§4, §5.1, §6.3): objects, standard fields and sharing defaults. Permissions reference it by API name in P01; P02 seeds object_definition / field_definition from it.",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@sm/i18n": "workspace:*",
+    "@types/node": "26.6.2",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}

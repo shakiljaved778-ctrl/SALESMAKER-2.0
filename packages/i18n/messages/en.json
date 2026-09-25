@@ -282,5 +282,218 @@
       "body": "SalesMaker is briefly unavailable for maintenance. Your data is safe. Please check back soon.",
       "action": "Try again"
     }
+  },
+  "objects": {
+    "common": {
+      "fields": {
+        "id": "Record ID",
+        "recordNumber": "Record number",
+        "ownerId": "Owner",
+        "recordTypeId": "Record type",
+        "externalId": "External ID",
+        "createdAt": "Created at",
+        "createdBy": "Created by",
+        "updatedAt": "Updated at",
+        "updatedBy": "Updated by"
+      }
+    },
+    "lead": {
+      "singular": "Lead",
+      "plural": "Leads",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "company": "Company",
+        "title": "Title",
+        "email": "Email",
+        "phone": "Phone",
+        "mobilePhone": "Mobile",
+        "website": "Website",
+        "status": "Status",
+        "unqualifiedReason": "Unqualified reason",
+        "rating": "Rating",
+        "leadSource": "Lead source",
+        "industry": "Industry",
+        "annualRevenue": "Annual revenue",
+        "numberOfEmployees": "Employees",
+        "street": "Street",
+        "city": "City",
+        "state": "State",
+        "postalCode": "Postal code",
+        "country": "Country",
+        "description": "Description",
+        "campaignId": "Campaign",
+        "doNotCall": "Do not call",
+        "emailOptOut": "Email opt-out",
+        "convertedAt": "Converted at",
+        "convertedAccountId": "Converted account",
+        "convertedContactId": "Converted contact",
+        "convertedOpportunityId": "Converted opportunity"
+      }
+    },
+    "account": {
+      "singular": "Account",
+      "plural": "Accounts",
+      "fields": {
+        "name": "Name",
+        "parentAccountId": "Parent account",
+        "type": "Type",
+        "industry": "Industry",
+        "rating": "Rating",
+        "annualRevenue": "Annual revenue",
+        "numberOfEmployees": "Employees",
+        "website": "Website",
+        "phone": "Phone",
+        "billingStreet": "Billing street",
+        "billingCity": "Billing city",
+        "billingState": "Billing state",
+        "billingPostalCode": "Billing postal code",
+        "billingCountry": "Billing country",
+        "shippingStreet": "Shipping street",
+        "shippingCity": "Shipping city",
+        "shippingState": "Shipping state",
+        "shippingPostalCode": "Shipping postal code",
+        "shippingCountry": "Shipping country",
+        "description": "Description"
+      }
+    },
+    "contact": {
+      "singular": "Contact",
+      "plural": "Contacts",
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "accountId": "Account",
+        "title": "Title",
+        "department": "Department",
+        "email": "Email",
+        "phone": "Phone",
+        "mobilePhone": "Mobile",
+        "reportsToId": "Reports to",
+        "leadSource": "Lead source",
+        "birthdate": "Birthdate",
+        "mailingStreet": "Mailing street",
+        "mailingCity": "Mailing city",
+        "mailingState": "Mailing state",
+        "mailingPostalCode": "Mailing postal code",
+        "mailingCountry": "Mailing country",
+        "description": "Description",
+        "doNotCall": "Do not call",
+        "emailOptOut": "Email opt-out"
+      }
+    },
+    "opportunity": {
+      "singular": "Opportunity",
+      "plural": "Opportunities",
+      "fields": {
+        "name": "Name",
+        "accountId": "Account",
+        "primaryContactId": "Primary contact",
+        "pipelineId": "Pipeline",
+        "stage": "Stage",
+        "probability": "Probability",
+        "forecastCategory": "Forecast category",
+        "amount": "Amount",
+        "closeDate": "Close date",
+        "nextStep": "Next step",
+        "type": "Type",
+        "leadSource": "Lead source",
+        "campaignId": "Campaign",
+        "lossReason": "Loss reason",
+        "competitors": "Competitors",
+        "description": "Description",
+        "isClosed": "Closed",
+        "isWon": "Won"
+      }
+    },
+    "campaign": {
+      "singular": "Campaign",
+      "plural": "Campaigns",
+      "fields": {
+        "name": "Name",
+        "parentCampaignId": "Parent campaign",
+        "type": "Type",
+        "status": "Status",
+        "isActive": "Active",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "budgetedCost": "Budgeted cost",
+        "actualCost": "Actual cost",
+        "expectedRevenue": "Expected revenue",
+        "description": "Description",
+        "numberOfLeads": "Leads in campaign",
+        "numberOfOpportunities": "Opportunities in campaign"
+      }
+    },
+    "product": {
+      "singular": "Product",
+      "plural": "Products",
+      "fields": {
+        "name": "Name",
+        "productCode": "Product code",
+        "family": "Family",
+        "quantityUnit": "Quantity unit",
+        "isActive": "Active",
+        "description": "Description"
+      }
+    },
+    "quote": {
+      "singular": "Quote",
+      "plural": "Quotes",
+      "fields": {
+        "name": "Name",
+        "opportunityId": "Opportunity",
+        "status": "Status",
+        "expirationDate": "Expiration date",
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "totalPrice": "Total price",
+        "description": "Description"
+      }
+    },
+    "contract": {
+      "singular": "Contract",
+      "plural": "Contracts",
+      "fields": {
+        "contractNumber": "Contract number",
+        "accountId": "Account",
+        "status": "Status",
+        "startDate": "Start date",
+        "termMonths": "Contract term (months)",
+        "endDate": "End date",
+        "description": "Description"
+      }
+    },
+    "order": {
+      "singular": "Order",
+      "plural": "Orders",
+      "fields": {
+        "orderNumber": "Order number",
+        "accountId": "Account",
+        "opportunityId": "Opportunity",
+        "contractId": "Contract",
+        "status": "Status",
+        "effectiveDate": "Effective date",
+        "totalAmount": "Total amount",
+        "description": "Description"
+      }
+    },
+    "activity": {
+      "singular": "Activity",
+      "plural": "Activities",
+      "fields": {
+        "type": "Type",
+        "subject": "Subject",
+        "status": "Status",
+        "priority": "Priority",
+        "dueDate": "Due date",
+        "startAt": "Start",
+        "endAt": "End",
+        "whatId": "Related to",
+        "whoId": "Contact or lead",
+        "description": "Description",
+        "completedAt": "Completed at"
+      }
+    }
   }
 }

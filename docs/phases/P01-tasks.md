@@ -3,7 +3,7 @@
 Tick each box when the task's commit is pushed with CI green. Details are in `P01-plan.md`.
 
 - [x] **T01** `ci: coverage gates` — shared `coverage()` gate in `@sm/config/vitest` (80% lines; 90% for formula, permissions and query-engine, guarded by a test); every vitest workspace runs `--coverage`. Web gates the BFF (`src/server`); pages are covered by e2e.
-- [ ] **T02** `feat(metadata): standard object catalogue`
+- [x] **T02** `feat(metadata): standard object catalogue` — `@sm/metadata`: 10 standard objects, standard fields, OWD defaults, FLS scope; labels in `@sm/i18n` under `objects.*`. Open calls recorded in `P01-notes.md`.
 - [ ] **T03** `feat(db): hierarchy schema`
 - [ ] **T04** `feat(db): permission schema`
 - [ ] **T05** `feat(permissions): permission engine`

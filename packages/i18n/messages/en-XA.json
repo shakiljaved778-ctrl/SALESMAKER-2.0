@@ -282,5 +282,218 @@
       "body": "［ŠáļéšṀáķéŕ íš ƀŕíéƒļý úñáṽáíļáƀļé ƒóŕ ɱáíñţéñáñçé. Ýóúŕ ðáţá íš šáƒé. Þļéášé çĥéçķ ƀáçķ šóóñ.····························］",
       "action": "［Ţŕý áĝáíñ···］"
     }
+  },
+  "objects": {
+    "common": {
+      "fields": {
+        "id": "［Ŕéçóŕð ÍÐ···］",
+        "recordNumber": "［Ŕéçóŕð ñúɱƀéŕ····］",
+        "ownerId": "［Óŵñéŕ··］",
+        "recordTypeId": "［Ŕéçóŕð ţýþé····］",
+        "externalId": "［Éẋţéŕñáļ ÍÐ····］",
+        "createdAt": "［Çŕéáţéð áţ···］",
+        "createdBy": "［Çŕéáţéð ƀý···］",
+        "updatedAt": "［Úþðáţéð áţ···］",
+        "updatedBy": "［Úþðáţéð ƀý···］"
+      }
+    },
+    "lead": {
+      "singular": "［Ļéáð··］",
+      "plural": "［Ļéáðš··］",
+      "fields": {
+        "firstName": "［Ƒíŕšţ ñáɱé···］",
+        "lastName": "［Ļášţ ñáɱé···］",
+        "company": "［Çóɱþáñý···］",
+        "title": "［Ţíţļé··］",
+        "email": "［Éɱáíļ··］",
+        "phone": "［Þĥóñé··］",
+        "mobilePhone": "［Ṁóƀíļé··］",
+        "website": "［Ŵéƀšíţé···］",
+        "status": "［Šţáţúš··］",
+        "unqualifiedReason": "［Úñǫúáļíƒíéð ŕéášóñ······］",
+        "rating": "［Ŕáţíñĝ··］",
+        "leadSource": "［Ļéáð šóúŕçé····］",
+        "industry": "［Íñðúšţŕý···］",
+        "annualRevenue": "［Áññúáļ ŕéṽéñúé·····］",
+        "numberOfEmployees": "［Éɱþļóýééš···］",
+        "street": "［Šţŕééţ··］",
+        "city": "［Çíţý··］",
+        "state": "［Šţáţé··］",
+        "postalCode": "［Þóšţáļ çóðé····］",
+        "country": "［Çóúñţŕý···］",
+        "description": "［Ðéšçŕíþţíóñ····］",
+        "campaignId": "［Çáɱþáíĝñ···］",
+        "doNotCall": "［Ðó ñóţ çáļļ····］",
+        "emailOptOut": "［Éɱáíļ óþţ-óúţ····］",
+        "convertedAt": "［Çóñṽéŕţéð áţ····］",
+        "convertedAccountId": "［Çóñṽéŕţéð áççóúñţ······］",
+        "convertedContactId": "［Çóñṽéŕţéð çóñţáçţ······］",
+        "convertedOpportunityId": "［Çóñṽéŕţéð óþþóŕţúñíţý·······］"
+      }
+    },
+    "account": {
+      "singular": "［Áççóúñţ···］",
+      "plural": "［Áççóúñţš···］",
+      "fields": {
+        "name": "［Ñáɱé··］",
+        "parentAccountId": "［Þáŕéñţ áççóúñţ·····］",
+        "type": "［Ţýþé··］",
+        "industry": "［Íñðúšţŕý···］",
+        "rating": "［Ŕáţíñĝ··］",
+        "annualRevenue": "［Áññúáļ ŕéṽéñúé·····］",
+        "numberOfEmployees": "［Éɱþļóýééš···］",
+        "website": "［Ŵéƀšíţé···］",
+        "phone": "［Þĥóñé··］",
+        "billingStreet": "［Ɓíļļíñĝ šţŕééţ·····］",
+        "billingCity": "［Ɓíļļíñĝ çíţý····］",
+        "billingState": "［Ɓíļļíñĝ šţáţé····］",
+        "billingPostalCode": "［Ɓíļļíñĝ þóšţáļ çóðé······］",
+        "billingCountry": "［Ɓíļļíñĝ çóúñţŕý·····］",
+        "shippingStreet": "［Šĥíþþíñĝ šţŕééţ·····］",
+        "shippingCity": "［Šĥíþþíñĝ çíţý····］",
+        "shippingState": "［Šĥíþþíñĝ šţáţé·····］",
+        "shippingPostalCode": "［Šĥíþþíñĝ þóšţáļ çóðé······］",
+        "shippingCountry": "［Šĥíþþíñĝ çóúñţŕý·····］",
+        "description": "［Ðéšçŕíþţíóñ····］"
+      }
+    },
+    "contact": {
+      "singular": "［Çóñţáçţ···］",
+      "plural": "［Çóñţáçţš···］",
+      "fields": {
+        "firstName": "［Ƒíŕšţ ñáɱé···］",
+        "lastName": "［Ļášţ ñáɱé···］",
+        "accountId": "［Áççóúñţ···］",
+        "title": "［Ţíţļé··］",
+        "department": "［Ðéþáŕţɱéñţ···］",
+        "email": "［Éɱáíļ··］",
+        "phone": "［Þĥóñé··］",
+        "mobilePhone": "［Ṁóƀíļé··］",
+        "reportsToId": "［Ŕéþóŕţš ţó···］",
+        "leadSource": "［Ļéáð šóúŕçé····］",
+        "birthdate": "［Ɓíŕţĥðáţé···］",
+        "mailingStreet": "［Ṁáíļíñĝ šţŕééţ·····］",
+        "mailingCity": "［Ṁáíļíñĝ çíţý····］",
+        "mailingState": "［Ṁáíļíñĝ šţáţé····］",
+        "mailingPostalCode": "［Ṁáíļíñĝ þóšţáļ çóðé······］",
+        "mailingCountry": "［Ṁáíļíñĝ çóúñţŕý·····］",
+        "description": "［Ðéšçŕíþţíóñ····］",
+        "doNotCall": "［Ðó ñóţ çáļļ····］",
+        "emailOptOut": "［Éɱáíļ óþţ-óúţ····］"
+      }
+    },
+    "opportunity": {
+      "singular": "［Óþþóŕţúñíţý····］",
+      "plural": "［Óþþóŕţúñíţíéš····］",
+      "fields": {
+        "name": "［Ñáɱé··］",
+        "accountId": "［Áççóúñţ···］",
+        "primaryContactId": "［Þŕíɱáŕý çóñţáçţ·····］",
+        "pipelineId": "［Þíþéļíñé···］",
+        "stage": "［Šţáĝé··］",
+        "probability": "［Þŕóƀáƀíļíţý····］",
+        "forecastCategory": "［Ƒóŕéçášţ çáţéĝóŕý······］",
+        "amount": "［Áɱóúñţ··］",
+        "closeDate": "［Çļóšé ðáţé···］",
+        "nextStep": "［Ñéẋţ šţéþ···］",
+        "type": "［Ţýþé··］",
+        "leadSource": "［Ļéáð šóúŕçé····］",
+        "campaignId": "［Çáɱþáíĝñ···］",
+        "lossReason": "［Ļóšš ŕéášóñ····］",
+        "competitors": "［Çóɱþéţíţóŕš····］",
+        "description": "［Ðéšçŕíþţíóñ····］",
+        "isClosed": "［Çļóšéð··］",
+        "isWon": "［Ŵóñ·］"
+      }
+    },
+    "campaign": {
+      "singular": "［Çáɱþáíĝñ···］",
+      "plural": "［Çáɱþáíĝñš···］",
+      "fields": {
+        "name": "［Ñáɱé··］",
+        "parentCampaignId": "［Þáŕéñţ çáɱþáíĝñ·····］",
+        "type": "［Ţýþé··］",
+        "status": "［Šţáţúš··］",
+        "isActive": "［Áçţíṽé··］",
+        "startDate": "［Šţáŕţ ðáţé···］",
+        "endDate": "［Éñð ðáţé···］",
+        "budgetedCost": "［Ɓúðĝéţéð çóšţ····］",
+        "actualCost": "［Áçţúáļ çóšţ····］",
+        "expectedRevenue": "［Éẋþéçţéð ŕéṽéñúé·····］",
+        "description": "［Ðéšçŕíþţíóñ····］",
+        "numberOfLeads": "［Ļéáðš íñ çáɱþáíĝñ······］",
+        "numberOfOpportunities": "［Óþþóŕţúñíţíéš íñ çáɱþáíĝñ········］"
+      }
+    },
+    "product": {
+      "singular": "［Þŕóðúçţ···］",
+      "plural": "［Þŕóðúçţš···］",
+      "fields": {
+        "name": "［Ñáɱé··］",
+        "productCode": "［Þŕóðúçţ çóðé····］",
+        "family": "［Ƒáɱíļý··］",
+        "quantityUnit": "［Ǫúáñţíţý úñíţ····］",
+        "isActive": "［Áçţíṽé··］",
+        "description": "［Ðéšçŕíþţíóñ····］"
+      }
+    },
+    "quote": {
+      "singular": "［Ǫúóţé··］",
+      "plural": "［Ǫúóţéš··］",
+      "fields": {
+        "name": "［Ñáɱé··］",
+        "opportunityId": "［Óþþóŕţúñíţý····］",
+        "status": "［Šţáţúš··］",
+        "expirationDate": "［Éẋþíŕáţíóñ ðáţé·····］",
+        "subtotal": "［Šúƀţóţáļ···］",
+        "discount": "［Ðíšçóúñţ···］",
+        "totalPrice": "［Ţóţáļ þŕíçé····］",
+        "description": "［Ðéšçŕíþţíóñ····］"
+      }
+    },
+    "contract": {
+      "singular": "［Çóñţŕáçţ···］",
+      "plural": "［Çóñţŕáçţš···］",
+      "fields": {
+        "contractNumber": "［Çóñţŕáçţ ñúɱƀéŕ·····］",
+        "accountId": "［Áççóúñţ···］",
+        "status": "［Šţáţúš··］",
+        "startDate": "［Šţáŕţ ðáţé···］",
+        "termMonths": "［Çóñţŕáçţ ţéŕɱ (ɱóñţĥš)·······］",
+        "endDate": "［Éñð ðáţé···］",
+        "description": "［Ðéšçŕíþţíóñ····］"
+      }
+    },
+    "order": {
+      "singular": "［Óŕðéŕ··］",
+      "plural": "［Óŕðéŕš··］",
+      "fields": {
+        "orderNumber": "［Óŕðéŕ ñúɱƀéŕ····］",
+        "accountId": "［Áççóúñţ···］",
+        "opportunityId": "［Óþþóŕţúñíţý····］",
+        "contractId": "［Çóñţŕáçţ···］",
+        "status": "［Šţáţúš··］",
+        "effectiveDate": "［Éƒƒéçţíṽé ðáţé·····］",
+        "totalAmount": "［Ţóţáļ áɱóúñţ····］",
+        "description": "［Ðéšçŕíþţíóñ····］"
+      }
+    },
+    "activity": {
+      "singular": "［Áçţíṽíţý···］",
+      "plural": "［Áçţíṽíţíéš···］",
+      "fields": {
+        "type": "［Ţýþé··］",
+        "subject": "［Šúƀĵéçţ···］",
+        "status": "［Šţáţúš··］",
+        "priority": "［Þŕíóŕíţý···］",
+        "dueDate": "［Ðúé ðáţé···］",
+        "startAt": "［Šţáŕţ··］",
+        "endAt": "［Éñð·］",
+        "whatId": "［Ŕéļáţéð ţó···］",
+        "whoId": "［Çóñţáçţ óŕ ļéáð·····］",
+        "description": "［Ðéšçŕíþţíóñ····］",
+        "completedAt": "［Çóɱþļéţéð áţ····］"
+      }
+    }
   }
 }
