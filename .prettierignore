@@ -5,3 +5,4 @@ docs/spec/MASTER_SPEC.md
 **/coverage
 **/storybook-static
 **/openapi.snapshot.json
+**/generated
