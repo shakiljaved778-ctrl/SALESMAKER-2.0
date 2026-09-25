@@ -28,7 +28,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
-      - run: pnpm turbo run lint typecheck test build
+      - run: pnpm turbo run lint typecheck test build i18n:check
       - name: Dependency audit (high and critical)
         run: pnpm audit --audit-level high
 

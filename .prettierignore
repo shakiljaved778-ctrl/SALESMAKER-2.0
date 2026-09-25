@@ -6,3 +6,4 @@ docs/spec/MASTER_SPEC.md
 **/storybook-static
 **/openapi.snapshot.json
 **/generated
+packages/i18n/messages/en-XA.json

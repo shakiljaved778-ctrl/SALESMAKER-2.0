@@ -1,0 +1,212 @@
+{
+  "common": {
+    "productName": "SalesMaker",
+    "actions": {
+      "continue": "Continue",
+      "back": "Back",
+      "cancel": "Cancel",
+      "save": "Save",
+      "close": "Close",
+      "retry": "Try again",
+      "signOut": "Sign out"
+    },
+    "states": {
+      "loading": "Loading…",
+      "saving": "Saving…",
+      "required": "Required"
+    }
+  },
+  "auth": {
+    "brand": {
+      "tagline": "One place for your whole sales motion."
+    },
+    "fields": {
+      "email": "Work email",
+      "password": "Password",
+      "passwordHelp": "At least 12 characters. A short sentence works well.",
+      "name": "Your name",
+      "orgName": "Organisation name",
+      "slug": "Workspace address",
+      "slugHelp": "Your team signs in at {slug}.salesmaker.app",
+      "region": "Data region",
+      "regionHelp": "Your CRM data is stored and processed only in this region. You can't change it later.",
+      "currency": "Corporate currency",
+      "timezone": "Time zone",
+      "totpCode": "6-digit code",
+      "recoveryCode": "Recovery code",
+      "newPassword": "New password"
+    },
+    "signIn": {
+      "title": "Sign in to {workspace}",
+      "submit": "Sign in",
+      "forgot": "Forgot your password?",
+      "noAccount": "New to SalesMaker? Create an organisation",
+      "orContinueWith": "or continue with",
+      "google": "Continue with Google",
+      "microsoft": "Continue with Microsoft"
+    },
+    "signUp": {
+      "title": "Create your organisation",
+      "subtitle": "Free for 14 days. No card needed.",
+      "submit": "Create organisation",
+      "haveAccount": "Already have a workspace? Find it"
+    },
+    "verifyEmail": {
+      "title": "Check your email",
+      "body": "We sent a link to {email}. Open it to verify your address and finish setting up.",
+      "resend": "Send the link again",
+      "verifying": "Verifying your email…",
+      "done": "Your email is verified.",
+      "expired": "This link has expired or was already used. Request a new one."
+    },
+    "forgotPassword": {
+      "title": "Reset your password",
+      "body": "Enter your work email and we'll send you a reset link if an account exists.",
+      "submit": "Send reset link",
+      "sent": "If an account exists for {email}, a reset link is on its way."
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "submit": "Update password",
+      "done": "Your password is updated. Sign in with your new password."
+    },
+    "mfa": {
+      "title": "Two-step verification",
+      "body": "Enter the 6-digit code from your authenticator app.",
+      "submit": "Verify",
+      "useRecovery": "Use a recovery code instead",
+      "enrollTitle": "Set up two-step verification",
+      "enrollBody": "Scan this QR code with your authenticator app, then enter the code it shows.",
+      "recoveryTitle": "Save your recovery codes",
+      "recoveryBody": "Each code works once. Store them somewhere safe: they're the only way in if you lose your phone."
+    },
+    "sso": {
+      "redirecting": "Redirecting you to {provider}…",
+      "failed": "We couldn't sign you in with {provider}. Try again or use your password."
+    },
+    "findWorkspace": {
+      "title": "Find your workspace",
+      "body": "Enter your work email and we'll send you a list of the workspaces you belong to.",
+      "submit": "Email me my workspaces",
+      "sent": "Check your inbox. If {email} belongs to any workspaces, we've sent the list."
+    },
+    "acceptInvite": {
+      "title": "Join your team on SalesMaker",
+      "comingSoon": "Invitations are being set up. Ask your admin to try again shortly."
+    },
+    "errors": {
+      "invalidCredentials": "That email and password don't match. Check them and try again.",
+      "locked": "Too many attempts. Wait {minutes, plural, one {# minute} other {# minutes}} and try again.",
+      "breachedPassword": "This password has appeared in a data breach. Choose a different one.",
+      "passwordTooShort": "Use at least 12 characters.",
+      "slugTaken": "That address is taken. Try another.",
+      "emailNotVerified": "Verify your email to continue. We can send the link again.",
+      "invalidCode": "That code didn't work. Codes change every 30 seconds, so try the latest one."
+    }
+  },
+  "emails": {
+    "footer": "You received this email because of an action on your SalesMaker account.",
+    "verifyEmail": {
+      "subject": "Verify your email for SalesMaker",
+      "heading": "Confirm your email address",
+      "body": "Hi {name}, confirm your email to finish setting up {workspace}. This link expires in {hours, plural, one {# hour} other {# hours}}.",
+      "cta": "Verify email",
+      "ignore": "If you didn't sign up, you can ignore this email."
+    },
+    "resetPassword": {
+      "subject": "Reset your SalesMaker password",
+      "heading": "Reset your password",
+      "body": "Hi {name}, use the button below to choose a new password for {workspace}. This link expires in {minutes, plural, one {# minute} other {# minutes}}.",
+      "cta": "Reset password",
+      "ignore": "If you didn't ask for this, you can ignore this email. Your password won't change."
+    },
+    "workspaces": {
+      "subject": "Your SalesMaker workspaces",
+      "heading": "Your workspaces",
+      "body": "{count, plural, =0 {We couldn't find any workspaces for this email address.} one {This email address belongs to one workspace:} other {This email address belongs to # workspaces:}}"
+    }
+  },
+  "shell": {
+    "nav": {
+      "home": "Home",
+      "inbox": "Inbox",
+      "leads": "Leads",
+      "accounts": "Accounts",
+      "contacts": "Contacts",
+      "opportunities": "Opportunities",
+      "pipeline": "Pipeline",
+      "activities": "Activities",
+      "dialer": "Dialer",
+      "quotes": "Quotes & orders",
+      "forecast": "Forecast",
+      "reports": "Reports",
+      "dashboards": "Dashboards",
+      "pinned": "Pinned",
+      "setup": "Setup",
+      "help": "Help",
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar"
+    },
+    "topBar": {
+      "search": "Search or run a command",
+      "new": "New",
+      "assistant": "AI assistant",
+      "notifications": "Notifications",
+      "account": "Account menu"
+    },
+    "display": {
+      "title": "Display",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "themeSystem": "Match system",
+      "density": "Density",
+      "densityComfortable": "Comfortable",
+      "densityDefault": "Default",
+      "densityCompact": "Compact"
+    },
+    "palette": {
+      "placeholder": "Search records or type a command…",
+      "commands": "Commands",
+      "navigation": "Go to",
+      "noResults": "No matches. Try a different word.",
+      "switchTheme": "Switch to {theme} theme",
+      "setDensity": "Set density to {density}"
+    },
+    "tabs": {
+      "empty": "Records you open appear here as tabs.",
+      "close": "Close tab"
+    },
+    "shortcuts": {
+      "title": "Keyboard shortcuts"
+    },
+    "home": {
+      "greeting": "Good {period, select, morning {morning} afternoon {afternoon} other {evening}}, {name}",
+      "emptyTitle": "Your day starts here",
+      "emptyBody": "Once you import leads or connect your email, your queue, tasks and meetings show up on this page.",
+      "emptyAction": "Import leads"
+    },
+    "comingSoon": "This area arrives in a later release."
+  },
+  "system": {
+    "notFound": {
+      "title": "We can't find that page",
+      "body": "The link may be broken, or the page may have moved.",
+      "action": "Go to Home"
+    },
+    "forbidden": {
+      "title": "You don't have access to this page",
+      "body": "Ask your admin to give you access.",
+      "action": "Request access"
+    },
+    "serverError": {
+      "title": "Something went wrong on our side",
+      "body": "We've been notified. Try again in a moment. Reference: {traceId}",
+      "action": "Try again"
+    },
+    "maintenance": {
+      "title": "We're making improvements",
+      "body": "SalesMaker is briefly unavailable for maintenance. Your data is safe. Please check back soon."
+    }
+  }
+}
