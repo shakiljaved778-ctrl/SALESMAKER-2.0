@@ -1,7 +1,7 @@
 import { sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 
-import { createCellPrisma, type CellPrisma } from '../src/client.js';
+import { createCellPrisma, disposeCellPrisma, type CellPrisma } from '../src/client.js';
 import { InvalidTenantContextError, withTenant } from '../src/tenant.js';
 import { createTestCellDatabase, type TestCellDatabase } from '../src/testing/cell-database.js';
 
@@ -37,7 +37,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  await prisma.$disconnect();
+  await disposeCellPrisma(prisma);
   await db.drop();
 });
 

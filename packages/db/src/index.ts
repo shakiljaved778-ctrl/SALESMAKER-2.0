@@ -1,4 +1,9 @@
-export { createCellPrisma, type CellPrisma } from './client.js';
+export {
+  createCellPrisma,
+  disposeCellPrisma,
+  type CellPrisma,
+  type CellPrismaOptions,
+} from './client.js';
 export {
   kyselyForTransaction,
   PrismaTransactionDialect,

@@ -2,7 +2,7 @@ import 'reflect-metadata';
 
 import type { IncomingMessage } from 'node:http';
 
-import type { INestApplication, Type } from '@nestjs/common';
+import type { DynamicModule, INestApplication, Type } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { Logger } from 'pino';
@@ -26,7 +26,7 @@ export interface CreateAppOptions {
  * RFC 9457 errors; one access log line and span attributes per request.
  */
 export async function createFastifyApp(
-  module: Type,
+  module: Type | DynamicModule,
   options: CreateAppOptions,
 ): Promise<NestFastifyApplication> {
   const { logger } = options;

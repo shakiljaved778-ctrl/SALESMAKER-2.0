@@ -78,10 +78,8 @@ export async function createTestCellDatabase(serverAdminUrl: string): Promise<Te
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
   try {
-    const { bootstrapCell } = (await import(join(packageRoot, 'scripts', 'bootstrap-lib.js'))) as {
-      bootstrapCell: (c: pg.Client, p: typeof PASSWORDS) => Promise<void>;
-    };
-    await bootstrapCell(admin, PASSWORDS);
+    // Roles are cluster-wide and created once by ensureTestCellRoles(); only per-database work here.
+    await (await loadBootstrap()).bootstrapCell(admin, PASSWORDS, { manageRoles: false });
   } finally {
     await admin.end();
   }

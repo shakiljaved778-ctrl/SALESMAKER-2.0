@@ -9,7 +9,7 @@ Tick each box when the task's PR is merged with CI green. Details are in `P00-pl
 - [x] **T05** `feat(db): withTenant + Kysely bridge + rls-audit`
 - [ ] **T06** `feat(control-api): skeleton + tenant directory`
 - [x] **T07** `feat(contracts): base contracts + OpenAPI`
-- [ ] **T08** `feat(api): cell API skeleton`
+- [x] **T08** `feat(api): cell API skeleton`
 - [ ] **T09** `feat(integrations): adapter interfaces + fakes`
 - [ ] **T10** `feat(auth): password, sessions, email verification`
 - [ ] **T11** `feat(auth): TOTP MFA + recovery codes`

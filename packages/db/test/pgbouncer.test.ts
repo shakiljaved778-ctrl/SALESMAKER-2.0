@@ -13,7 +13,7 @@ import {
 } from 'testcontainers';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createCellPrisma, type CellPrisma } from '../src/client.js';
+import { createCellPrisma, disposeCellPrisma, type CellPrisma } from '../src/client.js';
 import { withTenant } from '../src/tenant.js';
 import {
   createTestCellDatabase,
@@ -84,7 +84,7 @@ beforeAll(async () => {
 }, 180_000);
 
 afterAll(async () => {
-  await Promise.all(clients.map((c) => c.$disconnect()));
+  await Promise.all(clients.map((c) => disposeCellPrisma(c)));
   await bouncer.stop();
   await postgres.stop();
   await network.stop();
