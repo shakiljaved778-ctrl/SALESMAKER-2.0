@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { z } from 'zod';
 
 /** Cell API configuration, validated at startup: a bad deploy fails fast, not at first request. */
@@ -14,10 +16,39 @@ export const ApiConfigSchema = z.object({
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
   /** Valkey key namespace for rate-limit buckets. */
   RATE_LIMIT_NAMESPACE: z.string().default('rl:api'),
+
+  // ── Web links in emails ───────────────────────────────────────────────────
+  WEB_BASE_DOMAIN: z.string().min(3),
+  WEB_URL_SCHEME: z.enum(['https', 'http']).default('https'),
+
+  // ── Email and third parties (fakes locally, §10.5) ────────────────────────
+  SMTP_URL: z.string().min(1),
+  EMAIL_FROM: z.string().min(3),
+  BREACHED_PASSWORD_API_URL: z.url(),
+  EMAIL_ROUTING_PEPPER: z.string().min(16),
+
+  // ── Session tokens (§6.1) ──────────────────────────────────────────────────
+  /** Ed25519 private key (PKCS#8 PEM) that signs access tokens; or give AUTH_JWT_PRIVATE_KEY_PATH. */
+  AUTH_JWT_PRIVATE_KEY_PEM: z.string().includes('PRIVATE KEY'),
+  AUTH_JWT_KID: z.string().min(1),
+  /** Previous public keys still accepted during rotation: JSON [{ "kid", "publicKeyPem" }]. */
+  AUTH_JWT_PREVIOUS_KEYS: z
+    .string()
+    .default('[]')
+    .transform((raw) =>
+      z.array(z.object({ kid: z.string(), publicKeyPem: z.string() })).parse(JSON.parse(raw)),
+    ),
+  ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().positive().default(900),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
 });
 
 export type ApiConfig = z.infer<typeof ApiConfigSchema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
-  return ApiConfigSchema.parse(env);
+  const keyPath = env['AUTH_JWT_PRIVATE_KEY_PATH'];
+  const withKey =
+    keyPath && !env['AUTH_JWT_PRIVATE_KEY_PEM']
+      ? { ...env, AUTH_JWT_PRIVATE_KEY_PEM: readFileSync(keyPath, 'utf8') }
+      : env;
+  return ApiConfigSchema.parse(withKey);
 }

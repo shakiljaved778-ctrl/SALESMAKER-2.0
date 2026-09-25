@@ -1,4 +1,4 @@
-import { openApiRoute, systemRoutes, type RouteContract } from '@sm/contracts';
+import { authRoutes, openApiRoute, systemRoutes, type RouteContract } from '@sm/contracts';
 
 /**
  * Every route this service serves, by contract (golden rule 7). A test fails if Fastify serves a
@@ -9,6 +9,7 @@ export const apiRoutes: readonly RouteContract[] = [
   systemRoutes.health,
   systemRoutes.ready,
   openApiRoute,
+  ...Object.values(authRoutes),
 ];
 
 export const API_INFO = {

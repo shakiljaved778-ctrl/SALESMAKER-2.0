@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Cell API (NestJS on Fastify): the regional data plane (§3.1, §3.6)",
+  "description": "Cell API (NestJS on Fastify): the regional data plane (\u00a73.1, \u00a73.6)",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --env-file-if-exists=../../.env --watch dist/main.js",
@@ -19,12 +19,18 @@
     "@nestjs/platform-fastify": "12.1.0",
     "@sm/contracts": "workspace:*",
     "@sm/db": "workspace:*",
+    "@sm/emails": "workspace:*",
+    "@sm/i18n": "workspace:*",
+    "@sm/integrations": "workspace:*",
     "@sm/server-kit": "workspace:*",
+    "argon2": "0.45.1",
     "fastify": "5.12.5",
     "ioredis": "6.0.0",
+    "jose": "6.2.12",
     "pino": "10.3.1",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
+    "uuidv7": "1.2.1",
     "zod": "4.6.5"
   },
   "devDependencies": {

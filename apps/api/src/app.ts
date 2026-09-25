@@ -1,5 +1,6 @@
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createCellPrisma, disposeCellPrisma } from '@sm/db';
+import { RangeApiBreachedPasswordChecker, SmtpEmailSender } from '@sm/integrations';
 import {
   createFastifyApp,
   createLogger,
@@ -62,46 +63,53 @@ export async function createApiApp(
     });
   }
   const limiter = new TokenBucketRateLimiter(redis, config.RATE_LIMIT_NAMESPACE);
+  const email = overrides.email ?? new SmtpEmailSender(config.SMTP_URL, config.EMAIL_FROM);
+  const breachedPasswords =
+    overrides.breachedPasswords ??
+    new RangeApiBreachedPasswordChecker(config.BREACHED_PASSWORD_API_URL);
   const servedRoutes: string[] = [];
 
-  const app = await createFastifyApp(AppModule.forRoot({ config, prisma, redis, logger }), {
-    logger,
-    configure(nest) {
-      const fastify = nest.getHttpAdapter().getInstance();
-      fastify.addHook('onRoute', (route) => {
-        const methods = Array.isArray(route.method) ? route.method : [route.method];
-        for (const m of methods) if (m !== 'HEAD') servedRoutes.push(`${m} ${route.url}`);
-      });
-      fastify.addHook('onRequest', async (request, reply) => {
-        if (UNLIMITED_PREFIXES.some((p) => request.url.startsWith(p))) return;
-        try {
-          const result = await limiter.consume(`ip:${request.ip}`, {
-            capacity: config.RATE_LIMIT_IP_BURST,
-            refillPerSecond: config.RATE_LIMIT_IP_PER_SECOND,
-          });
-          void reply.headers(rateLimitHeaders(result));
-          if (!result.allowed) {
-            await reply
-              .status(429)
-              .header('content-type', 'application/problem+json')
-              .header('retry-after', String(Math.max(1, result.resetSeconds)))
-              .send({
-                type: 'https://developers.salesmaker.app/problems/rate-limited',
-                title: 'Too many requests',
-                status: 429,
-                code: 'rate_limited',
-                detail: 'Too many requests. Wait a moment and try again.',
-                instance: request.url.split('?')[0],
-                traceId: request.id,
-              });
+  const app = await createFastifyApp(
+    AppModule.forRoot({ config, prisma, redis, logger, email, breachedPasswords }),
+    {
+      logger,
+      configure(nest) {
+        const fastify = nest.getHttpAdapter().getInstance();
+        fastify.addHook('onRoute', (route) => {
+          const methods = Array.isArray(route.method) ? route.method : [route.method];
+          for (const m of methods) if (m !== 'HEAD') servedRoutes.push(`${m} ${route.url}`);
+        });
+        fastify.addHook('onRequest', async (request, reply) => {
+          if (UNLIMITED_PREFIXES.some((p) => request.url.startsWith(p))) return;
+          try {
+            const result = await limiter.consume(`ip:${request.ip}`, {
+              capacity: config.RATE_LIMIT_IP_BURST,
+              refillPerSecond: config.RATE_LIMIT_IP_PER_SECOND,
+            });
+            void reply.headers(rateLimitHeaders(result));
+            if (!result.allowed) {
+              await reply
+                .status(429)
+                .header('content-type', 'application/problem+json')
+                .header('retry-after', String(Math.max(1, result.resetSeconds)))
+                .send({
+                  type: 'https://developers.salesmaker.app/problems/rate-limited',
+                  title: 'Too many requests',
+                  status: 429,
+                  code: 'rate_limited',
+                  detail: 'Too many requests. Wait a moment and try again.',
+                  instance: request.url.split('?')[0],
+                  traceId: request.id,
+                });
+            }
+          } catch (err) {
+            // Fail open: an unavailable cache must not take the CRM down (§11.3). Alerting covers it.
+            logger.warn({ err }, 'rate limiter unavailable; allowing request');
           }
-        } catch (err) {
-          // Fail open: an unavailable cache must not take the CRM down (§11.3). Alerting covers it.
-          logger.warn({ err }, 'rate limiter unavailable; allowing request');
-        }
-      });
+        });
+      },
     },
-  });
+  );
   await app.init();
   await app.getHttpAdapter().getInstance().ready();
 

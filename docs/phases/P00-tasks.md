@@ -11,7 +11,7 @@ Tick each box when the task's PR is merged with CI green. Details are in `P00-pl
 - [x] **T07** `feat(contracts): base contracts + OpenAPI`
 - [x] **T08** `feat(api): cell API skeleton`
 - [x] **T09** `feat(integrations): adapter interfaces + fakes`
-- [ ] **T10** `feat(auth): password, sessions, email verification`
+- [x] **T10** `feat(auth): password, sessions, email verification`
 - [ ] **T11** `feat(auth): TOTP MFA + recovery codes`
 - [ ] **T12** `feat(auth): Google/Microsoft OIDC`
 - [ ] **T13** `feat(tenancy): signup provisions a tenant`

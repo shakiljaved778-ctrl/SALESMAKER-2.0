@@ -227,13 +227,15 @@ model AuthToken {
 
 /// Login attempts for lockout (10 failures / 15 min, §6.1). Becomes login_history in P01.
 model AuthAttempt {
-  tenantId  String   @map("tenant_id") @db.Uuid
-  id        String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
-  userId    String?  @map("user_id") @db.Uuid
-  emailHash Bytes    @map("email_hash")
-  ip        String?
-  success   Boolean
-  at        DateTime @default(now()) @db.Timestamptz(6)
+  tenantId    String    @map("tenant_id") @db.Uuid
+  id          String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId      String?   @map("user_id") @db.Uuid
+  emailHash   Bytes     @map("email_hash")
+  ip          String?
+  success     Boolean
+  at          DateTime  @default(now()) @db.Timestamptz(6)
+  /// Set on the failure that triggered a lockout: sign-in is refused until then (§6.1).
+  lockedUntil DateTime? @map("locked_until") @db.Timestamptz(6)
 
   @@id([tenantId, id])
   @@index([tenantId, emailHash, at])

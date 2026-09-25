@@ -2,15 +2,11 @@ import type { ExecutionContext } from '@nestjs/common';
 import { DomainError, requestContext } from '@sm/server-kit';
 import { describe, expect, it } from 'vitest';
 
-import { ApiConfigSchema } from '../src/config.js';
+import type { ApiConfig } from '../src/config.js';
 import { TenantContextGuard, type VerifiedCaller } from '../src/tenancy/tenant-context.guard.js';
 
-const config = ApiConfigSchema.parse({
-  CELL_ID: 'eu-central-1',
-  CELL_DATABASE_URL: 'postgresql://x@localhost/db',
-  REDIS_URL: 'redis://localhost:6379',
-  CONTROL_API_BASE_URL: 'http://cp.test',
-});
+// The guard only reads CELL_ID; the rest of the config is irrelevant here.
+const config = { CELL_ID: 'eu-central-1' } as ApiConfig;
 
 function contextWith(caller?: VerifiedCaller): ExecutionContext {
   const request = { caller };
