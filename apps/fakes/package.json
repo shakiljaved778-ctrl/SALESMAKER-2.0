@@ -1,0 +1,26 @@
+{
+  "name": "@sm/fakes",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local stand-ins for third-party services (HIBP range API; fake Google/Microsoft OIDC from T12). Used by dev, e2e and CI so no real third-party call is ever made (§10.5, §13.6).",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --watch dist/main.js",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "fastify": "5.12.5"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@sm/integrations": "workspace:*",
+    "@types/node": "26.6.2",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}

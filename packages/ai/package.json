@@ -1,0 +1,27 @@
+{
+  "name": "@sm/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI gateway and provider interfaces (§8.1). P00 ships interfaces, the structured-output contract and a fake provider; the Anthropic, Voyage and Deepgram adapters arrive in P07.",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@types/node": "26.6.2",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}
