@@ -10,7 +10,8 @@ const run = (cwd, args, env = {}) =>
     env: { ...process.env, ...env },
   });
 
-run('packages/db/', ['build']);
+// Through turbo, so the Prisma client is generated before the package compiles.
+run('./', ['turbo', 'run', 'build', '--filter=@sm/db']);
 run('packages/db/', ['db:bootstrap']);
 run('packages/db/', ['db:migrate']);
 run('apps/control-api/', ['db:migrate']);
