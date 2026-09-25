@@ -33,3 +33,9 @@ Deviations from the plan or spec, known issues and follow-ups, recorded as they 
   like the cell's `sm_app` should be added with the Terraform work.
 - **Licences to note.** nodemailer is MIT-0 (more permissive than MIT). The OFL fonts, Valkey and SeaweedFS were
   approved or chosen under the v1.2 answers.
+- **Dev-only MPL-2.0 tooling.** `axe-core` / `@axe-core/playwright` are MPL-2.0. The spec names axe-core (§3.2), and it is
+  test tooling only: never shipped at runtime, so it is outside §0.3's runtime-dependency rule.
+- **Storybook visual baselines** were captured in the build container. CI treats visual diffs as reviewed, not blocking
+  (§13.3), because font rendering can differ slightly between environments. The axe pass is blocking.
+- **Tailwind needs literal class names.** A story built `text-${name}` dynamically and the classes were never
+  generated; the visual baseline caught it. Components must use literal class maps.

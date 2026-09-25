@@ -8,5 +8,14 @@
     "moduleResolution": "NodeNext",
     "types": ["node"]
   },
-  "include": ["src", "test", "vitest.config.ts"]
+  "include": [
+    "src",
+    "test",
+    "vitest.config.ts",
+    "stories-test",
+    "playwright.config.ts",
+    "scripts",
+    ".storybook/main.ts",
+    ".storybook/preview.tsx"
+  ]
 }

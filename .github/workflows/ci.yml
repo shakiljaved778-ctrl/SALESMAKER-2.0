@@ -78,3 +78,51 @@ jobs:
         run: pnpm --filter @sm/db db:rls-audit
       - name: Prisma schema matches the migrations (drift)
         run: pnpm --filter @sm/db db:schema-drift
+
+  storybook:
+    name: storybook · axe (blocking) · visual (review)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @sm/ui... build
+      - run: pnpm --filter @sm/ui build-storybook
+      - run: pnpm --filter @sm/ui exec playwright install --with-deps chromium
+      - name: Accessibility (axe, serious/critical fail the build)
+        run: SKIP_VISUAL=1 pnpm --filter @sm/ui test:stories
+      - name: Visual comparison (reviewed diffs, non-blocking)
+        continue-on-error: true
+        run: pnpm --filter @sm/ui test:stories
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: storybook-report
+          path: |
+            packages/ui/playwright-report
+            packages/ui/test-results
+          retention-days: 14
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          path: packages/ui/storybook-static
+
+  storybook-pages:
+    name: publish Storybook
+    if: github.ref == 'refs/heads/main'
+    needs: storybook
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

@@ -15,3 +15,5 @@ test-results/
 .terraform/
 *.tfstate*
 .secrets/
+packages/ui/playwright-report/
+packages/ui/test-results/
