@@ -7,7 +7,7 @@ Tick each box when the task's PR is merged with CI green. Details are in `P00-pl
 - [x] **T03** `chore(dev): docker compose stack`
 - [x] **T04** `feat(db): roles, RLS helper, platform schema`
 - [x] **T05** `feat(db): withTenant + Kysely bridge + rls-audit`
-- [ ] **T06** `feat(control-api): skeleton + tenant directory`
+- [x] **T06** `feat(control-api): skeleton + tenant directory`
 - [x] **T07** `feat(contracts): base contracts + OpenAPI`
 - [x] **T08** `feat(api): cell API skeleton`
 - [x] **T09** `feat(integrations): adapter interfaces + fakes`

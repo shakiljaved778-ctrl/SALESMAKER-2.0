@@ -10,3 +10,12 @@ export {
 export { acceptRequestId, requestContext, type RequestContext } from './request-context.js';
 export { annotateActiveSpan } from './telemetry.js';
 export { ZodPipe } from './zod-pipe.js';
+export { emailRoutingHmac, normaliseEmail } from './email-routing.js';
+export {
+  importEd25519PrivateKey,
+  importEd25519PublicKey,
+  SERVICE_TOKEN_AUDIENCE,
+  signServiceToken,
+  verifyServiceToken,
+  type SigningKey,
+} from './service-token.js';

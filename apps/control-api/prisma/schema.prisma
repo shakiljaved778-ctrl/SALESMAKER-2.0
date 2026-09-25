@@ -1,0 +1,94 @@
+// Control-plane database (global, §3.4). It holds the tenant directory and login routing only:
+// no CRM data and no plaintext email addresses (routing uses HMACs, spec v1.2).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TenantStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+
+  @@map("cp_tenant_status")
+}
+
+/// A regional cell (§3.4). Rows are synchronised from configuration at startup.
+model Cell {
+  id           String   @id
+  region       String
+  label        String
+  apiBaseUrl   String   @map("api_base_url")
+  /// Ed25519 public key (SPKI PEM) that verifies the cell's service tokens.
+  publicKeyPem String   @map("public_key_pem")
+  signupOpen   Boolean  @default(true) @map("signup_open")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenants Tenant[]
+
+  @@map("cp_cell")
+}
+
+model Tenant {
+  id             String       @id @db.Uuid
+  slug           String       @unique @db.Citext
+  name           String
+  cellId         String       @map("cell_id")
+  status         TenantStatus @default(PENDING)
+  /// Owner's email HMAC, held only until activation creates the routing row.
+  ownerEmailHmac Bytes?       @map("owner_email_hmac")
+  /// A PENDING reservation expires; its slug can then be reserved again.
+  reservedUntil  DateTime?    @map("reserved_until") @db.Timestamptz(6)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  activatedAt    DateTime?    @map("activated_at") @db.Timestamptz(6)
+
+  cell     Cell            @relation(fields: [cellId], references: [id])
+  domains  TenantDomain[]
+  routings UserRouting[]
+
+  @@index([cellId])
+  @@map("cp_tenant")
+}
+
+model TenantDomain {
+  host     String @id @db.Citext
+  tenantId String @map("tenant_id") @db.Uuid
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("cp_tenant_domain")
+}
+
+/// Which tenants a (hashed) email belongs to, for "find my workspaces" and login routing.
+model UserRouting {
+  emailHmac Bytes    @map("email_hmac")
+  tenantId  String   @map("tenant_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@id([emailHmac, tenantId])
+  @@index([tenantId])
+  @@map("cp_user_routing")
+}
+
+model IdempotencyKey {
+  scope          String
+  key            String
+  requestHash    Bytes    @map("request_hash")
+  responseStatus Int      @map("response_status")
+  responseBody   Json     @map("response_body")
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([scope, key])
+  @@index([expiresAt])
+  @@map("cp_idempotency_key")
+}

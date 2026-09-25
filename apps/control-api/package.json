@@ -1,0 +1,49 @@
+{
+  "name": "@sm/control-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Global control plane: tenant directory, login routing (email HMACs only), signup reservations. Holds no CRM data (§3.4).",
+  "scripts": {
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput & node --env-file-if-exists=../../.env --watch dist/main.js",
+    "start": "node dist/main.js",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "db:migrate": "prisma migrate deploy",
+    "openapi:write": "node scripts/write-openapi.js"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.1.0",
+    "@nestjs/core": "12.1.0",
+    "@nestjs/platform-fastify": "12.1.0",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "@sm/contracts": "workspace:*",
+    "@sm/emails": "workspace:*",
+    "@sm/integrations": "workspace:*",
+    "@sm/server-kit": "workspace:*",
+    "fastify": "5.12.5",
+    "ioredis": "6.0.0",
+    "pg": "8.23.0",
+    "pino": "10.3.1",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2",
+    "uuidv7": "1.2.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@sm/db": "workspace:*",
+    "@swc/core": "1.16.2",
+    "@types/node": "26.6.2",
+    "@types/pg": "8.23.1",
+    "eslint": "10.11.0",
+    "prisma": "7.10.0",
+    "testcontainers": "12.1.0",
+    "typescript": "6.0.3",
+    "unplugin-swc": "2.0.0",
+    "vitest": "5.0.2"
+  }
+}

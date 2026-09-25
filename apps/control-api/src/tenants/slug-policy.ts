@@ -1,0 +1,43 @@
+/** Subdomains the platform itself uses; no tenant may take them (§3.4, §7.1, §10.1). */
+export const RESERVED_SLUGS = new Set([
+  'www',
+  'app',
+  'api',
+  'admin',
+  'www2',
+  'forms',
+  'developers',
+  'docs',
+  'status',
+  'help',
+  'support',
+  'in',
+  'mail',
+  'email',
+  'smtp',
+  'auth',
+  'login',
+  'signup',
+  'sso',
+  'cp',
+  'control',
+  'internal',
+  'static',
+  'assets',
+  'cdn',
+  'files',
+  'billing',
+  'security',
+  'salesmaker',
+  'demo',
+  'staging',
+  'test',
+  'us-east-1',
+  'eu-central-1',
+  'me-central-1',
+  'ap-south-1',
+]);
+
+export function isReservedSlug(slug: string): boolean {
+  return RESERVED_SLUGS.has(slug.toLowerCase());
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@sm/emails",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "System email templates (React Email): always light, dark-mode safe, copy from @sm/i18n (§3.2, §9.6)",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@react-email/components": "1.0.12",
+    "@react-email/render": "2.1.0",
+    "@sm/i18n": "workspace:*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@types/node": "26.6.2",
+    "@types/react": "19.3.0",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}
