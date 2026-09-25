@@ -4,6 +4,7 @@ import { Slot } from 'radix-ui';
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn.js';
+import { Tooltip } from './tooltip.js';
 
 export const buttonVariants = cva(
   'relative inline-flex shrink-0 select-none items-center justify-center gap-1.5 whitespace-nowrap rounded-sm font-medium transition-colors duration-100 ease-standard disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
@@ -95,7 +96,7 @@ export interface IconButtonProps extends Omit<ButtonProps, 'children' | 'icon' |
   children: ReactNode;
 }
 
-/** Square, icon-only button. `label` is mandatory: it is the accessible name. */
+/** Square, icon-only button. `label` is mandatory: it is the accessible name and the tooltip. */
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
   { label, className, size, variant, children, ...props },
   ref,
@@ -103,16 +104,17 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
   const square =
     size === 'sm' ? 'w-7 px-0' : size === 'lg' ? 'w-10 px-0' : 'w-[var(--control-height)] px-0';
   return (
-    <Button
-      ref={ref}
-      aria-label={label}
-      title={label}
-      variant={variant ?? 'ghost'}
-      size={size}
-      className={cn(square, className)}
-      {...props}
-    >
-      {children}
-    </Button>
+    <Tooltip content={label}>
+      <Button
+        ref={ref}
+        aria-label={label}
+        variant={variant ?? 'ghost'}
+        size={size}
+        className={cn(square, className)}
+        {...props}
+      >
+        {children}
+      </Button>
+    </Tooltip>
   );
 });
