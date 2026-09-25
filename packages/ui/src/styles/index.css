@@ -147,6 +147,7 @@
   --animate-sheet-in: sm-sheet-in var(--duration-slow) var(--motion-ease-standard);
   --animate-sheet-in-rtl: sm-sheet-in-rtl var(--duration-slow) var(--motion-ease-standard);
   --animate-toast-in: sm-toast-in var(--duration-base) var(--motion-ease-standard);
+  --animate-shimmer: sm-shimmer 1.4s linear infinite;
 }
 
 @keyframes sm-fade-in {
@@ -171,6 +172,15 @@
 @keyframes sm-sheet-in-rtl {
   from {
     transform: translateX(-100%);
+  }
+}
+
+@keyframes sm-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
   }
 }
 

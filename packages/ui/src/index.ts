@@ -40,3 +40,22 @@ export {
   type ToastInput,
   type ToastTone,
 } from './components/toast.js';
+export {
+  Banner,
+  EmptyState,
+  Skeleton,
+  type BannerProps,
+  type BannerTone,
+  type EmptyStateProps,
+  type SkeletonProps,
+} from './components/feedback.js';
+export {
+  CommandPalette,
+  Highlight,
+  type CommandItem,
+  type CommandPaletteHints,
+  type CommandPaletteProps,
+  type CommandScope,
+  type CommandSection,
+} from './components/command-palette.js';
+export { fuzzyMatch, type FuzzyMatch } from './lib/fuzzy.js';
