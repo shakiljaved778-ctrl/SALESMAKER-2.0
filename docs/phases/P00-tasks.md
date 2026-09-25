@@ -27,4 +27,4 @@ Tick each box when the task's PR is merged with CI green. Details are in `P00-pl
 - [x] **T23** `feat(web): app shell + ⌘K shell + system pages`
 - [x] **T24** `chore(infra): Terraform skeleton`
 - [x] **T25** `test(e2e): exit-gate journeys`
-- [ ] **T26** `docs: P00 docs + handoff`
+- [x] **T26** `docs: P00 docs + handoff`
