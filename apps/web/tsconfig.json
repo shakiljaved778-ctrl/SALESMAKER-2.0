@@ -6,8 +6,12 @@
     "jsx": "preserve",
     "incremental": true,
     "types": ["node"],
-    "plugins": [{ "name": "next" }]
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["src", "test", "next.config.ts", "vitest.config.ts", ".next/types/**/*.ts"],
+  "include": ["src", "test", "e2e", "next.config.ts", "vitest.config.ts", ".next/types/**/*.ts"],
   "exclude": ["node_modules", ".next"]
 }
