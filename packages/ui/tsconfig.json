@@ -1,0 +1,12 @@
+{
+  "extends": "@sm/config/tsconfig/react.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "declaration": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"]
+  },
+  "include": ["src", "test", "vitest.config.ts"]
+}

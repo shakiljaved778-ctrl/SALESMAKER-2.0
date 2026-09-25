@@ -7,3 +7,4 @@ docs/spec/MASTER_SPEC.md
 **/openapi.snapshot.json
 **/generated
 packages/i18n/messages/en-XA.json
+packages/ui/src/styles/tokens.css

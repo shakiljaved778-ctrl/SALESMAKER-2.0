@@ -1,0 +1,185 @@
+/*
+ * @sm/ui styles: Tailwind v4 with the SalesMaker Design Language tokens (§9).
+ * Apps import this once (e.g. apps/web/app/globals.css: @import '@sm/ui/styles.css').
+ * `@theme inline` makes utilities reference the token variables, so theme and density switch at
+ * runtime through data-theme / data-density on <html> without regenerating CSS.
+ */
+@import 'tailwindcss';
+@import './tokens.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+@custom-variant rtl (&:where([dir='rtl'], [dir='rtl'] *));
+
+@theme inline {
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
+
+  /* Backgrounds */
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--bg-surface);
+  --color-surface-raised: var(--bg-surface-raised);
+  --color-subtle: var(--bg-subtle);
+  --color-muted: var(--bg-muted);
+  --color-hover: var(--bg-hover);
+  --color-selected: var(--bg-selected);
+  --color-sidebar: var(--bg-sidebar);
+  --color-overlay: var(--overlay);
+
+  /* Text */
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-tertiary: var(--text-tertiary);
+  --color-fg-disabled: var(--text-disabled);
+  --color-fg-inverse: var(--text-inverse);
+  --color-link: var(--text-link);
+  --color-on-sidebar: var(--text-on-sidebar);
+  --color-on-sidebar-muted: var(--text-on-sidebar-muted);
+
+  /* Borders and focus */
+  --color-line-subtle: var(--border-subtle);
+  --color-line: var(--border-default);
+  --color-line-strong: var(--border-strong);
+  --color-focus: var(--border-focus);
+
+  /* Actions */
+  --color-primary: var(--action-primary-bg);
+  --color-primary-hover: var(--action-primary-hover);
+  --color-primary-active: var(--action-primary-active);
+  --color-on-primary: var(--action-primary-fg);
+  --color-secondary: var(--action-secondary-bg);
+  --color-secondary-border: var(--action-secondary-border);
+  --color-on-secondary: var(--action-secondary-fg);
+  --color-destructive: var(--action-danger-bg);
+  --color-on-destructive: var(--action-danger-fg);
+
+  /* Status (meaning only) */
+  --color-success: var(--status-success-fg);
+  --color-success-bg: var(--status-success-bg);
+  --color-warning: var(--status-warning-fg);
+  --color-warning-bg: var(--status-warning-bg);
+  --color-danger: var(--status-danger-fg);
+  --color-danger-bg: var(--status-danger-bg);
+  --color-info: var(--status-info-fg);
+  --color-info-bg: var(--status-info-bg);
+  --color-neutral: var(--status-neutral-fg);
+  --color-neutral-bg: var(--status-neutral-bg);
+
+  /* AI (Iris) — AI surfaces only */
+  --color-ai: var(--ai-accent);
+  --color-ai-bg: var(--ai-bg);
+  --color-ai-border: var(--ai-border);
+
+  /* Categorical (stages, charts, tags); slot 3 is charts only */
+  --color-cat-1: var(--cat-1-solid);
+  --color-cat-1-fg: var(--cat-1-fg);
+  --color-cat-1-bg: var(--cat-1-bg);
+  --color-cat-2: var(--cat-2-solid);
+  --color-cat-2-fg: var(--cat-2-fg);
+  --color-cat-2-bg: var(--cat-2-bg);
+  --color-cat-3: var(--cat-3-solid);
+  --color-cat-3-fg: var(--cat-3-fg);
+  --color-cat-3-bg: var(--cat-3-bg);
+  --color-cat-4: var(--cat-4-solid);
+  --color-cat-4-fg: var(--cat-4-fg);
+  --color-cat-4-bg: var(--cat-4-bg);
+  --color-cat-5: var(--cat-5-solid);
+  --color-cat-5-fg: var(--cat-5-fg);
+  --color-cat-5-bg: var(--cat-5-bg);
+  --color-cat-6: var(--cat-6-solid);
+  --color-cat-6-fg: var(--cat-6-fg);
+  --color-cat-6-bg: var(--cat-6-bg);
+  --color-cat-7: var(--cat-7-solid);
+  --color-cat-7-fg: var(--cat-7-fg);
+  --color-cat-7-bg: var(--cat-7-bg);
+  --color-cat-8: var(--cat-8-solid);
+  --color-cat-8-fg: var(--cat-8-fg);
+  --color-cat-8-bg: var(--cat-8-bg);
+
+  /* Type scale (§9.3). body, body-sm and cell follow the density mode. */
+  --text-display: var(--type-display-size);
+  --text-display--line-height: var(--type-display-lh);
+  --text-display--font-weight: var(--type-display-weight);
+  --text-title-1: var(--type-title-1-size);
+  --text-title-1--line-height: var(--type-title-1-lh);
+  --text-title-1--font-weight: var(--type-title-1-weight);
+  --text-title-2: var(--type-title-2-size);
+  --text-title-2--line-height: var(--type-title-2-lh);
+  --text-title-2--font-weight: var(--type-title-2-weight);
+  --text-title-3: var(--type-title-3-size);
+  --text-title-3--line-height: var(--type-title-3-lh);
+  --text-title-3--font-weight: var(--type-title-3-weight);
+  --text-body: var(--font-body-size);
+  --text-body--line-height: var(--font-body-lh);
+  --text-body-strong: var(--font-body-size);
+  --text-body-strong--line-height: var(--font-body-lh);
+  --text-body-strong--font-weight: var(--type-body-strong-weight);
+  --text-body-sm: var(--font-body-sm-size);
+  --text-body-sm--line-height: var(--font-body-sm-lh);
+  --text-cell: var(--font-cell-size);
+  --text-cell--line-height: var(--font-cell-lh);
+  --text-label: var(--type-label-size);
+  --text-label--line-height: var(--type-label-lh);
+  --text-label--font-weight: var(--type-label-weight);
+  --text-caption: var(--type-caption-size);
+  --text-caption--line-height: var(--type-caption-lh);
+  --text-micro: var(--type-micro-size);
+  --text-micro--line-height: var(--type-micro-lh);
+  --text-micro--font-weight: var(--type-micro-weight);
+
+  /* Radius and elevation (§9.4) */
+  --radius-xs: var(--r-xs);
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-full: var(--r-full);
+  --shadow-e1: var(--elevation-e-1);
+  --shadow-e2: var(--elevation-e-2);
+  --shadow-e3: var(--elevation-e-3);
+
+  --ease-standard: var(--motion-ease-standard);
+  --ease-exit: var(--motion-ease-exit);
+
+  --breakpoint-3xl: 120rem;
+}
+
+@layer base {
+  html {
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-family-sans);
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    font-size: var(--font-body-size);
+    line-height: var(--font-body-lh);
+  }
+
+  /* §9.4: a 2px focus ring with 2px offset on every interactive element, keyboard focus only. */
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  /* §9.12 rule 4: icons that imply direction flip in RTL. */
+  [dir='rtl'] [data-mirror] {
+    transform: scaleX(-1);
+  }
+
+  /* §9.4: honour reduced motion — fade only, near-instant. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 1ms !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'cv11', 'ss01', 'tnum';
+}

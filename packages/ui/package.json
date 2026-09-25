@@ -1,0 +1,39 @@
+{
+  "name": "@sm/ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SalesMaker Design Language (§9): tokens, Tailwind v4 theme and the component library. No data fetching.",
+  "exports": {
+    ".": "./dist/index.js",
+    "./tokens": "./dist/tokens/index.js",
+    "./styles.css": "./src/styles/index.css",
+    "./tokens.css": "./src/styles/tokens.css"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "tokens": "tsc -p tsconfig.build.json && node scripts/write-tokens.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "26.6.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.11.0",
+    "postcss": "8.5.28",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}

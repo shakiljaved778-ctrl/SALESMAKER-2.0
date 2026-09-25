@@ -39,3 +39,21 @@ also log it in `CHANGELOG_SPEC.md`. **(Blocks Pxx)** marks the phase that cannot
 24. **Partner / channel business development.** Does "business development" include managing partners or resellers (partner accounts, deal registration)? It is not in scope today, and §2.2 excludes a marketplace but says nothing about partner relationship management (PRM).
 25. **Demo data.** Both seeds are telesales-heavy or small-agency. Should Aurelia Bank also get a relationship-manager / field-sales division (e.g. corporate banking RMs with account plans and meetings), or should there be a third demo tenant (e.g. a B2B field-sales company)?
 26. **Load-test profile.** §11.2's P12 scenario is a telesales floor only. Proposal: add a mixed profile (field reps on mobile logging meetings, BD reps doing multi-channel follow-ups) alongside it.
+
+## Raised by P00 T14 (design tokens vs the §9.2 contrast rule)
+
+The token contrast test (`packages/ui/test/tokens.contrast.test.ts`) measures every text/background pair the UI uses.
+A few of the locked §9.2 values miss the rule. Until you decide, they are listed as explicit, pending exceptions: the
+test fails if any new pair fails, or if a listed pair starts passing. Changing locked tokens needs an ADR and your
+approval (§9).
+
+27. **`--text-tertiary` (meta text, placeholders) is below 4.5:1 on several backgrounds.** Light graphite-500 on canvas
+    is 4.41, on hover or muted 4.14, and on selected 4.37. Dark #7D8693 on raised is 4.44, on hover 4.19, on muted 3.92,
+    and on selected 3.95. **Proposal:** light `#646D79` and dark `#8A93A0` (each ≥ 4.5:1 on every background, with the
+    same visual role).
+28. **Dark-theme danger button:** white on danger-500 `#E0463E` is 4.11:1. **Proposal:** dark `--action-danger-bg`
+    `#D13C35` (4.76:1, still clearly red, with a 3.7:1 boundary against the surface).
+29. **Input borders and WCAG 1.4.11.** `--border-default` is 1.28:1 (light) and 1.36:1 (dark) against the surface. §9.2
+    asks for ≥ 3:1 on UI component boundaries. **Proposal:** add `--border-input` at ≥ 3:1 (light `#8C95A1`, dark
+    about `#5F6875`) for form controls only, keeping `--border-default` for cards and dividers. The alternative is to
+    rely on visible labels and field fills to identify inputs, and document that as a deliberate reading of 1.4.11.
