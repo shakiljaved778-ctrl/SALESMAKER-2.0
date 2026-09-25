@@ -45,10 +45,11 @@ for (const story of stories) {
       await expect(page.locator('html')).toHaveAttribute('data-theme', v.theme);
       await page.evaluate(() => document.fonts.ready);
 
-      let axe = new AxeBuilder({ page }).include('#storybook-root');
+      // Whole page: Radix renders overlays in portals outside #storybook-root.
+      let axe = new AxeBuilder({ page });
       for (const selector of PENDING_OWNER_DECISION[story.id]?.[v.theme] ?? [])
         axe = axe.exclude(selector);
-      const results = await axe.analyze();
+      const results = await analyzeWhenIdle(axe);
       const blocking = results.violations.filter(
         (x) => x.impact === 'serious' || x.impact === 'critical',
       );
@@ -64,5 +65,20 @@ for (const story of stories) {
         });
       }
     });
+  }
+}
+
+/**
+ * The Storybook a11y addon runs axe in the same frame when a story loads; axe refuses concurrent
+ * runs, so wait for the addon's run to finish instead of failing on the race.
+ */
+async function analyzeWhenIdle(axe: AxeBuilder) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await axe.analyze();
+    } catch (err) {
+      if (attempt >= 20 || !String(err).includes('Axe is already running')) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
   }
 }

@@ -19,7 +19,7 @@ Tick each box when the task's PR is merged with CI green. Details are in `P00-pl
 - [x] **T15** `feat(ui): Storybook + RTL/pseudo-locale + visual harness`
 - [x] **T16** `feat(ui): form controls`
 - [x] **T17** `feat(ui): selection and display`
-- [ ] **T18** `feat(ui): overlays and navigation`
+- [x] **T18** `feat(ui): overlays and navigation`
 - [ ] **T19** `feat(ui): feedback + command palette`
 - [x] **T20** `feat(i18n): next-intl + pseudo-locales + key check`
 - [ ] **T21** `feat(web): Next.js app skeleton`

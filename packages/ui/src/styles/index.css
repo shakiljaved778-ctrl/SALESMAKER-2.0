@@ -140,6 +140,45 @@
   --ease-exit: var(--motion-ease-exit);
 
   --breakpoint-3xl: 120rem;
+
+  /* Enter animations (§9.4 motion). Reduced motion collapses them in the base layer. */
+  --animate-fade-in: sm-fade-in var(--duration-base) var(--motion-ease-standard);
+  --animate-pop-in: sm-pop-in var(--duration-base) var(--motion-ease-standard);
+  --animate-sheet-in: sm-sheet-in var(--duration-slow) var(--motion-ease-standard);
+  --animate-sheet-in-rtl: sm-sheet-in-rtl var(--duration-slow) var(--motion-ease-standard);
+  --animate-toast-in: sm-toast-in var(--duration-base) var(--motion-ease-standard);
+}
+
+@keyframes sm-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sm-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes sm-sheet-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes sm-sheet-in-rtl {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes sm-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 @layer base {

@@ -30,3 +30,13 @@ export { Card, Kbd, Separator, type CardProps } from './components/primitives.js
 export { Select, type SelectOption, type SelectProps } from './components/select.js';
 export { StatusChip, statusChipVariants, type StatusChipProps } from './components/status-chip.js';
 export { Tooltip } from './components/tooltip.js';
+export { DropdownMenu, type MenuEntry } from './components/menu.js';
+export { Dialog, HoverCard, Popover, Sheet, type DiscardCopy } from './components/overlays.js';
+export { Tabs, type TabItem } from './components/tabs.js';
+export {
+  MAX_VISIBLE_TOASTS,
+  ToastProvider,
+  useToast,
+  type ToastInput,
+  type ToastTone,
+} from './components/toast.js';
