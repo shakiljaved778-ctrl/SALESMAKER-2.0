@@ -73,3 +73,6 @@ Deviations from the plan or spec, known issues and follow-ups, recorded as they 
 - **Refresh races across devices or retries.** Web Locks cover tabs in one browser. A network retry of a refresh whose
   response was lost still looks like reuse. Consider a short server-side grace window for the just-rotated token (§6.1
   reuse detection stays) before GA.
+- **Terraform lock file.** This sandbox's network policy blocks `registry.terraform.io`, so the provider lock file
+  (`.terraform.lock.hcl`) and `terraform validate` / `tflint` could not run locally; formatting was checked locally
+  and CI runs the full set. Commit the lock file from the first CI or local `terraform init` with network access.

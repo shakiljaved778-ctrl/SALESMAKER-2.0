@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars (gitignored). No secrets belong here: secrets live in Secrets Manager.
+web_base_domain               = "staging.salesmaker.app"
+control_api_base_url          = "https://cp.staging.salesmaker.app"
+cell_certificate_arn          = "arn:aws:acm:eu-central-1:<account-id>:certificate/<id>"
+control_plane_certificate_arn = "arn:aws:acm:eu-central-1:<account-id>:certificate/<id>"
+cell_images = {
+  api      = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/api:<git-sha>"
+  worker   = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/worker:<git-sha>"
+  realtime = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/realtime:<git-sha>"
+}
+control_api_image = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/control-api:<git-sha>"

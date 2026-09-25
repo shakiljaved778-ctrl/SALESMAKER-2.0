@@ -44,6 +44,33 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  terraform:
+    name: terraform · fmt · validate · tflint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.4
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      # Validates the environment and, through it, every module. Nothing is planned or applied.
+      - run: terraform init -backend=false -input=false
+        working-directory: infra/terraform/envs/staging-eu-central-1
+      - run: terraform validate
+        working-directory: infra/terraform/envs/staging-eu-central-1
+      - uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.64.0
+      - run: tflint --init
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: tflint --recursive --config "$GITHUB_WORKSPACE/infra/terraform/.tflint.hcl"
+
   db:
     name: db · migrate · rls-audit · drift
     runs-on: ubuntu-latest

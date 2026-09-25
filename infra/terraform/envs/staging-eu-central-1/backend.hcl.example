@@ -1,0 +1,6 @@
+# Copy to backend.hcl (gitignored) and run: terraform init -backend-config=backend.hcl
+bucket         = "salesmaker-terraform-state-<account-id>"
+key            = "staging/eu-central-1/terraform.tfstate"
+region         = "eu-central-1"
+encrypt        = true
+use_lockfile   = true
