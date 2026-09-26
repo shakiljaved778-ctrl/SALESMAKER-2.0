@@ -57,12 +57,15 @@ export function UserPicker({
   onChange,
   placeholder,
   exclude,
+  emptyLabel,
 }: {
   value: string | null;
   initial?: { id: string; name: string } | null;
   onChange: (id: string | null, name?: string) => void;
   placeholder: string;
   exclude?: string;
+  /** Label of the empty choice ("None" by default; "Everyone" for filters). */
+  emptyLabel?: string;
 }) {
   const t = useTranslations('common');
   const tc = useTranslations('setup.common');
@@ -93,7 +96,7 @@ export function UserPicker({
   }, [search]);
   return (
     <Combobox
-      options={[{ value: '', label: tc('none') }, ...options]}
+      options={[{ value: '', label: emptyLabel ?? tc('none') }, ...options]}
       value={value ?? ''}
       onValueChange={(v) => {
         onChange(v || null, options.find((o) => o.value === v)?.label);

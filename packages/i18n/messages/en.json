@@ -561,7 +561,10 @@
       "permissionSetGroups": "Permission set groups",
       "groups": "Public groups",
       "queues": "Queues",
-      "sharing": "Sharing settings"
+      "sharing": "Sharing settings",
+      "auditLog": "Audit log",
+      "loginHistory": "Login history",
+      "setupAudit": "Setup audit trail"
     },
     "forbidden": {
       "title": "Setup is for administrators",
@@ -859,6 +862,93 @@
         "succeeded": "Up to date",
         "failed": "Recalculation failed. Save the rule again to retry.",
         "never": "Not calculated yet"
+      }
+    },
+    "viewers": {
+      "when": "When",
+      "who": "Who",
+      "action": "Action",
+      "record": "Record",
+      "details": "Details",
+      "showDetails": "Show details",
+      "allUsers": "Everyone",
+      "user": "User",
+      "system": "System",
+      "unknownUser": "Unknown user",
+      "removedUser": "Removed user",
+      "filter": "Filter",
+      "clear": "Clear filters",
+      "empty": {
+        "title": "Nothing matches",
+        "description": "Try a wider filter, or clear the filters to see everything."
+      }
+    },
+    "auditLog": {
+      "title": "Audit log",
+      "description": "Every record-level event, in a tamper-evident hash chain.",
+      "seq": "#",
+      "actionFilter": "Action",
+      "actionPlaceholder": "e.g. record.shared",
+      "objectFilter": "Object",
+      "allObjects": "All objects",
+      "chained": "Chained",
+      "pending": "Being chained",
+      "chain": {
+        "ok": "Chain verified {verifiedAt}: {rows, plural, one {# entry} other {# entries}} through #{throughSeq}, no problems.",
+        "broken": "Chain verification found a problem {verifiedAt}: {problem}",
+        "never": "The chain hasn't been verified yet. It's checked every day.",
+        "progress": "Chained through #{seq}. {unchained, plural, =0 {Nothing waiting.} one {# entry waiting.} other {# entries waiting.}}"
+      },
+      "actors": {
+        "user": "User",
+        "system": "System",
+        "agent": "AI agent",
+        "support": "Support"
+      }
+    },
+    "loginHistory": {
+      "title": "Login history",
+      "description": "Every sign-in attempt in this workspace, successful or not.",
+      "method": "Method",
+      "outcome": "Outcome",
+      "ip": "IP address",
+      "device": "Device",
+      "allOutcomes": "All outcomes",
+      "methods": {
+        "password": "Password",
+        "google": "Google",
+        "microsoft": "Microsoft",
+        "otp": "Authenticator code",
+        "recoveryCode": "Recovery code"
+      },
+      "outcomes": {
+        "success": "Signed in",
+        "mfaRequired": "Asked for second step",
+        "invalidCredentials": "Wrong email or password",
+        "invalidCode": "Wrong code",
+        "locked": "Locked out",
+        "emailNotVerified": "Email not verified",
+        "noAccount": "No account"
+      }
+    },
+    "setupAudit": {
+      "title": "Setup audit trail",
+      "description": "Every configuration change, with what it was before and after.",
+      "entity": "Changed",
+      "entityFilter": "Type",
+      "allTypes": "All types",
+      "before": "Before",
+      "after": "After",
+      "types": {
+        "user": "User",
+        "orgUnit": "Org unit",
+        "profile": "Profile",
+        "permissionSet": "Permission set",
+        "permissionSetGroup": "Permission set group",
+        "publicGroup": "Public group",
+        "queue": "Queue",
+        "orgWideDefault": "Org-wide default",
+        "sharingRule": "Sharing rule"
       }
     }
   }

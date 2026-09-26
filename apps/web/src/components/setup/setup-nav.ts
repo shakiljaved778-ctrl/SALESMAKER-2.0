@@ -11,7 +11,10 @@ export type SetupItemKey =
   | 'permissionSetGroups'
   | 'groups'
   | 'queues'
-  | 'sharing';
+  | 'sharing'
+  | 'auditLog'
+  | 'loginHistory'
+  | 'setupAudit';
 export type SetupGroupKey = 'usersAccess' | 'sharing' | 'security';
 
 export interface SetupItem {
@@ -41,6 +44,14 @@ export const SETUP_TREE: SetupGroup[] = [
       { key: 'groups', href: '/setup/groups' },
       { key: 'queues', href: '/setup/queues' },
       { key: 'sharing', href: '/setup/sharing' },
+    ],
+  },
+  {
+    key: 'security',
+    items: [
+      { key: 'auditLog', href: '/setup/audit-log' },
+      { key: 'loginHistory', href: '/setup/login-history' },
+      { key: 'setupAudit', href: '/setup/setup-audit' },
     ],
   },
 ];
