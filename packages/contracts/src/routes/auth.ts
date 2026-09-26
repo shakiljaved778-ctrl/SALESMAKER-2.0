@@ -23,6 +23,8 @@ export const MeResponse = z
     tenantId: Uuid,
     email: Email,
     name: z.string(),
+    title: z.string().nullable(),
+    phone: z.string().nullable(),
     emailVerified: z.boolean(),
     locale: z.string().nullable(),
     timezone: z.string().nullable(),

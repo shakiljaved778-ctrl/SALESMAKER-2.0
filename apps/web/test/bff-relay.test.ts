@@ -147,6 +147,32 @@ describe('BFF relay /api/v1/* → cell /v1/*', () => {
     expect(seen).toHaveLength(0);
   });
 
+  it('relays the signed-in TOTP enrolment steps, for POST only', async () => {
+    const { deps, seen } = setup(() => Response.json({ secret: 's' }));
+    const res = await relayToCell(
+      request('POST', '/api/auth/mfa/totp/enroll', { body: '{}' }),
+      deps,
+      'POST',
+    );
+    expect(res.status).toBe(200);
+    expect(seen[0]?.url).toBe('http://cell-eu.test/auth/mfa/totp/enroll');
+    for (const [method, path] of [
+      ['GET', '/api/auth/mfa/totp/enroll'],
+      ['POST', '/api/auth/mfa/challenge'],
+      ['POST', '/api/auth/login'],
+    ] as const)
+      expect(
+        (
+          await relayToCell(
+            request(method, path, { body: method === 'POST' ? '{}' : undefined }),
+            deps,
+            method,
+          )
+        ).status,
+        path,
+      ).toBe(404);
+  });
+
   it('keeps dot segments inside /v1 (the URL parser resolves them first)', async () => {
     const { deps, seen } = setup();
     await relayToCell(request('GET', '/api/v1/a/%2e%2e/users'), deps, 'GET');
@@ -186,6 +212,8 @@ describe('BFF invitation acceptance', () => {
       tenantId: TENANT.tenantId,
       email: 'new@acme.test',
       name: 'New',
+      title: null,
+      phone: null,
       emailVerified: true,
       locale: null,
       timezone: null,

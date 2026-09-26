@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { withTenant, type CellPrisma, type TenantTransaction } from '@sm/db';
+import { audit, withTenant, type CellPrisma, type TenantTransaction } from '@sm/db';
 import {
   ControlPlaneUnavailableError,
   DomainError,
@@ -36,6 +36,8 @@ export interface MeDto {
   tenantId: string;
   email: string;
   name: string;
+  title: string | null;
+  phone: string | null;
   emailVerified: boolean;
   locale: string | null;
   timezone: string | null;
@@ -328,6 +330,8 @@ export class AuthService {
       tenantId: user.tenantId,
       email: user.email,
       name: user.name,
+      title: user.title,
+      phone: user.phone,
       emailVerified: user.emailVerifiedAt !== null,
       locale: user.locale,
       timezone: user.timezone,
@@ -337,6 +341,40 @@ export class AuthService {
       workspace: { name: settings.name, slug: settings.slug },
       permissions: [...(await this.permissions.forUser(tx, userId)).system].sort(),
     };
+  }
+
+  /**
+   * Change the caller's own password (§6.1): the current one must match, the new one passes the
+   * breach check, and every other session ends so a stolen session cannot outlive the change.
+   */
+  async changePassword(
+    tx: TenantTransaction,
+    userId: string,
+    sessionId: string | undefined,
+    input: { currentPassword: string; newPassword: string },
+  ): Promise<void> {
+    const identity = await tx.prisma.userIdentity.findFirst({
+      where: { userId, provider: 'password' },
+    });
+    if (!identity?.passwordHash)
+      throw errors.conflict(
+        'You sign in with Google or Microsoft, so there is no password to change',
+      );
+    if (!(await this.passwords.verify(identity.passwordHash, input.currentPassword)))
+      throw errors.validation([
+        { field: 'currentPassword', code: 'invalid', message: 'That is not your current password' },
+      ]);
+    const passwordHash = await this.passwords.hashNew(input.newPassword);
+    await tx.prisma.userIdentity.update({
+      where: { tenantId_id: { tenantId: tx.context.tenantId, id: identity.id } },
+      data: { passwordHash },
+    });
+    const ended = await this.sessions.revokeAllForUser(tx, userId, sessionId);
+    await audit.record(tx, {
+      action: 'user.password_changed',
+      recordId: userId,
+      payload: { sessionsEnded: ended },
+    });
   }
 
   emailHash(email: string): Uint8Array<ArrayBuffer> {

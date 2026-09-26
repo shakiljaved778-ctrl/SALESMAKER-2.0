@@ -197,3 +197,10 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   API in other shapes are shown as read-only. Editing a rule sends its source, criteria or target only when they
   changed, so renaming a rule does not recalculate it. The page polls every 2 s while a run is queued or running,
   for at most two minutes.
+- **Personal settings (T21).** Self-service lives under `/v1/me`: `PATCH /v1/me/profile` (name, title, phone),
+  `POST /v1/me/password` (current password required; signs out every other session; 409 for users who sign in
+  only with Google/Microsoft), and `POST /v1/me/mfa/disable` and `/v1/me/mfa/recovery-codes`, both needing proof
+  (a current authenticator code or an unused recovery code; TOTP replay is refused). Each change is audited.
+  Enrolment reuses `/auth/mfa/totp/enroll|confirm`, which the BFF relays through a POST-only allowlist. The
+  enrolment QR code is drawn in the page from the `otpauth://` URI (`uqr`, MIT) so the secret never leaves the
+  browser for a QR service.

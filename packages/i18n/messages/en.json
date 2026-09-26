@@ -268,7 +268,8 @@
     },
     "account": {
       "signedInAs": "Signed in as {email}",
-      "shortcuts": "Keyboard shortcuts"
+      "shortcuts": "Keyboard shortcuts",
+      "settings": "Settings"
     },
     "comingSoonTitle": "{section} is on its way"
   },
@@ -950,6 +951,77 @@
         "orgWideDefault": "Org-wide default",
         "sharingRule": "Sharing rule"
       }
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "nav": "Personal settings",
+    "sections": {
+      "profile": "Profile",
+      "display": "Display",
+      "security": "Security"
+    },
+    "saved": "Saved",
+    "unavailable": "That didn't go through. Try again.",
+    "profile": {
+      "description": "How your teammates see you.",
+      "name": "Name",
+      "email": "Email",
+      "emailHelp": "Your sign-in address. An administrator can change it.",
+      "title": "Job title",
+      "phone": "Phone"
+    },
+    "display": {
+      "description": "How SalesMaker looks for you, on every device.",
+      "language": "Language",
+      "timezone": "Time zone",
+      "timezoneDefault": "Workspace default",
+      "timezoneHelp": "Dates and times are shown in this zone.",
+      "languageNote": "The page reloads in the new language.",
+      "locales": {
+        "en": "English",
+        "enXa": "English (accented, for testing)",
+        "arXb": "Right-to-left (for testing)"
+      }
+    },
+    "security": {
+      "description": "Keep your account safe.",
+      "passwordTitle": "Password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "changePassword": "Change password",
+      "passwordChanged": "Password changed. You've been signed out everywhere else.",
+      "wrongPassword": "That isn't your current password.",
+      "noPassword": "You sign in with Google or Microsoft, so there's no password to change.",
+      "mfaTitle": "Two-step verification",
+      "mfaOn": "On. You'll enter a code from your authenticator app when you sign in.",
+      "mfaOff": "Off. Turn it on so a stolen password isn't enough to get in.",
+      "turnOn": "Set up two-step verification",
+      "turnOff": "Turn off",
+      "secretLabel": "Or enter this key by hand",
+      "code": "6-digit code",
+      "confirm": "Turn on",
+      "newCodes": "Get new recovery codes",
+      "proofTitle": "Confirm it's you",
+      "proofBody": "Enter a code from your authenticator app, or one of your recovery codes.",
+      "recoveryCode": "Recovery code",
+      "useRecovery": "Use a recovery code",
+      "useCode": "Use a code from the app",
+      "mfaDisabled": "Two-step verification is off.",
+      "codesSaved": "I've saved these codes",
+      "copyCodes": "Copy codes",
+      "copied": "Copied",
+      "invalidCode": "That code didn't work. Codes change every 30 seconds, so try the latest one.",
+      "sessionsTitle": "Where you're signed in",
+      "thisDevice": "This device",
+      "lastActive": "Last active {when}",
+      "signedInAt": "Signed in {when}",
+      "unknownDevice": "Unknown device",
+      "signOut": "Sign out",
+      "signOutOthers": "Sign out everywhere else",
+      "signedOutOthers": "{count, plural, =0 {No other sessions to sign out.} one {Signed out of # other session.} other {Signed out of # other sessions.}}",
+      "signedOut": "Signed out of that session.",
+      "mfaVerified": "Two-step verified"
     }
   }
 }

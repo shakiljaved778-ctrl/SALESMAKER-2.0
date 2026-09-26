@@ -305,8 +305,12 @@ export const acceptInvitation: Handler = withTenantAndOrigin(async (request, dep
   return result ? loginOutcome(deps, result) : unavailable();
 });
 
-/** Cell routes the page may reach through the relay: the signed-in `/v1` API, nothing else. */
+/**
+ * Cell routes the page may reach through the relay: the signed-in `/v1` API, plus the two
+ * signed-in TOTP enrolment steps (they predate `/v1`), nothing else.
+ */
 const RELAYABLE = /^\/v1\/[A-Za-z0-9_\-/.]*$/;
+const RELAYABLE_WRITES = new Set(['/auth/mfa/totp/enroll', '/auth/mfa/totp/confirm']);
 
 /**
  * The page's signed-in API (§3.1): `/api/v1/…` relays to the workspace's cell `/v1/…` with the
@@ -330,7 +334,8 @@ export async function relayToCell(
   }
   const url = new URL(request.url);
   const path = url.pathname.replace(/^\/api/, '');
-  if (!RELAYABLE.test(path) || path.split('/').some((s) => s === '..' || s === '.')) {
+  const allowed = RELAYABLE.test(path) || (method === 'POST' && RELAYABLE_WRITES.has(path));
+  if (!allowed || path.split('/').some((s) => s === '..' || s === '.')) {
     return problem(404, 'not_found', 'Not found');
   }
   const resolved = await tenantFor(request, deps);

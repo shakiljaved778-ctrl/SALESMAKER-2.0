@@ -11,3 +11,4 @@ export * from './routes/audit.js';
 export * from './routes/sessions.js';
 export * from './routes/users.js';
 export * from './routes/setup.js';
+export * from './routes/me.js';

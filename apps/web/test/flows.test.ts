@@ -40,6 +40,8 @@ const USER = {
   tenantId: TENANT.tenantId,
   email: 'amira@acme.test',
   name: 'Amira Haddad',
+  title: null,
+  phone: null,
   emailVerified: true,
   locale: null,
   timezone: null,

@@ -168,6 +168,13 @@ export function TopBar({ pathname }: { pathname: string }) {
             },
           },
           { type: 'separator' },
+          {
+            type: 'item',
+            label: t('account.settings'),
+            onSelect: () => {
+              router.push('/settings/profile');
+            },
+          },
           { type: 'item', label: t('account.shortcuts'), shortcut: '?', onSelect: openShortcuts },
           { type: 'item', label: tc('actions.signOut'), onSelect: signOut },
         ]}
