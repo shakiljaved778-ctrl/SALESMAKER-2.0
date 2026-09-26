@@ -70,19 +70,25 @@ export function SettingsShell({ children }: { children: ReactNode }) {
   );
 }
 
+/** A settings section; `page` makes its title the page's h1 (Profile, Display). */
 function Section({
   title,
   description,
+  page,
   children,
 }: {
   title: string;
   description?: string;
+  page?: boolean;
   children: ReactNode;
 }) {
+  const Heading = page ? 'h1' : 'h2';
   return (
     <section className="flex flex-col gap-4 border-b border-line pb-8 last:border-b-0">
       <div>
-        <h2 className="text-title-3 text-fg">{title}</h2>
+        <Heading className={page ? 'text-title-2 text-fg' : 'text-title-3 text-fg'}>
+          {title}
+        </Heading>
         {description ? <p className="text-body-sm text-fg-secondary">{description}</p> : null}
       </div>
       {children}
@@ -139,7 +145,7 @@ export function ProfileSettings() {
     toast({ tone: 'success', title: t('saved') });
   };
   return (
-    <Section title={t('sections.profile')} description={t('profile.description')}>
+    <Section page title={t('sections.profile')} description={t('profile.description')}>
       <form noValidate onSubmit={(e) => void save(e)} className="flex max-w-lg flex-col gap-4">
         <FormField label={t('profile.name')} required>
           <Input
@@ -217,7 +223,7 @@ export function DisplaySettings() {
     return true;
   };
   return (
-    <Section title={t('sections.display')} description={t('display.description')}>
+    <Section page title={t('sections.display')} description={t('display.description')}>
       <div className="flex max-w-lg flex-col gap-4">
         <FormField label={td('theme')}>
           <Select
@@ -275,10 +281,15 @@ export function DisplaySettings() {
 
 // ── Security ───────────────────────────────────────────────────────────────────────────────
 export function SecuritySettings() {
+  const t = useTranslations('settings');
   const [me, setMe] = useMe();
   if (!me) return <Loading />;
   return (
     <div className="flex flex-col gap-8">
+      <div>
+        <h1 className="text-title-2 text-fg">{t('sections.security')}</h1>
+        <p className="text-body-sm text-fg-secondary">{t('security.description')}</p>
+      </div>
       <PasswordSection />
       <MfaSection
         enabled={me.mfaEnabled}

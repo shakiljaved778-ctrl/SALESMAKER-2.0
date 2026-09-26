@@ -42,9 +42,13 @@ export function refreshSession() {
   inFlight ??= (async () => {
     try {
       const run = () => postJson<Session>('/api/auth/refresh', {});
-      return 'locks' in navigator
-        ? await navigator.locks.request('sm-session-refresh', run)
-        : await run();
+      const result =
+        'locks' in navigator
+          ? await navigator.locks.request('sm-session-refresh', run)
+          : await run();
+      // Remembered here, not by each caller, so a call that starts afterwards finds the token.
+      if (result.ok) current = result.data;
+      return result;
     } finally {
       inFlight = undefined;
     }

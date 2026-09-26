@@ -101,6 +101,7 @@ export function MembersEditor({
           <div className="w-72 max-w-full">
             {type === 'USER' ? (
               <UserPicker
+                aria-label={t('member')}
                 value={candidate?.id ?? null}
                 placeholder={t('member')}
                 onChange={(id, name) => {
@@ -109,6 +110,7 @@ export function MembersEditor({
               />
             ) : (
               <Combobox
+                aria-label={t('member')}
                 options={options}
                 loading={type === 'GROUP' ? groups.data === null : units === null}
                 loadingText={common('states.loading')}

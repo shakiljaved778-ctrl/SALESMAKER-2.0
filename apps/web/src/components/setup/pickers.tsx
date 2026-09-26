@@ -58,6 +58,7 @@ export function UserPicker({
   placeholder,
   exclude,
   emptyLabel,
+  'aria-label': ariaLabel,
 }: {
   value: string | null;
   initial?: { id: string; name: string } | null;
@@ -66,6 +67,8 @@ export function UserPicker({
   exclude?: string;
   /** Label of the empty choice ("None" by default; "Everyone" for filters). */
   emptyLabel?: string;
+  /** Needed where no FormField labels the picker (filter bars). */
+  'aria-label'?: string;
 }) {
   const t = useTranslations('common');
   const tc = useTranslations('setup.common');
@@ -107,6 +110,7 @@ export function UserPicker({
       placeholder={placeholder}
       searchPlaceholder={t('search.placeholder')}
       emptyText={t('search.noResults')}
+      {...(ariaLabel ? { 'aria-label': ariaLabel } : {})}
     />
   );
 }

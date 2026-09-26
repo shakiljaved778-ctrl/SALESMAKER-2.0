@@ -5,9 +5,13 @@ import { accessToken, refreshSession, rememberSession } from './session';
 
 type Method = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
-async function send<T>(method: Method, path: string, body?: unknown): Promise<ApiResult<T>> {
+async function send<T>(
+  method: Method,
+  path: string,
+  body: unknown,
+  token: string | undefined,
+): Promise<ApiResult<T>> {
   const headers: Record<string, string> = {};
-  const token = accessToken();
   if (token) headers['authorization'] = `Bearer ${token}`;
   if (body !== undefined) headers['content-type'] = 'application/json';
   let response: Response;
@@ -44,20 +48,26 @@ async function send<T>(method: Method, path: string, body?: unknown): Promise<Ap
 
 /**
  * Call the signed-in cell API through the BFF relay (`/api/v1/…`). The access token lives in page
- * memory; when it has expired the cell answers 401, so the session is refreshed once (rotating
- * the refresh cookie) and the call retried.
+ * memory. A call made before the page has restored its session waits for that (shared) refresh
+ * instead of going out without a token. When the token has expired the cell answers 401: the
+ * session is refreshed once, unless another call already did, and the call retried. Every
+ * refresh rotates the single-use refresh cookie, so none happens that isn't needed.
  */
 export async function cellApi<T>(
   method: Method,
   path: string,
   body?: unknown,
 ): Promise<ApiResult<T>> {
-  const first = await send<T>(method, path, body);
+  if (!accessToken()) await refreshSession();
+  const token = accessToken();
+  const first = await send<T>(method, path, body, token);
   if (first.ok || first.status !== 401) return first;
-  const refreshed = await refreshSession();
-  if (!refreshed.ok) return first;
-  rememberSession(refreshed.data);
-  return send<T>(method, path, body);
+  if (accessToken() === token) {
+    const refreshed = await refreshSession();
+    if (!refreshed.ok) return first;
+    rememberSession(refreshed.data);
+  }
+  return send<T>(method, path, body, accessToken());
 }
 
 /** Query string from a filter object, dropping empty values. */

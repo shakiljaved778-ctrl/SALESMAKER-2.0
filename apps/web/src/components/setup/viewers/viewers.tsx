@@ -268,6 +268,7 @@ export function AuditLogViewer() {
           />
           <div className="w-64">
             <UserPicker
+              aria-label={tv('who')}
               value={actorId}
               onChange={setActorId}
               placeholder={tv('allUsers')}
@@ -360,6 +361,7 @@ export function LoginHistoryViewer() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="w-64">
             <UserPicker
+              aria-label={tv('user')}
               value={userId}
               onChange={setUserId}
               placeholder={tv('allUsers')}
