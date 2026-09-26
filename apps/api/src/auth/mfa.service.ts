@@ -9,6 +9,7 @@ import type { ApiConfig } from '../config.js';
 import { CONFIG, PRISMA, SECRET_BOX } from '../tokens.js';
 import { AuthService, type ClientInfo, type LoginResult } from './auth.service.js';
 import { LockoutService } from './lockout.service.js';
+import { LoginHistoryService } from './login-history.service.js';
 import { SessionService } from './session.service.js';
 import { TokenService, type AuthMethod } from './token.service.js';
 
@@ -51,6 +52,7 @@ export class MfaService {
     private readonly lockout: LockoutService,
     private readonly sessions: SessionService,
     private readonly tokens: TokenService,
+    private readonly history: LoginHistoryService,
   ) {}
 
   async enroll(
@@ -160,16 +162,30 @@ export class MfaService {
             : { kind: 'invalid' as const };
         }
         await this.lockout.recordSuccess(tx, lockKey, pending.userId, client.ip);
-        const tokens = await this.sessions.start(
+        const { sessionId, tokens } = await this.sessions.startWithId(
           tx,
           pending.userId,
           [...pending.amr, method],
           client,
         );
+        await this.history.recordIn(tx, {
+          method: method === 'otp' ? 'otp' : 'recovery_code',
+          outcome: 'SUCCESS',
+          userId: pending.userId,
+          sessionId,
+          client,
+        });
         return { kind: 'ok' as const, tokens, user: await this.auth.me(tx, pending.userId) };
       },
     );
 
+    if (outcome.kind !== 'ok')
+      await this.history.record(tenantId, {
+        method: input.code ? 'otp' : 'recovery_code',
+        outcome: outcome.kind === 'locked' ? 'LOCKED' : 'INVALID_CODE',
+        userId: pending.userId,
+        client,
+      });
     if (outcome.kind === 'locked') {
       throw new DomainError(
         'account_locked',

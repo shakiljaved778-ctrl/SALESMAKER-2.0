@@ -10,6 +10,7 @@ import { AuthEmailService } from './auth/auth-email.service.js';
 import { AuthController } from './auth/auth.controller.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthService } from './auth/auth.service.js';
+import { LoginHistoryService } from './auth/login-history.service.js';
 import { LockoutService } from './auth/lockout.service.js';
 import { MeController } from './auth/me.controller.js';
 import { MfaController } from './auth/mfa.controller.js';
@@ -28,6 +29,7 @@ import { AccessService } from './access/access.service.js';
 import { defaultRecordTables, type RecordTables } from './access/record-tables.js';
 import { SystemPermissionGuard } from './access/system-permission.guard.js';
 import { PermissionService } from './permissions/permission.service.js';
+import { LoginHistoryController, MySessionsController } from './sessions/sessions.controller.js';
 import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
@@ -76,6 +78,8 @@ export class AppModule {
         SignupController,
         AccessController,
         AuditController,
+        MySessionsController,
+        LoginHistoryController,
       ],
       providers: [
         { provide: CONFIG, useValue: deps.config },
@@ -97,6 +101,7 @@ export class AppModule {
         SessionService,
         AuthEmailService,
         AuthService,
+        LoginHistoryService,
         MfaService,
         OidcService,
         SignupService,

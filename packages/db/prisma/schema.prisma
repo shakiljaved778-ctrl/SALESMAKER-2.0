@@ -894,3 +894,45 @@ model SetupAudit {
   @@index([tenantId, entityType, entityId])
   @@map("setup_audit")
 }
+
+enum LoginMethod {
+  password
+  google
+  microsoft
+  otp
+  recovery_code
+
+  @@map("login_method")
+}
+
+enum LoginOutcome {
+  SUCCESS
+  MFA_REQUIRED
+  INVALID_CREDENTIALS
+  INVALID_CODE
+  LOCKED
+  EMAIL_NOT_VERIFIED
+  NO_ACCOUNT
+
+  @@map("login_outcome")
+}
+
+/// Every sign-in attempt and its outcome (§6.1, §6.7). Unknown addresses are kept only as the
+/// email HMAC (like auth_attempt), never in plain text.
+model LoginHistory {
+  tenantId   String       @map("tenant_id") @db.Uuid
+  id         String       @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  occurredAt DateTime     @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  userId     String?      @map("user_id") @db.Uuid
+  emailHash  Bytes?       @map("email_hash")
+  method     LoginMethod
+  outcome    LoginOutcome
+  sessionId  String?      @map("session_id") @db.Uuid
+  ip         String?
+  userAgent  String?      @map("user_agent")
+
+  @@id([tenantId, id])
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, userId, occurredAt])
+  @@map("login_history")
+}

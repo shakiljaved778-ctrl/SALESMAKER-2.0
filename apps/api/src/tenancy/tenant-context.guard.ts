@@ -57,3 +57,12 @@ export const CurrentTenant = createParamDecorator(
     return { tenantId: caller.tenantId, userId: caller.userId };
   },
 );
+
+/** Handler parameter: the whole verified caller (e.g. for its session id). */
+export const CurrentCaller = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): VerifiedCaller => {
+    const caller = context.switchToHttp().getRequest<FastifyRequest>().caller;
+    if (!caller) throw errors.unauthenticated();
+    return caller;
+  },
+);

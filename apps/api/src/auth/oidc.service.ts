@@ -7,6 +7,7 @@ import type { Logger } from 'pino';
 import type { ApiConfig } from '../config.js';
 import { CONFIG, LOGGER, OIDC_PROVIDERS, PRISMA } from '../tokens.js';
 import { AuthService, type ClientInfo, type LoginResult } from './auth.service.js';
+import { LoginHistoryService } from './login-history.service.js';
 import { SessionService } from './session.service.js';
 import { TokenService } from './token.service.js';
 
@@ -29,6 +30,7 @@ export class OidcService {
     private readonly auth: AuthService,
     private readonly sessions: SessionService,
     private readonly tokens: TokenService,
+    private readonly history: LoginHistoryService,
   ) {}
 
   provider(id: OidcProviderId): OidcProvider {
@@ -115,7 +117,13 @@ export class OidcService {
         where: { tenantId_email: { tenantId, email: identity.email } },
         include: { mfaFactors: { where: { confirmedAt: { not: null } } } },
       });
-      if (!existing || existing.status === 'DISABLED' || existing.deletedAt) return null;
+      if (
+        !existing ||
+        existing.status === 'DISABLED' ||
+        existing.deactivatedAt ||
+        existing.deletedAt
+      )
+        return null;
       await prisma.userIdentity.create({
         data: { tenantId, userId: existing.id, provider, subject: identity.subject },
       });
@@ -128,9 +136,24 @@ export class OidcService {
       }
       return existing;
     });
-    if (!user || user.status === 'DISABLED' || user.deletedAt) throw noAccount();
+    if (!user || user.status === 'DISABLED' || user.deactivatedAt || user.deletedAt) {
+      await this.history.record(tenantId, {
+        method: provider,
+        outcome: 'NO_ACCOUNT',
+        userId: user?.id,
+        email: identity.email || undefined,
+        client,
+      });
+      throw noAccount();
+    }
 
     if (user.mfaFactors.length > 0) {
+      await this.history.record(tenantId, {
+        method: provider,
+        outcome: 'MFA_REQUIRED',
+        userId: user.id,
+        client,
+      });
       const mfa = await this.tokens.issueMfaToken(tenantId, user.id, [provider]);
       return {
         status: 'mfa_required',
@@ -138,11 +161,22 @@ export class OidcService {
         expiresAt: mfa.expiresAt.toISOString(),
       };
     }
-    return withTenant(this.prisma, { tenantId, userId: user.id }, async (tx) => ({
-      status: 'ok' as const,
-      tokens: await this.sessions.start(tx, user.id, [provider], client),
-      user: await this.auth.me(tx, user.id),
-    }));
+    return withTenant(this.prisma, { tenantId, userId: user.id }, async (tx) => {
+      const { sessionId, tokens } = await this.sessions.startWithId(
+        tx,
+        user.id,
+        [provider],
+        client,
+      );
+      await this.history.recordIn(tx, {
+        method: provider,
+        outcome: 'SUCCESS',
+        userId: user.id,
+        sessionId,
+        client,
+      });
+      return { status: 'ok' as const, tokens, user: await this.auth.me(tx, user.id) };
+    });
   }
 
   private workspaceCallback(provider: OidcProviderId, uri: string): boolean {

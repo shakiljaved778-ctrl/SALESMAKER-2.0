@@ -16,6 +16,7 @@ import {
   VERIFY_EMAIL_TTL_HOURS,
 } from './auth-email.service.js';
 import { LockoutService } from './lockout.service.js';
+import { LoginHistoryService, type LoginOutcome } from './login-history.service.js';
 import { PasswordService } from './password.service.js';
 import { SessionService, type IssuedTokens } from './session.service.js';
 import { newOneTimeToken, sha256, TokenService } from './token.service.js';
@@ -56,6 +57,7 @@ export class AuthService {
     private readonly sessions: SessionService,
     private readonly tokens: TokenService,
     private readonly mail: AuthEmailService,
+    private readonly history: LoginHistoryService,
   ) {}
 
   /** The workspace named by a pre-auth request must exist in this cell; otherwise 404. */
@@ -121,28 +123,41 @@ export class AuthService {
       });
       return { lock, user };
     });
-    if (found.lock.locked) throw this.lockedError(found.lock.minutesRemaining);
+    const event = (outcome: LoginOutcome, userId?: string) =>
+      this.history.record(tenantId, { method: 'password', outcome, userId, email, client });
+    if (found.lock.locked) {
+      await event('LOCKED', found.user?.id);
+      throw this.lockedError(found.lock.minutesRemaining);
+    }
 
     // Always run argon2, even for unknown users, so timing does not reveal who has an account.
     const identity = found.user?.identities[0];
     const ok = await this.passwords.verify(identity?.passwordHash, password);
     const user = found.user;
 
-    if (!ok || !user || user.status === 'DISABLED' || user.deletedAt) {
+    if (!ok || !user || user.status === 'DISABLED' || user.deactivatedAt || user.deletedAt) {
       const state = await withTenant(this.prisma, { tenantId }, (tx) =>
         this.lockout.recordFailure(tx, emailHash, user?.id, client.ip),
       );
+      await event(state.locked ? 'LOCKED' : 'INVALID_CREDENTIALS', user?.id);
       if (state.locked) throw this.lockedError(state.minutesRemaining);
       throw invalidCredentials();
     }
     if (!user.emailVerifiedAt) {
+      await event('EMAIL_NOT_VERIFIED', user.id);
       throw new DomainError('email_not_verified', 403, 'Verify your email to continue');
     }
 
     if (user.mfaFactors.length > 0) {
-      await withTenant(this.prisma, { tenantId }, (tx) =>
-        this.lockout.recordSuccess(tx, emailHash, user.id, client.ip),
-      );
+      await withTenant(this.prisma, { tenantId }, async (tx) => {
+        await this.lockout.recordSuccess(tx, emailHash, user.id, client.ip);
+        await this.history.recordIn(tx, {
+          method: 'password',
+          outcome: 'MFA_REQUIRED',
+          userId: user.id,
+          client,
+        });
+      });
       const mfa = await this.tokens.issueMfaToken(tenantId, user.id, ['pwd']);
       return {
         status: 'mfa_required',
@@ -153,7 +168,14 @@ export class AuthService {
 
     return withTenant(this.prisma, { tenantId, userId: user.id }, async (tx) => {
       await this.lockout.recordSuccess(tx, emailHash, user.id, client.ip);
-      const tokens = await this.sessions.start(tx, user.id, ['pwd'], client);
+      const { sessionId, tokens } = await this.sessions.startWithId(tx, user.id, ['pwd'], client);
+      await this.history.recordIn(tx, {
+        method: 'password',
+        outcome: 'SUCCESS',
+        userId: user.id,
+        sessionId,
+        client,
+      });
       return { status: 'ok' as const, tokens, user: await this.me(tx, user.id) };
     });
   }

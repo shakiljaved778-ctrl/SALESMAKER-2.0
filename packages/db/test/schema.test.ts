@@ -92,6 +92,7 @@ describe('tenant tables (§3.5, §4.1)', () => {
         'auth_token',
         'idempotency_key',
         'job_run',
+        'login_history',
         'mfa_factor',
         'mfa_recovery_code',
         'outbox_event',

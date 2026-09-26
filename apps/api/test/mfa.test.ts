@@ -4,6 +4,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { startTestApi, type TestApi } from './support.js';
 
+/** Outcomes these flows must leave in login history (checked last). */
+const EXPECTED_OUTCOMES = [
+  'password:MFA_REQUIRED',
+  'otp:SUCCESS',
+  'recovery_code:SUCCESS',
+  'otp:INVALID_CODE',
+  'otp:LOCKED',
+];
+
 let api: TestApi;
 let alpha: string;
 let bravo: string;
@@ -173,5 +182,19 @@ describe('two-step sign-in', () => {
     expect(
       (await challenge('x'.repeat(40), { code: '123456', recoveryCode: 'abcd-efgh' })).statusCode,
     ).toBe(400);
+  });
+});
+
+describe('login history (§6.7)', () => {
+  it('records every sign-in outcome of these flows', async () => {
+    const { withTenant } = await import('@sm/db');
+    const { PRISMA } = await import('../src/tokens.js');
+    const rows = await withTenant(api.app.get(PRISMA), { tenantId: alpha }, (tx) =>
+      tx.prisma.loginHistory.findMany({ select: { method: true, outcome: true, sessionId: true } }),
+    );
+    const seen = new Set(rows.map((r) => `${r.method}:${r.outcome}`));
+    for (const expected of EXPECTED_OUTCOMES) expect(seen, expected).toContain(expected);
+    for (const r of rows)
+      expect(Boolean(r.sessionId), `${r.method}:${r.outcome}`).toBe(r.outcome === 'SUCCESS');
   });
 });

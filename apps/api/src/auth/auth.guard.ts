@@ -2,6 +2,7 @@ import { Injectable, type CanActivate, type ExecutionContext } from '@nestjs/com
 import { errors } from '@sm/server-kit';
 import type { FastifyRequest } from 'fastify';
 
+import { SessionService } from './session.service.js';
 import { TokenService } from './token.service.js';
 
 /**
@@ -11,13 +12,19 @@ import { TokenService } from './token.service.js';
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly tokens: TokenService) {}
+  constructor(
+    private readonly tokens: TokenService,
+    private readonly sessions: SessionService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<FastifyRequest>();
     const header = request.headers.authorization ?? '';
     if (!header.startsWith('Bearer ')) throw errors.unauthenticated();
     const claims = await this.tokens.verifyAccessToken(header.slice('Bearer '.length));
+    // A remotely signed-out session's access tokens stop working at once (§6.1).
+    if (await this.sessions.isRevoked(claims.sessionId))
+      throw errors.unauthenticated('Your session has ended. Sign in again.');
     request.caller = {
       tenantId: claims.tenantId,
       userId: claims.userId,

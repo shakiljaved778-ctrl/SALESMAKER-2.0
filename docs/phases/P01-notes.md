@@ -111,3 +111,11 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   chains and verifies every tenant, recording the result in `audit_verification`.
 - **Audit viewers need `view_setup` (T11).** P02 must mask hidden-field history in payloads (§6.5) before record
   changes are audited.
+- **Remote sign-out is immediate (T12).** Access tokens are stateless and valid for 15 minutes. Revoking a session
+  therefore also writes `revoked-session:{id}` to Valkey for the token lifetime, and the auth guard refuses tokens
+  of listed sessions. If Valkey is unreachable the check fails open (logged); the refresh token is revoked in the
+  database either way.
+- **Login history (T12)** holds one append-only row per sign-in attempt: method (password, google, microsoft, otp,
+  recovery_code), outcome, user (when known), the email HMAC (when the user is unknown), session, IP and user agent.
+  A deactivated user is refused like a wrong password, so the response does not reveal the deactivation. SSO still
+  links only to an existing user of the workspace (invited or created); T13 adds invitation acceptance on top.
