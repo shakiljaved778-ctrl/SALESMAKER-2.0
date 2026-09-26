@@ -91,6 +91,7 @@ describe('tenant tables (§3.5, §4.1)', () => {
         'auth_attempt',
         'auth_token',
         'idempotency_key',
+        'invitation',
         'job_run',
         'login_history',
         'mfa_factor',

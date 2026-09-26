@@ -217,6 +217,40 @@ describe('POST /auth/oidc/{provider}/callback', () => {
   });
 });
 
+describe('accepting an invitation with Google (P01 plan §3.4)', () => {
+  async function invitePending(email: string, expiresAt: Date) {
+    const { withTenant } = await import('@sm/db');
+    const { PRISMA } = await import('../src/tokens.js');
+    return withTenant(api.app.get(PRISMA), { tenantId: alpha }, async ({ prisma }) => {
+      const user = await prisma.user.create({
+        data: { tenantId: alpha, email, name: email, status: 'PENDING' },
+      });
+      await prisma.invitation.create({
+        data: {
+          tenantId: alpha,
+          userId: user.id,
+          tokenHash: new Uint8Array(32).fill(email.length),
+          expiresAt,
+        },
+      });
+      return user.id;
+    });
+  }
+
+  it('activates a pending user whose invitation is live, and consumes the invitation', async () => {
+    await invitePending('invited@alpha.test', new Date(Date.now() + 86_400_000));
+    const res = await callback(alpha, await authorize({ email: 'invited@alpha.test' }));
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ status: 'ok', user: { email: 'invited@alpha.test' } });
+  });
+
+  it('refuses a pending user whose invitation expired', async () => {
+    await invitePending('expired-invite@alpha.test', new Date(Date.now() - 1000));
+    const res = await callback(alpha, await authorize({ email: 'expired-invite@alpha.test' }));
+    expect(res.statusCode).toBe(403);
+  });
+});
+
 describe('login history (§6.7)', () => {
   it('records every sign-in outcome of these flows', async () => {
     const { withTenant } = await import('@sm/db');

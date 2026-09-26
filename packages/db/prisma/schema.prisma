@@ -132,6 +132,7 @@ model User {
   authTokens            AuthToken[]
   groupMembers          GroupMember[]
   queueMembers          QueueMember[]
+  invitations           Invitation[]
 
   @@id([tenantId, id])
   @@unique([tenantId, email])
@@ -935,4 +936,25 @@ model LoginHistory {
   @@index([tenantId, occurredAt])
   @@index([tenantId, userId, occurredAt])
   @@map("login_history")
+}
+
+/// An invitation (§6.1, P01 plan §3.4): a PENDING user plus a single-use token valid for 7 days.
+/// Accepting sets a password, or links a Google/Microsoft identity with the same verified email.
+model Invitation {
+  tenantId   String    @map("tenant_id") @db.Uuid
+  id         String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  tokenHash  Bytes     @map("token_hash")
+  invitedBy  String?   @map("invited_by") @db.Uuid
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  acceptedAt DateTime? @map("accepted_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, tokenHash])
+  @@index([tenantId, userId])
+  @@map("invitation")
 }

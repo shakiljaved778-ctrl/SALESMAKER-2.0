@@ -119,3 +119,11 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   recovery_code), outcome, user (when known), the email HMAC (when the user is unknown), session, IP and user agent.
   A deactivated user is refused like a wrong password, so the response does not reveal the deactivation. SSO still
   links only to an existing user of the workspace (invited or created); T13 adds invitation acceptance on top.
+- **Invitations (T13).** An invitation is identified in the API by its pending user's id: `/v1/invitations/{id}` is
+  the user, and resend, withdraw and accept act on that user's latest live invitation. Withdrawing removes the
+  pending user, which never signed in and owns nothing, so the address can be invited again. Only the token's
+  SHA-256 is stored, and the email's idempotency key is a digest of the token.
+- **User changes keep access current (T13).** A change of org unit or manager rebuilds, in the same transaction,
+  the visibility of the user, their old and new managers, and the users above their old and new units. A change of
+  org unit also queues recalculation of the active owner-based rules. The workspace owner and the caller cannot be
+  deactivated, and deactivation ends every session at once.

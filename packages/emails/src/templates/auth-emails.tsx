@@ -91,3 +91,38 @@ export function WorkspacesEmail({ locale, workspaces }: WorkspacesEmailProps) {
     </Layout>
   );
 }
+
+export interface InvitationEmailProps {
+  locale: string;
+  name: string;
+  inviter: string;
+  workspace: string;
+  url: string;
+  expiresInDays: number;
+}
+
+export function InvitationEmail({
+  locale,
+  name,
+  inviter,
+  workspace,
+  url,
+  expiresInDays,
+}: InvitationEmailProps) {
+  const tr = serverTranslator(locale);
+  return (
+    <Layout
+      lang={locale}
+      dir={directionOf(locale)}
+      preview={tr('emails.invitation.heading', { workspace })}
+      heading={tr('emails.invitation.heading', { workspace })}
+      footer={tr('emails.footer')}
+    >
+      <Paragraph>
+        {tr('emails.invitation.body', { name, inviter, workspace, days: expiresInDays })}
+      </Paragraph>
+      <CallToAction href={url} label={tr('emails.invitation.cta')} />
+      <Paragraph>{tr('emails.invitation.ignore')}</Paragraph>
+    </Layout>
+  );
+}

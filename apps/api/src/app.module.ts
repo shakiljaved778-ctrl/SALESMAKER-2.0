@@ -30,6 +30,8 @@ import { defaultRecordTables, type RecordTables } from './access/record-tables.j
 import { SystemPermissionGuard } from './access/system-permission.guard.js';
 import { PermissionService } from './permissions/permission.service.js';
 import { LoginHistoryController, MySessionsController } from './sessions/sessions.controller.js';
+import { InvitationsController, UsersController } from './users/users.controller.js';
+import { UsersService } from './users/users.service.js';
 import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
@@ -80,6 +82,8 @@ export class AppModule {
         AuditController,
         MySessionsController,
         LoginHistoryController,
+        UsersController,
+        InvitationsController,
       ],
       providers: [
         { provide: CONFIG, useValue: deps.config },
@@ -107,6 +111,7 @@ export class AppModule {
         SignupService,
         PermissionService,
         SharingService,
+        UsersService,
         AccessService,
         SystemPermissionGuard,
       ],

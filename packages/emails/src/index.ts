@@ -3,9 +3,11 @@ import { serverTranslator } from '@sm/i18n';
 import { createElement } from 'react';
 
 import {
+  InvitationEmail,
   ResetPasswordEmail,
   VerifyEmail,
   WorkspacesEmail,
+  type InvitationEmailProps,
   type ResetPasswordProps,
   type VerifyEmailProps,
   type WorkspacesEmailProps,
@@ -45,4 +47,14 @@ export async function renderWorkspacesEmail(props: WorkspacesEmailProps): Promis
   };
 }
 
-export type { ResetPasswordProps, VerifyEmailProps, WorkspacesEmailProps };
+export async function renderInvitationEmail(props: InvitationEmailProps): Promise<RenderedEmail> {
+  return {
+    subject: serverTranslator(props.locale)('emails.invitation.subject', {
+      inviter: props.inviter,
+      workspace: props.workspace,
+    }),
+    ...(await both(createElement(InvitationEmail, props))),
+  };
+}
+
+export type { InvitationEmailProps, ResetPasswordProps, VerifyEmailProps, WorkspacesEmailProps };

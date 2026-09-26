@@ -124,10 +124,24 @@ export class OidcService {
         existing.deletedAt
       )
         return null;
+      if (existing.status === 'PENDING') {
+        // An invited user accepts by signing in with the provider: only while the invitation is
+        // live, and it is consumed here (P01 plan §3.4).
+        const accepted = await prisma.invitation.updateMany({
+          where: {
+            userId: existing.id,
+            acceptedAt: null,
+            revokedAt: null,
+            expiresAt: { gt: new Date() },
+          },
+          data: { acceptedAt: new Date() },
+        });
+        if (accepted.count === 0) return null;
+      }
       await prisma.userIdentity.create({
         data: { tenantId, userId: existing.id, provider, subject: identity.subject },
       });
-      if (!existing.emailVerifiedAt) {
+      if (!existing.emailVerifiedAt || existing.status === 'PENDING') {
         // The provider verified the mailbox, which is what our own link would have proved.
         await prisma.user.update({
           where: { tenantId_id: { tenantId, id: existing.id } },

@@ -1,5 +1,7 @@
+import { createHash } from 'node:crypto';
+
 import { Inject, Injectable } from '@nestjs/common';
-import { renderResetPasswordEmail, renderVerifyEmail } from '@sm/emails';
+import { renderInvitationEmail, renderResetPasswordEmail, renderVerifyEmail } from '@sm/emails';
 import type { EmailSender } from '@sm/integrations';
 import type { Logger } from 'pino';
 
@@ -63,6 +65,30 @@ export class AuthEmailService {
       expiresInMinutes: RESET_PASSWORD_TTL_MINUTES,
     });
     await this.deliver({ to: to.email, ...rendered, idempotencyKey: `reset-password:${tokenId}` });
+  }
+
+  async sendInvitation(
+    to: Recipient,
+    workspace: Workspace,
+    inviter: string,
+    token: string,
+    expiresInDays: number,
+  ): Promise<void> {
+    const rendered = await renderInvitationEmail({
+      locale: to.locale ?? 'en',
+      name: to.name,
+      inviter,
+      workspace: workspace.name,
+      url: this.link(workspace, '/accept-invite', token),
+      expiresInDays,
+    });
+    // Key idempotency on a digest, so the token never reaches the provider outside the link.
+    const digest = createHash('sha256').update(token).digest('hex').slice(0, 32);
+    await this.deliver({
+      to: to.email,
+      ...rendered,
+      idempotencyKey: `invitation:${digest}`,
+    });
   }
 
   private async deliver(message: Parameters<EmailSender['send']>[0]): Promise<void> {

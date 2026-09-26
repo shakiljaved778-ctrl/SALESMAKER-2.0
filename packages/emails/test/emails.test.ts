@@ -49,3 +49,22 @@ describe('system emails', () => {
     expect(two.html).toContain('dir="rtl"');
   });
 });
+
+describe('invitation email', () => {
+  it('names the inviter and workspace, links to the invitation and states the expiry', async () => {
+    const { renderInvitationEmail } = await import('../src/index.js');
+    const email = await renderInvitationEmail({
+      locale: 'en',
+      name: 'Omar',
+      inviter: 'Amira Haddad',
+      workspace: 'Pixelcraft',
+      url: 'https://pixelcraft.salesmaker.app/accept-invite?token=abc',
+      expiresInDays: 7,
+    });
+    expect(email.subject).toBe('Amira Haddad invited you to Pixelcraft on SalesMaker');
+    expect(email.html).toContain(
+      'href="https://pixelcraft.salesmaker.app/accept-invite?token=abc"',
+    );
+    expect(email.text).toContain('This invitation expires in 7 days.');
+  });
+});

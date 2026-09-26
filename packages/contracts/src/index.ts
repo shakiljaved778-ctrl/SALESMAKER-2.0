@@ -9,3 +9,4 @@ export * from './routes/signup.js';
 export * from './routes/access.js';
 export * from './routes/audit.js';
 export * from './routes/sessions.js';
+export * from './routes/users.js';

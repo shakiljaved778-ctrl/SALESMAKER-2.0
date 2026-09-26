@@ -14,7 +14,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T10** `feat(access): AccessService + guards` — ordered §6.2 check (object → record → field), 404 vs 403, `@RequireSystemPermission` + `SystemPermissionGuard`, `describe()` and `GET /v1/me/access/{object}/{id}` ("Why can I see this?").
 - [x] **T11** `feat(audit): hash-chained audit log` — migration 0011 (per-tenant sequences, monthly-partitioned append-only `audit_log`, `audit_batch` Merkle roots, `audit_verification`, `setup_audit`), `sm_audit` role, `audit` API in `@sm/db` (record, setup, chain, verify), worker chain + daily verify jobs, `/v1/audit-log`, `/v1/audit-log/verification`, `/v1/setup-audit`.
 - [x] **T12** `feat(auth): login history and sessions` — migration 0012 (`login_history`, append-only), every password/SSO/MFA/lockout outcome recorded, deactivated users refused, `/v1/me/sessions` (list, revoke one, revoke others) with immediate access-token revocation, `/v1/me/login-history`, `/v1/login-history`.
-- [ ] **T13** `feat(users): users and invitations API`
+- [x] **T13** `feat(users): users and invitations API` — migration 0013 (`invitation`), invite / resend / withdraw, accept with a password or Google/Microsoft, list/search, detail, update (optimistic lock, placement → visibility + rule recalculation), assignments, deactivate/reactivate (ends sessions at once), invitation email; Setup audit on every change.
 - [ ] **T14** `feat(setup): hierarchy, permissions and sharing API`
 - [ ] **T15** `test(permissions): permission matrix suite`
 - [ ] **T16** `feat(db): identity seeds`

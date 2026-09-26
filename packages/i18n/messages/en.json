@@ -162,6 +162,13 @@
       "subject": "Your SalesMaker workspaces",
       "heading": "Your workspaces",
       "body": "{count, plural, =0 {We couldn't find any workspaces for this email address.} one {This email address belongs to one workspace:} other {This email address belongs to # workspaces:}}"
+    },
+    "invitation": {
+      "subject": "{inviter} invited you to {workspace} on SalesMaker",
+      "heading": "Join {workspace} on SalesMaker",
+      "body": "Hi {name}, {inviter} has invited you to {workspace}. Accept to set up your account. This invitation expires in {days, plural, one {# day} other {# days}}.",
+      "cta": "Accept invitation",
+      "ignore": "If you weren't expecting this, you can ignore this email."
     }
   },
   "shell": {

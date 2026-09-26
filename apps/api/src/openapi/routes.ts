@@ -2,6 +2,7 @@ import {
   accessRoutes,
   auditRoutes,
   sessionRoutes,
+  userRoutes,
   authRoutes,
   mfaRoutes,
   oidcRoutes,
@@ -27,6 +28,7 @@ export const apiRoutes: readonly RouteContract[] = [
   ...Object.values(accessRoutes),
   ...Object.values(auditRoutes),
   ...Object.values(sessionRoutes),
+  ...Object.values(userRoutes),
 ];
 
 export const API_INFO = {
