@@ -80,7 +80,23 @@ describe('tenant tables (§3.5, §4.1)', () => {
        FROM pg_class c JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'tenant_id'
        WHERE c.relkind IN ('r','p') AND c.relnamespace = 'public'::regnamespace ORDER BY 1`,
     );
-    expect(rows.length).toBe(10);
+    // Every tenant table so far; new ones must appear here and pass the same check.
+    expect(rows.map((r) => r.relname)).toEqual(
+      expect.arrayContaining([
+        'auth_attempt',
+        'auth_token',
+        'idempotency_key',
+        'mfa_factor',
+        'mfa_recovery_code',
+        'org_unit',
+        'org_unit_closure',
+        'refresh_token',
+        'session',
+        'tenant_settings',
+        'user',
+        'user_identity',
+      ]),
+    );
     for (const r of rows)
       expect(r, r.relname).toMatchObject({ enabled: true, forced: true, policies: 1 });
   });

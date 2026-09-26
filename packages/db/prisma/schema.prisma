@@ -108,7 +108,19 @@ model User {
   updatedBy       String?           @map("updated_by") @db.Uuid
   version         Int               @default(1)
   deletedAt       DateTime?         @map("deleted_at") @db.Timestamptz(6)
+  /// Position in the org hierarchy (§6.3): drives hierarchy access and role-based sharing rules.
+  orgUnitId       String?           @map("org_unit_id") @db.Uuid
+  /// Direct manager; managers see their direct reports' records. Cycles are rejected by a trigger.
+  managerId       String?           @map("manager_id") @db.Uuid
+  title           String?
+  department      String?
+  phone           String?
+  /// Set when an admin deactivates the user (sessions revoked, cannot sign in, records kept).
+  deactivatedAt   DateTime?         @map("deactivated_at") @db.Timestamptz(6)
 
+  orgUnit       OrgUnit?          @relation(fields: [tenantId, orgUnitId], references: [tenantId, id], onDelete: Restrict)
+  manager       User?             @relation("UserManager", fields: [tenantId, managerId], references: [tenantId, id], onDelete: Restrict)
+  directReports User[]            @relation("UserManager")
   identities    UserIdentity[]
   sessions      Session[]
   mfaFactors    MfaFactor[]
@@ -117,7 +129,51 @@ model User {
 
   @@id([tenantId, id])
   @@unique([tenantId, email])
+  @@index([tenantId, orgUnitId])
+  @@index([tenantId, managerId])
   @@map("user")
+}
+
+/// Org hierarchy node (§6.3, the Salesforce "role"). The tree is mirrored in org_unit_closure by
+/// triggers in the same transaction; moving a unit under its own subtree is rejected.
+model OrgUnit {
+  tenantId    String    @map("tenant_id") @db.Uuid
+  id          String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  parentId    String?   @map("parent_id") @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy   String?   @map("created_by") @db.Uuid
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?   @map("updated_by") @db.Uuid
+  version     Int       @default(1)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  parent      OrgUnit?         @relation("OrgUnitTree", fields: [tenantId, parentId], references: [tenantId, id], onDelete: Restrict)
+  children    OrgUnit[]        @relation("OrgUnitTree")
+  users       User[]
+  ancestors   OrgUnitClosure[] @relation("ClosureDescendant")
+  descendants OrgUnitClosure[] @relation("ClosureAncestor")
+
+  @@id([tenantId, id])
+  @@index([tenantId, parentId])
+  @@map("org_unit")
+}
+
+/// Every (ancestor, descendant) pair of the org hierarchy, including (unit, unit) at depth 0.
+/// Written only by the org_unit triggers.
+model OrgUnitClosure {
+  tenantId     String @map("tenant_id") @db.Uuid
+  ancestorId   String @map("ancestor_id") @db.Uuid
+  descendantId String @map("descendant_id") @db.Uuid
+  depth        Int
+
+  ancestor   OrgUnit @relation("ClosureAncestor", fields: [tenantId, ancestorId], references: [tenantId, id], onDelete: Cascade)
+  descendant OrgUnit @relation("ClosureDescendant", fields: [tenantId, descendantId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, ancestorId, descendantId])
+  @@index([tenantId, descendantId, depth])
+  @@map("org_unit_closure")
 }
 
 model UserIdentity {

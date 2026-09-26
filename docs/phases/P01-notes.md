@@ -18,3 +18,7 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Field-level security scope (T02).** System fields (ids, audit stamps, conversion links, roll-ups) and required
   fields are outside FLS: system fields are always readable and never editable, and required fields stay editable so
   records can be saved (Salesforce behaves the same way).
+- **Closure maintenance (T03)** is done by triggers on `org_unit`, not by application calls, so no code path can
+  change the tree without the closure. The trigger functions are `SECURITY DEFINER` (schema owner) and `sm_app` has
+  only SELECT on `org_unit_closure`. Moves and manager changes take a per-tenant transaction advisory lock, which
+  stops two concurrent moves from forming a cycle between them.
