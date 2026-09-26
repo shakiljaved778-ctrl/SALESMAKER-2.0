@@ -10,7 +10,8 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
-    "test": "vitest run --coverage"
+    "test": "vitest run --coverage",
+    "audit:verify": "node --env-file-if-exists=../../.env dist/verify-audit.js"
   },
   "dependencies": {
     "@sm/db": "workspace:*",

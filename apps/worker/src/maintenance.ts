@@ -1,6 +1,7 @@
 import { audit, outbox, withTenant, type CellPrisma, type ChainResult } from '@sm/db';
 import type { ControlPlane } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
+import type { Logger } from 'pino';
 
 import type { JobHandler } from './jobs.js';
 import type { QueueSet } from './queues.js';
@@ -63,6 +64,37 @@ async function chainTenant(deps: MaintenanceDeps, tenantId: string) {
   }
 }
 
+/** Chain a tenant's log, verify it end to end, and record the result (§6.7). */
+async function verifyTenant(
+  deps: MaintenanceDeps,
+  prisma: CellPrisma,
+  logger: Logger,
+  tenantId: string,
+): Promise<void> {
+  const startedAt = new Date();
+  await chainTenant(deps, tenantId);
+  const result = await withTenant(prisma, { tenantId }, (tx) => audit.verify(tx), {
+    timeoutMs: 120_000,
+    statementTimeoutMs: 60_000,
+  });
+  await withTenant(prisma, { tenantId }, (tx) =>
+    tx.prisma.auditVerification.create({
+      data: {
+        tenantId,
+        startedAt,
+        finishedAt: new Date(),
+        status: result.ok ? 'OK' : 'BROKEN',
+        throughSeq: result.throughSeq,
+        batches: result.batches,
+        rows: result.rows,
+        pending: result.pending,
+        problem: result.problem,
+      },
+    }),
+  );
+  if (!result.ok) logger.error({ tenantId, problem: result.problem }, 'audit chain broken');
+}
+
 /** Cell-wide housekeeping and audit chaining on the `maintenance` queue. */
 export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler {
   return async (envelope, { prisma, logger }) => {
@@ -82,35 +114,16 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
         return;
       }
       case AUDIT_VERIFY_TOPIC: {
+        // With a tenant: that tenant now (on demand, the runbook). Without: every tenant (daily).
+        if (envelope.tenantId) {
+          await verifyTenant(deps, prisma, logger, envelope.tenantId);
+          return;
+        }
         const controlPlane = need(deps.controlPlane, 'the control plane');
         let after: string | undefined;
         do {
           const page = await controlPlane.listCellTenants(after ? { after } : {});
-          for (const tenantId of page.tenantIds) {
-            const startedAt = new Date();
-            await chainTenant(deps, tenantId);
-            const result = await withTenant(prisma, { tenantId }, (tx) => audit.verify(tx), {
-              timeoutMs: 120_000,
-              statementTimeoutMs: 60_000,
-            });
-            await withTenant(prisma, { tenantId }, (tx) =>
-              tx.prisma.auditVerification.create({
-                data: {
-                  tenantId,
-                  startedAt,
-                  finishedAt: new Date(),
-                  status: result.ok ? 'OK' : 'BROKEN',
-                  throughSeq: result.throughSeq,
-                  batches: result.batches,
-                  rows: result.rows,
-                  pending: result.pending,
-                  problem: result.problem,
-                },
-              }),
-            );
-            if (!result.ok)
-              logger.error({ tenantId, problem: result.problem }, 'audit chain broken');
-          }
+          for (const tenantId of page.tenantIds) await verifyTenant(deps, prisma, logger, tenantId);
           after = page.next ?? undefined;
         } while (after);
         return;

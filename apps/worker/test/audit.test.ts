@@ -96,6 +96,22 @@ describe('audit chaining in the worker (ADR-0008 addendum)', () => {
     expect(betaRun.rows).toBe(1);
   });
 
+  it('verifies one tenant on demand without the control plane', async () => {
+    const handler = createMaintenanceHandler({ auditPrisma: w.auditPrisma, redis: w.redis });
+    await w.inTenant(beta, (tx) => audit.record(tx, { action: 'x.z' }));
+    await handler(envelope(AUDIT_VERIFY_TOPIC, beta), {
+      prisma: w.prisma,
+      logger: w.logger,
+      job: undefined as never,
+    });
+    const latest = await w.inTenant(beta, (tx) =>
+      tx.prisma.auditVerification.findFirstOrThrow({ orderBy: { startedAt: 'desc' } }),
+    );
+    // The row written just before is chained by the run itself, so nothing is left pending.
+    expect(latest).toMatchObject({ status: 'OK', rows: 2, pending: 0, problem: null });
+    expect(await w.inTenant(alpha, (tx) => tx.prisma.auditVerification.count())).toBe(1);
+  });
+
   it('records a broken chain', async () => {
     const handler = createMaintenanceHandler({
       auditPrisma: w.auditPrisma,

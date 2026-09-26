@@ -7,7 +7,7 @@ export default defineConfig({
     globalSetup: ['test/global-setup.ts'],
     testTimeout: 60_000,
     hookTimeout: 180_000,
-    // main.ts and instrument.ts only wire the process; createWorker (tested) does the work.
-    coverage: coverage({ exclude: ['src/main.ts', 'src/instrument.ts'] }),
+    // main.ts, instrument.ts and verify-audit.ts only wire the process; createWorker (tested) does the work.
+    coverage: coverage({ exclude: ['src/main.ts', 'src/instrument.ts', 'src/verify-audit.ts'] }),
   },
 });

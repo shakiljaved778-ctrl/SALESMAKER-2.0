@@ -227,3 +227,19 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   list views (an owner-leading index per sortable field is the lever). One run's first full rebuild, immediately
   after the 500k-row load, hit the 5 s statement timeout; it did not recur in later runs and the rebuild is
   144 ms in isolation, so it is attributed to the load's I/O, not the rebuild.
+
+- **Refresh discipline (found by T23).** Refresh tokens are single-use with reuse detection. Settings pages called
+  the API before the page had restored its session, so each early call answered 401 and started its own refresh:
+  one page load rotated the cookie two or three times, and leaving the page while a rotation was in flight
+  dropped the new cookie, so the next refresh looked like reuse and ended the session. `cellApi` now waits for the
+  page's (shared) session refresh instead of calling without a token, and refreshes on a 401 only if no other
+  call has replaced the token since; `refreshSession` remembers the new session itself. A page load now rotates
+  the cookie exactly once (`test/cell-api.test.ts`). A navigation during that one rotation can still lose the new
+  cookie; a short grace window for the previous token on the server would close it, but that changes the session
+  security design, so it is raised at the gate rather than done here.
+- **Accessibility fixes (found by T23).** The user filters on the audit log and login history, and the member
+  pickers on group and queue pages, were comboboxes without an accessible name (`UserPicker` takes an
+  `aria-label` where no form field labels it). Personal settings pages had no `h1`; each now has one.
+- **Verifying the audit chain on demand.** `pnpm --filter @sm/worker audit:verify <tenant-id>` chains what is
+  waiting, verifies the whole chain, records the result (Setup → Audit log shows it) and exits non-zero if the
+  chain is broken. The maintenance job's `audit_verify` topic takes an optional tenant for the same purpose.
