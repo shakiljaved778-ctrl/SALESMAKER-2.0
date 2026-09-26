@@ -13,3 +13,16 @@ export {
   type ObjectAccess,
   type SystemPermissionName,
 } from './catalogue.js';
+export {
+  deserialisePermissions,
+  effectivePermissions,
+  fieldAccess,
+  hasSystemPermission,
+  objectAccess,
+  restrictObjectAccess,
+  serialisePermissions,
+  type EffectivePermissions,
+  type PermissionSource,
+  type SerialisedPermissions,
+} from './engine.js';
+export { PermissionCache, type CacheStore } from './cache.js';

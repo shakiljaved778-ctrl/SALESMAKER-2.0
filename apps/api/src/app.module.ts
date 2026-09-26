@@ -22,6 +22,7 @@ import type { ApiConfig } from './config.js';
 import { HealthController } from './health/health.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
 import { SignupController } from './signup/signup.controller.js';
+import { PermissionService } from './permissions/permission.service.js';
 import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
 import {
@@ -87,6 +88,7 @@ export class AppModule {
         MfaService,
         OidcService,
         SignupService,
+        PermissionService,
       ],
       exports: [
         CONFIG,
@@ -99,6 +101,7 @@ export class AppModule {
         PasswordService,
         SessionService,
         TokenService,
+        PermissionService,
       ],
     };
   }

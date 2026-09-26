@@ -56,3 +56,9 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   holds no DDL rights.
 - **LISTEN needs a session (T07).** Behind PgBouncer's transaction pooling, set `CELL_DATABASE_LISTEN_URL` to a
   direct database connection for the worker.
+- **Engine semantics (T05).** Muting removes a flag and whatever depended on it (muting Delete also removes Modify
+  All; muting Read removes everything on that object). As the approved plan states, Modify All implies Create as
+  well; Salesforce leaves Create separate. `view_all_data` / `modify_all_data` widen object access on every object,
+  custom ones included, but never bypass FLS. A deactivated, inactive or deleted user holds no permissions, whatever
+  is assigned. The effective result is cached per user under `perm:{tenant}:{user}:{permVersion}`; the version is
+  read before the grants, so an entry is never older than its key.
