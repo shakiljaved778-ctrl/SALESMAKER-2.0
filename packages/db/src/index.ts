@@ -18,3 +18,4 @@ export {
   type WithTenantOptions,
 } from './tenant.js';
 export { auditRowLevelSecurity, type RlsViolation } from './rls-audit.js';
+export { membership } from './membership.js';

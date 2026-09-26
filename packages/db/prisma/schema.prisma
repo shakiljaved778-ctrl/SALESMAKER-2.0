@@ -130,6 +130,8 @@ model User {
   mfaFactors            MfaFactor[]
   recoveryCodes         MfaRecoveryCode[]
   authTokens            AuthToken[]
+  groupMembers          GroupMember[]
+  queueMembers          QueueMember[]
 
   @@id([tenantId, id])
   @@unique([tenantId, email])
@@ -154,11 +156,13 @@ model OrgUnit {
   version     Int       @default(1)
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  parent      OrgUnit?         @relation("OrgUnitTree", fields: [tenantId, parentId], references: [tenantId, id], onDelete: Restrict)
-  children    OrgUnit[]        @relation("OrgUnitTree")
-  users       User[]
-  ancestors   OrgUnitClosure[] @relation("ClosureDescendant")
-  descendants OrgUnitClosure[] @relation("ClosureAncestor")
+  parent       OrgUnit?         @relation("OrgUnitTree", fields: [tenantId, parentId], references: [tenantId, id], onDelete: Restrict)
+  children     OrgUnit[]        @relation("OrgUnitTree")
+  users        User[]
+  groupMembers GroupMember[]
+  queueMembers QueueMember[]
+  ancestors    OrgUnitClosure[] @relation("ClosureDescendant")
+  descendants  OrgUnitClosure[] @relation("ClosureAncestor")
 
   @@id([tenantId, id])
   @@index([tenantId, parentId])
@@ -492,4 +496,127 @@ model FieldPermission {
 
   @@id([tenantId, permissionSetId, object, field])
   @@map("field_permission")
+}
+
+/// Who a public group or queue member row stands for (§6.3, Salesforce semantics).
+enum MemberType {
+  USER
+  /// Every member of another public group (transitively).
+  GROUP
+  /// Users placed in exactly this org unit.
+  ORG_UNIT
+  /// Users in this org unit or any unit below it.
+  ORG_UNIT_AND_SUBORDINATES
+
+  @@map("member_type")
+}
+
+/// A public group (§6.3): a named set of users used by sharing rules, manual shares and queues.
+model PublicGroup {
+  tenantId    String    @map("tenant_id") @db.Uuid
+  id          String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy   String?   @map("created_by") @db.Uuid
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?   @map("updated_by") @db.Uuid
+  version     Int       @default(1)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  members  GroupMember[] @relation("GroupMembers")
+  memberOf GroupMember[] @relation("NestedGroup")
+  inQueues QueueMember[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, name])
+  @@map("public_group")
+}
+
+/// One member of a public group: a user, another group, an org unit, or an org unit and below.
+model GroupMember {
+  tenantId      String     @map("tenant_id") @db.Uuid
+  id            String     @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  groupId       String     @map("group_id") @db.Uuid
+  memberType    MemberType @map("member_type")
+  userId        String?    @map("user_id") @db.Uuid
+  memberGroupId String?    @map("member_group_id") @db.Uuid
+  orgUnitId     String?    @map("org_unit_id") @db.Uuid
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?    @map("created_by") @db.Uuid
+
+  group       PublicGroup  @relation("GroupMembers", fields: [tenantId, groupId], references: [tenantId, id], onDelete: Cascade)
+  user        User?        @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+  memberGroup PublicGroup? @relation("NestedGroup", fields: [tenantId, memberGroupId], references: [tenantId, id], onDelete: Cascade)
+  orgUnit     OrgUnit?     @relation(fields: [tenantId, orgUnitId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, groupId, userId])
+  @@unique([tenantId, groupId, memberGroupId])
+  @@unique([tenantId, groupId, memberType, orgUnitId])
+  @@index([tenantId, userId])
+  @@index([tenantId, memberGroupId])
+  @@index([tenantId, orgUnitId])
+  @@map("group_member")
+}
+
+/// A queue (§6.3): owns records until a member takes them; members see what the queue owns.
+model Queue {
+  tenantId    String    @map("tenant_id") @db.Uuid
+  id          String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name        String
+  email       String?   @db.Citext
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy   String?   @map("created_by") @db.Uuid
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?   @map("updated_by") @db.Uuid
+  version     Int       @default(1)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  members QueueMember[]
+  objects QueueObject[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, name])
+  @@map("queue")
+}
+
+model QueueMember {
+  tenantId      String     @map("tenant_id") @db.Uuid
+  id            String     @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  queueId       String     @map("queue_id") @db.Uuid
+  memberType    MemberType @map("member_type")
+  userId        String?    @map("user_id") @db.Uuid
+  memberGroupId String?    @map("member_group_id") @db.Uuid
+  orgUnitId     String?    @map("org_unit_id") @db.Uuid
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?    @map("created_by") @db.Uuid
+
+  queue       Queue        @relation(fields: [tenantId, queueId], references: [tenantId, id], onDelete: Cascade)
+  user        User?        @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+  memberGroup PublicGroup? @relation(fields: [tenantId, memberGroupId], references: [tenantId, id], onDelete: Cascade)
+  orgUnit     OrgUnit?     @relation(fields: [tenantId, orgUnitId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, queueId, userId])
+  @@unique([tenantId, queueId, memberGroupId])
+  @@unique([tenantId, queueId, memberType, orgUnitId])
+  @@index([tenantId, userId])
+  @@index([tenantId, memberGroupId])
+  @@index([tenantId, orgUnitId])
+  @@map("queue_member")
+}
+
+/// The objects whose records a queue may own (by API name).
+model QueueObject {
+  tenantId String @map("tenant_id") @db.Uuid
+  queueId  String @map("queue_id") @db.Uuid
+  object   String
+
+  queue Queue @relation(fields: [tenantId, queueId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, queueId, object])
+  @@index([tenantId, object])
+  @@map("queue_object")
 }

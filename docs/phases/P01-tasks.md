@@ -7,7 +7,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T03** `feat(db): hierarchy schema` — `org_unit` + trigger-maintained `org_unit_closure` (cycle-checked moves, per-tenant advisory lock, sm_app read-only), `user.org_unit_id`, `manager_id` (cycle trigger), title, department, phone, `deactivated_at`.
 - [x] **T04** `feat(db): permission schema` — migration 0006 (profiles own a PROFILE set; STANDARD and MUTING sets; groups; assignments; system/object/field grants with dependency checks; kind triggers; `perm_version` bumps), `@sm/permissions` catalogue and default profiles, provisioned at signup.
 - [ ] **T05** `feat(permissions): permission engine`
-- [ ] **T06** `feat(db): groups and queues`
+- [x] **T06** `feat(db): groups and queues` — migration 0007: `public_group`, `group_member`, `queue`, `queue_member`, `queue_object`; typed members (user, group, org unit, org unit + subordinates) with a cycle trigger; SQL expansion functions wrapped by `membership` in `@sm/db`.
 - [ ] **T07** `feat(worker): outbox + worker app`
 - [ ] **T08** `feat(sharing): OWD, closure and principals`
 - [ ] **T09** `feat(sharing): shares, rules and predicate`
