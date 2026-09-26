@@ -17,6 +17,8 @@ export interface TestCellDatabase {
   migratorUrl: string;
   appUrl: string;
   reportsUrl: string;
+  /** The audit chain writer (sm_audit). */
+  auditUrl: string;
   drop(): Promise<void>;
 }
 
@@ -36,6 +38,7 @@ export const PASSWORDS = {
   migratorPassword: 'sm_migrator_dev',
   appPassword: 'sm_app_dev',
   reportsPassword: 'sm_reports_dev',
+  auditPassword: 'sm_audit_dev',
 };
 
 function withDatabase(url: string, database: string, user?: string, password?: string): string {
@@ -102,6 +105,7 @@ export async function createTestCellDatabase(serverAdminUrl: string): Promise<Te
       'sm_readonly_reports',
       PASSWORDS.reportsPassword,
     ),
+    auditUrl: withDatabase(serverAdminUrl, name, 'sm_audit', PASSWORDS.auditPassword),
     async drop() {
       const c = new pg.Client({ connectionString: serverAdminUrl });
       await c.connect();

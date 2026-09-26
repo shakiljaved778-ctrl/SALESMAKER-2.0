@@ -92,3 +92,22 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   and share need Full (owner, hierarchy, queue or a Full share). A record the caller cannot see at all is a 404; one
   they can see but not change is a 403. Before P02 creates the object tables, every record lookup finds no table
   and answers "none" (404).
+- **Audit sequences (T11).** Each tenant gets its own Postgres sequence, created on first use by
+  `audit_next_seq()`, so audited transactions never wait on each other. The chain job stops at a missing number
+  until a later row is five minutes old: longer than any transaction may run, so that number must have rolled back.
+  It is then declared in the batch's `gaps`. A row that later appears inside a declared gap fails verification.
+- **Hash scope (T11).** A row's hash covers tenant, id, seq, `occurred_at` (at microsecond precision, as UTC text),
+  actor, on-behalf-of, action, object, record, canonical payload (keys sorted) and request id:
+  `hash = SHA-256(prev_hash + "\n" + canonical JSON)`. The first row chains from 64 zeros. Batches record their
+  Merkle root and the previous root.
+- **Who may write what (T11).** `sm_app` may insert and select audit rows, never update or delete them. `sm_audit`
+  (a new bootstrap role, `CELL_AUDIT_DATABASE_URL`, used only by the worker) may set `prev_hash`, `hash` and
+  `chained_at` exactly once. A trigger enforces this even for the owner; the only way around it is a superuser
+  switching triggers off, which is what the tamper tests do. Monthly partitions get the same grants and forced RLS
+  as they are created.
+- **Serialising chain runs (T11)** uses a Valkey lock plus a "dirty" mark, per the addendum's "never a database
+  lock". Every request marks the tenant dirty before trying the lock. The holder clears the mark before chaining,
+  and after releasing the lock it runs again if the mark came back. No request is lost in any ordering. A daily job
+  chains and verifies every tenant, recording the result in `audit_verification`.
+- **Audit viewers need `view_setup` (T11).** P02 must mask hidden-field history in payloads (§6.5) before record
+  changes are audited.

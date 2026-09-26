@@ -28,3 +28,18 @@ export {
   type QueueName,
 } from './outbox.js';
 export { principalsOf, visibility, type Principals } from './sharing.js';
+export {
+  audit,
+  AUDIT_CHAIN_TOPIC,
+  canonicalJson,
+  chainHash,
+  GAP_GRACE_MS,
+  GENESIS,
+  merkleRoot,
+  type ActorType,
+  type AuditEntry,
+  type ChainedFields,
+  type ChainResult,
+  type SetupAuditEntry,
+  type VerificationResult,
+} from './audit.js';

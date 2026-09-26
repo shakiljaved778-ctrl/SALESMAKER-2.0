@@ -1,11 +1,14 @@
 const EXTENSIONS = ['pgcrypto', 'pg_trgm', 'citext', 'btree_gin', 'vector'];
 
 /**
- * Idempotently create or update the four cluster-wide cell roles.
+ * Idempotently create or update the five cluster-wide cell roles.
  * @param {import('pg').Client} client connected as an admin role
- * @param {{ migratorPassword: string, appPassword: string, reportsPassword: string }} passwords
+ * @param {{ migratorPassword: string, appPassword: string, reportsPassword: string, auditPassword: string }} passwords
  */
-export async function ensureCellRoles(client, { migratorPassword, appPassword, reportsPassword }) {
+export async function ensureCellRoles(
+  client,
+  { migratorPassword, appPassword, reportsPassword, auditPassword },
+) {
   const roles = [
     // Owner of every table; runs DDL. Never used by the running application.
     ['sm_migrator', migratorPassword, 'LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE'],
@@ -17,6 +20,8 @@ export async function ensureCellRoles(client, { migratorPassword, appPassword, r
       reportsPassword,
       'LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE',
     ],
+    // Audit chain writer (ADR-0008 addendum): may set an audit row's hash exactly once, nothing else.
+    ['sm_audit', auditPassword, 'LOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE'],
     // Break-glass support role: NOLOGIN until time-boxed access is granted and audited (§6.7).
     ['sm_support', null, 'NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE'],
   ];
@@ -33,7 +38,7 @@ export async function ensureCellRoles(client, { migratorPassword, appPassword, r
  * Idempotently bootstrap a cell database: roles (unless `manageRoles` is false, e.g. when
  * roles were already created cluster-wide), extensions, schema ownership and grants.
  * @param {import('pg').Client} client connected as an admin role to the cell database
- * @param {{ migratorPassword: string, appPassword: string, reportsPassword: string }} passwords
+ * @param {{ migratorPassword: string, appPassword: string, reportsPassword: string, auditPassword: string }} passwords
  * @param {{ manageRoles?: boolean }} [options]
  */
 export async function bootstrapCell(client, passwords, { manageRoles = true } = {}) {
@@ -59,14 +64,16 @@ export async function bootstrapCell(client, passwords, { manageRoles = true } = 
   const ident = client.escapeIdentifier(db);
   await client.query(`REVOKE ALL ON DATABASE ${ident} FROM PUBLIC`);
   await client.query(
-    `GRANT CONNECT ON DATABASE ${ident} TO sm_migrator, sm_app, sm_readonly_reports, sm_support`,
+    `GRANT CONNECT ON DATABASE ${ident} TO sm_migrator, sm_app, sm_readonly_reports, sm_support, sm_audit`,
   );
   await client.query(`GRANT CREATE ON DATABASE ${ident} TO sm_migrator`);
   await client.query('REVOKE CREATE ON SCHEMA public FROM PUBLIC');
   await client.query('ALTER SCHEMA public OWNER TO sm_migrator');
-  await client.query('GRANT USAGE ON SCHEMA public TO sm_app, sm_readonly_reports, sm_support');
   await client.query(
-    'GRANT USAGE ON SCHEMA extensions TO sm_migrator, sm_app, sm_readonly_reports, sm_support',
+    'GRANT USAGE ON SCHEMA public TO sm_app, sm_readonly_reports, sm_support, sm_audit',
+  );
+  await client.query(
+    'GRANT USAGE ON SCHEMA extensions TO sm_migrator, sm_app, sm_readonly_reports, sm_support, sm_audit',
   );
   await client.query(`ALTER DATABASE ${ident} SET search_path = public, extensions`);
 }

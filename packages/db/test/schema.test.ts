@@ -36,10 +36,12 @@ describe('cell roles (§3.5)', () => {
       rolcanlogin: boolean;
     }>(
       `SELECT rolname, rolsuper, rolbypassrls, rolcanlogin FROM pg_roles
-       WHERE rolname IN ('sm_migrator','sm_app','sm_readonly_reports','sm_support') ORDER BY rolname`,
+       WHERE rolname IN ('sm_migrator','sm_app','sm_readonly_reports','sm_support','sm_audit')
+       ORDER BY rolname`,
     );
     expect(rows.map((r) => r.rolname)).toEqual([
       'sm_app',
+      'sm_audit',
       'sm_migrator',
       'sm_readonly_reports',
       'sm_support',
@@ -83,6 +85,9 @@ describe('tenant tables (§3.5, §4.1)', () => {
     // Every tenant table so far; new ones must appear here and pass the same check.
     expect(rows.map((r) => r.relname)).toEqual(
       expect.arrayContaining([
+        'audit_batch',
+        'audit_log',
+        'audit_verification',
         'auth_attempt',
         'auth_token',
         'idempotency_key',
@@ -108,6 +113,7 @@ describe('tenant tables (§3.5, §4.1)', () => {
         'record_share',
         'refresh_token',
         'session',
+        'setup_audit',
         'sharing_rule',
         'system_permission',
         'tenant_settings',

@@ -5,6 +5,7 @@ import type { ControlPlane, SecretBox, TokenBucketRateLimiter } from '@sm/server
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
 
+import { AuditController } from './audit/audit.controller.js';
 import { AuthEmailService } from './auth/auth-email.service.js';
 import { AuthController } from './auth/auth.controller.js';
 import { AuthGuard } from './auth/auth.guard.js';
@@ -74,6 +75,7 @@ export class AppModule {
         OidcController,
         SignupController,
         AccessController,
+        AuditController,
       ],
       providers: [
         { provide: CONFIG, useValue: deps.config },

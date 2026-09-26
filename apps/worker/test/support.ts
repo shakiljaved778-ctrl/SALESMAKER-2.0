@@ -34,6 +34,7 @@ export async function startTestWorker(
   const config = WorkerConfigSchema.parse({
     CELL_ID: 'eu-central-1',
     CELL_DATABASE_URL: db.appUrl,
+    CELL_AUDIT_DATABASE_URL: db.auditUrl,
     REDIS_URL: inject('redisUrl'),
     CONTROL_API_BASE_URL: 'http://control-api.test',
     CELL_SERVICE_PRIVATE_KEY_PEM: SERVICE_KEY,

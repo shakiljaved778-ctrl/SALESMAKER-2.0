@@ -12,7 +12,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T08** `feat(sharing): OWD, closure and principals` — migration 0009 (`org_wide_default`, `user_visibility_closure` written only by `rebuild_user_visibility()`), `visibility` and `principalsOf` in `@sm/db`, `SharingService` (OWD resolution, principals cached by `permVersion`), signup provisioning, worker `sharing.visibility_changed` jobs.
 - [x] **T09** `feat(sharing): shares, rules and predicate` — migration 0010 (`record_share` LIST-partitioned by object, `sharing_rule`, `job_run`); `@sm/query-engine` (filter tree, §6.4 `sharingPredicate` incl. CONTROLLED_BY_PARENT, manual shares, per-record rule evaluation, batched recalculation); worker `sharing.rule_changed` / `rule_deleted` jobs with progress.
 - [x] **T10** `feat(access): AccessService + guards` — ordered §6.2 check (object → record → field), 404 vs 403, `@RequireSystemPermission` + `SystemPermissionGuard`, `describe()` and `GET /v1/me/access/{object}/{id}` ("Why can I see this?").
-- [ ] **T11** `feat(audit): hash-chained audit log`
+- [x] **T11** `feat(audit): hash-chained audit log` — migration 0011 (per-tenant sequences, monthly-partitioned append-only `audit_log`, `audit_batch` Merkle roots, `audit_verification`, `setup_audit`), `sm_audit` role, `audit` API in `@sm/db` (record, setup, chain, verify), worker chain + daily verify jobs, `/v1/audit-log`, `/v1/audit-log/verification`, `/v1/setup-audit`.
 - [ ] **T12** `feat(auth): login history and sessions`
 - [ ] **T13** `feat(users): users and invitations API`
 - [ ] **T14** `feat(setup): hierarchy, permissions and sharing API`

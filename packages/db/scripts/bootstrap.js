@@ -1,9 +1,10 @@
 // One-time, idempotent cell bootstrap run with an admin connection (§3.5):
-// creates the four database roles, hands the public schema to sm_migrator and creates the
+// creates the five database roles, hands the public schema to sm_migrator and creates the
 // extensions. Migrations then run as sm_migrator; the app connects as sm_app.
 //
 // Usage: CELL_ADMIN_DATABASE_URL=postgresql://postgres:…@host/salesmaker_cell pnpm db:bootstrap
-// Role passwords come from SM_MIGRATOR_PASSWORD, SM_APP_PASSWORD and SM_REPORTS_PASSWORD
+// Role passwords come from SM_MIGRATOR_PASSWORD, SM_APP_PASSWORD, SM_REPORTS_PASSWORD and
+// SM_AUDIT_PASSWORD
 // (local defaults below are for development only; deployed cells use Secrets Manager).
 import pg from 'pg';
 
@@ -22,6 +23,7 @@ try {
     migratorPassword: process.env.SM_MIGRATOR_PASSWORD ?? 'sm_migrator_dev',
     appPassword: process.env.SM_APP_PASSWORD ?? 'sm_app_dev',
     reportsPassword: process.env.SM_REPORTS_PASSWORD ?? 'sm_reports_dev',
+    auditPassword: process.env.SM_AUDIT_PASSWORD ?? 'sm_audit_dev',
   });
   process.stdout.write('cell bootstrap complete\n');
 } finally {

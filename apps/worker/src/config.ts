@@ -12,6 +12,8 @@ export const WorkerConfigSchema = z.object({
    * transaction pooling does not keep. Defaults to CELL_DATABASE_URL.
    */
   CELL_DATABASE_LISTEN_URL: z.url().optional(),
+  /** sm_audit: sets audit rows' hashes (ADR-0008); nothing else connects with it. */
+  CELL_AUDIT_DATABASE_URL: z.url(),
   REDIS_URL: z.url(),
   CONTROL_API_BASE_URL: z.url(),
   CELL_SERVICE_PRIVATE_KEY_PEM: z.string().includes('PRIVATE KEY'),

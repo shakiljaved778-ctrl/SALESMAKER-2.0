@@ -796,3 +796,101 @@ model JobRun {
   @@index([tenantId, kind, subjectId, createdAt])
   @@map("job_run")
 }
+
+/// Append-only, hash-chained audit log (§4.2, ADR-0008 + addendum), partitioned monthly on
+/// occurred_at. Audited transactions insert rows with the next per-tenant `seq` and no hash; the
+/// worker's chain job later sets `prev_hash` / `hash` (as sm_audit, exactly once) in seq order.
+model AuditLog {
+  tenantId   String    @map("tenant_id") @db.Uuid
+  id         String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  occurredAt DateTime  @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  /// Wall-clock insert time: how old an uncommitted gap before this row can be.
+  insertedAt DateTime  @default(dbgenerated("clock_timestamp()")) @map("inserted_at") @db.Timestamptz(6)
+  seq        BigInt    @default(dbgenerated("audit_next_seq()"))
+  /// user, system, agent or support (§6.7, §8).
+  actorType  String    @map("actor_type")
+  actorId    String?   @map("actor_id") @db.Uuid
+  /// For agents and support: the user they acted for or under.
+  onBehalfOf String?   @map("on_behalf_of") @db.Uuid
+  action     String
+  object     String?
+  recordId   String?   @map("record_id") @db.Uuid
+  payload    Json      @default("{}")
+  requestId  String?   @map("request_id")
+  prevHash   String?   @map("prev_hash")
+  hash       String?
+  chainedAt  DateTime? @map("chained_at") @db.Timestamptz(6)
+
+  @@id([tenantId, occurredAt, id])
+  @@index([tenantId, seq])
+  @@index([tenantId, object, recordId, occurredAt])
+  @@index([tenantId, actorId, occurredAt])
+  @@map("audit_log")
+}
+
+/// One chaining step: the rows first_seq..last_seq (minus declared gaps), their Merkle root, and the
+/// previous batch's root, so the batches form a chain of their own.
+model AuditBatch {
+  tenantId   String   @map("tenant_id") @db.Uuid
+  id         String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  firstSeq   BigInt   @map("first_seq")
+  lastSeq    BigInt   @map("last_seq")
+  rowCount   Int      @map("row_count")
+  /// Sequence numbers that were never committed (rolled back), declared explicitly.
+  gaps       BigInt[] @default([])
+  headHash   String   @map("head_hash")
+  merkleRoot String   @map("merkle_root")
+  prevRoot   String?  @map("prev_root")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, lastSeq])
+  @@map("audit_batch")
+}
+
+enum AuditVerificationStatus {
+  OK
+  BROKEN
+
+  @@map("audit_verification_status")
+}
+
+/// A verifier run: how far the chain was re-walked and whether it held.
+model AuditVerification {
+  tenantId   String                  @map("tenant_id") @db.Uuid
+  id         String                  @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  startedAt  DateTime                @default(now()) @map("started_at") @db.Timestamptz(6)
+  finishedAt DateTime                @default(now()) @map("finished_at") @db.Timestamptz(6)
+  status     AuditVerificationStatus
+  throughSeq BigInt?                 @map("through_seq")
+  batches    Int
+  rows       Int
+  /// Rows written but not chained yet (normal for a few seconds after a write).
+  pending    Int
+  problem    String?
+
+  @@id([tenantId, id])
+  @@index([tenantId, startedAt])
+  @@map("audit_verification")
+}
+
+/// Setup audit trail (§5.6, §6.7): every configuration change with before/after JSON.
+model SetupAudit {
+  tenantId   String   @map("tenant_id") @db.Uuid
+  id         String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  actorId    String?  @map("actor_id") @db.Uuid
+  /// e.g. `profile.updated`, `sharing_rule.created`.
+  action     String
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id") @db.Uuid
+  entityName String?  @map("entity_name")
+  before     Json?
+  after      Json?
+  requestId  String?  @map("request_id")
+
+  @@id([tenantId, id])
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, entityType, entityId])
+  @@map("setup_audit")
+}

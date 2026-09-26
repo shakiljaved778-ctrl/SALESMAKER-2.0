@@ -10,6 +10,7 @@ import { SERVICE_KEY } from './support.js';
 const BASE = {
   CELL_ID: 'eu-central-1',
   CELL_DATABASE_URL: 'postgresql://sm_app:x@localhost:5432/cell',
+  CELL_AUDIT_DATABASE_URL: 'postgresql://sm_audit:x@localhost:5432/cell',
   REDIS_URL: 'redis://localhost:6379',
   CONTROL_API_BASE_URL: 'http://localhost:4100',
 };
