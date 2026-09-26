@@ -21,6 +21,7 @@ docker compose up -d     # Postgres 16, Valkey, SeaweedFS (S3), Mailpit, OTel + 
 pnpm setup:dev           # dev keys in .secrets/ and a .env (idempotent)
 pnpm db:setup            # roles, extensions and migrations for the cell and control-plane databases
 pnpm dev                 # api :4000, control-api :4100, fakes :4200, web :3000
+pnpm db:seed             # demo workspaces pixelcraft-demo and aurelia-demo (needs the control API up)
 ```
 
 The apex is http://localhost:3000 (sign up, find your workspace), and each workspace lives at

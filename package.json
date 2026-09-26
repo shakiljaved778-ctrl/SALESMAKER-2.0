@@ -20,7 +20,8 @@
     "db:migrate": "pnpm --filter @sm/db db:migrate",
     "db:rls-audit": "turbo run build --filter=@sm/db && pnpm --filter @sm/db db:rls-audit",
     "setup:dev": "node scripts/setup-dev.mjs",
-    "db:setup": "node --env-file=.env scripts/db-setup.mjs"
+    "db:setup": "node --env-file=.env scripts/db-setup.mjs",
+    "db:seed": "node --env-file=.env scripts/db-seed.mjs"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "5.0.2",

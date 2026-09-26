@@ -155,7 +155,14 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Permission matrix (T15).** Hierarchy expectations come from an oracle written from §6.3 alone (own records,
   anything owned in a unit strictly below yours, your direct reports'), not from the implementation. Sharing rules in
   the suite are recalculated with the worker's own `recalculateRule`, in small batches. Observed semantics worth
-  knowing: an Org-Unit-and-Subordinates share does not reach users *above* that unit; a Controlled-by-Parent child
+  knowing: an Org-Unit-and-Subordinates share does not reach users _above_ that unit; a Controlled-by-Parent child
   never exceeds its parent's level (a Read-Write rule on the account gives edit, not delete, on its contacts); queue
   ownership gives members Full access but does not flow up the hierarchy; Public Read/Write still needs the object
   edit permission.
+- **Demo seeds (T16).** The seed lives in the API app (`apps/api/src/seed/`) because it reuses the same provisioning as
+  sign-up (default profiles, org-wide defaults). It reserves each workspace through the control plane (idempotency
+  key `seed:<scenario>`), so the control API must be running, then writes the plan in one tenant transaction. A
+  workspace that already exists is left untouched. All seeded users are active, verified and share one demo password
+  (`SEED_PASSWORD`, default printed by the command); it refuses to run with `NODE_ENV=production`. Emails use the
+  reserved `.example` domain. `--scale` is accepted now and matters once P02 seeds CRM records. The spec's staging-only
+  `demo+…@salesmaker.app` users and "Reset demo" action belong to the staging deployment work, not this task.
