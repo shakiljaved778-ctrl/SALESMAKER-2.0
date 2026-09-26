@@ -1,7 +1,7 @@
 # Entity-relationship diagram
 
 The tables that exist today, by database. Updated at the end of every phase that changes the schema
-(P02 adds the metadata engine and core CRM objects). Source of truth: `packages/db/prisma/schema.prisma`
+(P01 added hierarchy, permissions, sharing and governance; P02 adds the metadata engine and core CRM objects). Source of truth: `packages/db/prisma/schema.prisma`
 (cell) and `apps/control-api/prisma/schema.prisma` (control plane), plus the SQL migrations beside them.
 
 ## Cell database (one per regional cell)
@@ -48,6 +48,13 @@ erDiagram
         theme_preference theme
         density_preference density
         user_status status
+        uuid org_unit_id FK "P01"
+        uuid manager_id FK "P01, cycle-checked"
+        uuid profile_id FK "P01"
+        text title
+        text department
+        text phone
+        timestamptz deactivated_at
         int version
         timestamptz deleted_at
     }
@@ -127,6 +134,288 @@ erDiagram
         char3 code PK
         text name
         smallint minor_units
+    }
+```
+
+### Hierarchy and permissions (P01)
+
+The org tree keeps a closure table (every ancestor–descendant pair with its depth), maintained in the same
+transaction by SQL functions; a move rewrites the subtree's paths and refuses cycles. A profile _is_ a permission
+set of kind `PROFILE`, so one set of grant tables serves profiles, permission sets and muting sets. Every grant change
+bumps `tenant_settings.perm_version` through triggers, which retires cached effective permissions and principals.
+
+```mermaid
+erDiagram
+    org_unit ||--o{ org_unit : "parent of"
+    org_unit ||--o{ org_unit_closure : "ancestor / descendant"
+    org_unit ||--o{ user : "places"
+    user ||--o{ user : "manages"
+    profile ||--|| permission_set : "grants through"
+    profile ||--o{ user : "is assigned"
+    user ||--o{ permission_assignment : "receives"
+    permission_assignment }o--o| permission_set : "a set"
+    permission_assignment }o--o| permission_set_group : "or a group"
+    permission_set_group ||--o{ permission_set_group_member : "bundles"
+    permission_set_group_member }o--|| permission_set : "member"
+    permission_set_group |o--o| permission_set : "muted by (kind MUTING)"
+    permission_set ||--o{ system_permission : "grants"
+    permission_set ||--o{ object_permission : "grants"
+    permission_set ||--o{ field_permission : "grants"
+    user ||--o{ invitation : "is invited by"
+
+    org_unit {
+        uuid tenant_id PK
+        uuid id PK
+        uuid parent_id FK
+        text name
+        int version
+    }
+    org_unit_closure {
+        uuid tenant_id PK
+        uuid ancestor_id PK
+        uuid descendant_id PK
+        int depth "0 = itself"
+    }
+    profile {
+        uuid tenant_id PK
+        uuid id PK
+        text name
+        text system_key "built-in profiles"
+        uuid permission_set_id FK
+    }
+    permission_set {
+        uuid tenant_id PK
+        uuid id PK
+        permission_set_kind kind "PROFILE, STANDARD, MUTING"
+        text name
+    }
+    permission_set_group {
+        uuid tenant_id PK
+        uuid id PK
+        text name
+        uuid muting_set_id FK
+    }
+    permission_assignment {
+        uuid tenant_id PK
+        uuid id PK
+        uuid user_id FK
+        uuid permission_set_id FK "exactly one of the two"
+        uuid permission_set_group_id FK
+    }
+    system_permission {
+        uuid tenant_id PK
+        uuid permission_set_id PK
+        text name PK "e.g. view_setup, manage_users"
+    }
+    object_permission {
+        uuid tenant_id PK
+        uuid permission_set_id PK
+        text object PK "standard object API name"
+        bool can_read
+        bool can_create
+        bool can_edit
+        bool can_delete
+        bool view_all
+        bool modify_all
+    }
+    field_permission {
+        uuid tenant_id PK
+        uuid permission_set_id PK
+        text object PK
+        text field PK
+        bool can_read
+        bool can_edit
+    }
+    invitation {
+        uuid tenant_id PK
+        uuid id PK
+        uuid user_id FK
+        bytea token_hash "single use, 7 days"
+        uuid invited_by
+        timestamptz expires_at
+        timestamptz accepted_at
+        timestamptz revoked_at
+    }
+```
+
+### Groups, queues and sharing (P01)
+
+Groups and queues take users, other groups, org units, or org units with everything below them; membership is
+expanded transitively with cycle protection. `user_visibility_closure` lists, per viewer, the owners whose records
+hierarchy access shows them (their own, their reports', and everyone's in units below theirs, plus their queues).
+`record_share` is LIST-partitioned by object (one partition per standard object plus a default).
+
+```mermaid
+erDiagram
+    public_group ||--o{ group_member : "contains"
+    queue ||--o{ queue_member : "contains"
+    queue ||--o{ queue_object : "holds records of"
+    user ||--o{ user_visibility_closure : "views (viewer)"
+    user ||--o{ user_visibility_closure : "is seen (owner)"
+    sharing_rule ||--o{ record_share : "writes (reason RULE)"
+    sharing_rule ||--o{ job_run : "recalculated by"
+
+    public_group {
+        uuid tenant_id PK
+        uuid id PK
+        text name
+    }
+    group_member {
+        uuid tenant_id PK
+        uuid id PK
+        uuid group_id FK
+        member_type member_type "USER, GROUP, ORG_UNIT, ORG_UNIT_AND_SUBORDINATES"
+        uuid user_id
+        uuid member_group_id
+        uuid org_unit_id
+    }
+    queue {
+        uuid tenant_id PK
+        uuid id PK
+        text name
+        citext email
+    }
+    queue_member {
+        uuid tenant_id PK
+        uuid id PK
+        uuid queue_id FK
+        member_type member_type
+    }
+    queue_object {
+        uuid tenant_id PK
+        uuid queue_id PK
+        text object PK
+    }
+    org_wide_default {
+        uuid tenant_id PK
+        text object PK
+        sharing_model sharing_model "PRIVATE, PUBLIC_READ, PUBLIC_READ_WRITE, CONTROLLED_BY_PARENT"
+        bool grant_hierarchy
+    }
+    user_visibility_closure {
+        uuid tenant_id PK
+        uuid viewer_user_id PK
+        uuid owner_id PK
+    }
+    record_share {
+        uuid tenant_id PK
+        text object PK "partition key"
+        uuid id PK
+        uuid record_id
+        share_principal_type principal_type "USER, GROUP, QUEUE, ORG_UNIT, ORG_UNIT_AND_SUBORDINATES"
+        uuid principal_id
+        smallint access "1 read, 2 edit, 3 full"
+        share_reason reason "RULE, MANUAL, TEAM, TERRITORY, IMPLICIT_PARENT, IMPLICIT_CHILD"
+        uuid source_id "the rule, for RULE shares"
+    }
+    sharing_rule {
+        uuid tenant_id PK
+        uuid id PK
+        text object
+        sharing_rule_kind kind "OWNER, CRITERIA"
+        share_principal_type source_type
+        uuid source_id
+        jsonb criteria "filter tree"
+        share_principal_type target_type
+        uuid target_id
+        smallint access
+        bool active
+    }
+    job_run {
+        uuid tenant_id PK
+        uuid id PK
+        text kind
+        uuid subject_id
+        job_run_status status
+        int done
+        int total
+        text error
+    }
+```
+
+### Governance and jobs (P01)
+
+`audit_log` is partitioned monthly and INSERT-only for `sm_app`; only the `sm_audit` role sets `hash` and
+`prev_hash`. Rows are written in the audited transaction and chained by the worker in batches, each with a Merkle
+root linked to the previous batch (ADR-0008, P01 plan §3.3). `outbox_event` is partitioned daily and kept 7 days.
+
+```mermaid
+erDiagram
+    audit_log }o--|| audit_batch : "chained in"
+    audit_batch ||--o| audit_batch : "prev_root"
+    audit_verification }o--|| audit_log : "verified through seq"
+
+    audit_log {
+        uuid tenant_id PK
+        uuid id PK
+        timestamptz occurred_at "partition key"
+        bigint seq "per tenant, gap-declared"
+        text actor_type "user, system, agent, support"
+        uuid actor_id
+        uuid on_behalf_of
+        text action
+        text object
+        uuid record_id
+        jsonb payload
+        text request_id
+        text prev_hash
+        text hash
+        timestamptz chained_at
+    }
+    audit_batch {
+        uuid tenant_id PK
+        uuid id PK
+        bigint first_seq
+        bigint last_seq
+        int row_count
+        bigint_array gaps
+        text head_hash
+        text merkle_root
+        text prev_root
+    }
+    audit_verification {
+        uuid tenant_id PK
+        uuid id PK
+        audit_verification_status status "OK, BROKEN"
+        bigint through_seq
+        int rows
+        int pending
+        text problem
+    }
+    setup_audit {
+        uuid tenant_id PK
+        uuid id PK
+        timestamptz occurred_at
+        uuid actor_id
+        text action
+        text entity_type
+        uuid entity_id
+        text entity_name
+        jsonb before
+        jsonb after
+    }
+    login_history {
+        uuid tenant_id PK
+        uuid id PK
+        timestamptz occurred_at
+        uuid user_id
+        bytea email_hash
+        login_method method
+        login_outcome outcome
+        uuid session_id
+        text ip
+        text user_agent
+    }
+    outbox_event {
+        uuid tenant_id PK
+        uuid id PK
+        timestamptz created_at "partition key"
+        bigint seq
+        text topic
+        text aggregate_type
+        uuid aggregate_id
+        jsonb payload
+        timestamptz published_at
     }
 ```
 

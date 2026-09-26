@@ -6,3 +6,4 @@ when the automation it describes exists (the deploy pipeline and the first stagi
 - [deploy.md](deploy.md): ship a release to a cell and the control plane
 - [rotate-keys.md](rotate-keys.md): rotate signing keys, the secrets key ring and service tokens
 - [add-region-cell.md](add-region-cell.md): stand up a new regional cell (P12: me-central-1)
+- [audit-chain.md](audit-chain.md): verify an organisation's audit chain on demand, and respond to a stuck or broken chain

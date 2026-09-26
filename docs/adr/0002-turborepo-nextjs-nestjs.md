@@ -42,3 +42,13 @@ Pins are the newest **stable** releases as of this date. Each package pins exact
 | Next.js / React          | 16.x / 19.x                                                              | Pinned in T21.                                                                                                                               |
 | NestJS                   | 12.x                                                                     | Pinned in T08.                                                                                                                               |
 | Tailwind CSS / Storybook | 4.x / 10.x                                                               | Pinned in T14/T15.                                                                                                                           |
+
+## Addendum 2026-09-26: P01 pins
+
+`apps/worker` exists from P01 (T07). New runtime dependencies, all under licences §0.3 allows:
+
+| Package | Pinned | Licence | Note                                                                                                                                                                                                                                   |
+| ------- | ------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| BullMQ  | 6.3.9  | MIT     | Open-source edition only. Its group keys (per-tenant fairness) are a paid Pro feature, so fairness is done in-house: a tenant's jobs in flight set the priority of its next job (P01-notes, T07). Custom job ids must not contain `:`. |
+| ioredis | 6.0.0  | MIT     | Valkey client for BullMQ, the permission and principal caches, session revocation and the audit chain lock.                                                                                                                            |
+| uqr     | 0.1.2  | MIT     | Draws the two-step enrolment QR code in the page from the `otpauth://` URI, so the secret never goes to a QR service (T21).                                                                                                            |
