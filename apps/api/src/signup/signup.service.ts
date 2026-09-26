@@ -16,6 +16,7 @@ import { AuthService, type ClientInfo, type LoginResult } from '../auth/auth.ser
 import { OidcService } from '../auth/oidc.service.js';
 import { PasswordService } from '../auth/password.service.js';
 import { SessionService } from '../auth/session.service.js';
+import { provisionDefaultProfiles } from '../permissions/default-profiles.js';
 import type { ApiConfig } from '../config.js';
 import { CONFIG, CONTROL_PLANE, LOGGER, PRISMA, RATE_LIMITER } from '../tokens.js';
 
@@ -250,7 +251,12 @@ export class SignupService {
             defaultLocale: input.locale ?? 'en',
           },
         });
+        const profiles = await provisionDefaultProfiles(tx, tenantId, input.locale ?? 'en');
         const created = await createOwner(tx);
+        await tx.prisma.user.update({
+          where: { tenantId_id: { tenantId, id: created.userId } },
+          data: { profileId: profiles.system_administrator },
+        });
         await tx.prisma.tenantSettings.update({
           where: { tenantId },
           data: { ownerUserId: created.userId },

@@ -1,0 +1,15 @@
+export {
+  DEFAULT_PROFILES,
+  isSystemPermission,
+  NEVER_DEFAULT,
+  NO_OBJECT_ACCESS,
+  normaliseObjectAccess,
+  SYSTEM_PERMISSIONS,
+  systemPermissionLabelKey,
+  type DefaultProfile,
+  type DefaultProfileKey,
+  type FieldAccess,
+  type Grants,
+  type ObjectAccess,
+  type SystemPermissionName,
+} from './catalogue.js';

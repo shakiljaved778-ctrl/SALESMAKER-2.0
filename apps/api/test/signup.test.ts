@@ -103,6 +103,40 @@ describe('POST /auth/signup (§7.20a)', () => {
     });
     expect(settings?.ownerUserId).toBeTruthy();
 
+    // The built-in profiles exist, with their grants, and the owner is the administrator.
+    const access = await withTenant(
+      api.app.get<symbol, CellPrisma>(PRISMA),
+      { tenantId: body.tenantId },
+      async ({ prisma }) => ({
+        profiles: await prisma.profile.findMany({
+          select: { systemKey: true, name: true, permissionSet: { select: { kind: true } } },
+          orderBy: { name: 'asc' },
+        }),
+        owner: await prisma.user.findUnique({
+          where: { tenantId_id: { tenantId: body.tenantId, id: settings?.ownerUserId ?? '' } },
+          select: { profile: { select: { systemKey: true } } },
+        }),
+        adminSystem: await prisma.systemPermission.count({
+          where: { permissionSet: { profile: { systemKey: 'system_administrator' } } },
+        }),
+        readOnlyEdits: await prisma.fieldPermission.count({
+          where: { canEdit: true, permissionSet: { profile: { systemKey: 'read_only' } } },
+        }),
+      }),
+    );
+    expect(access.profiles).toEqual([
+      { systemKey: 'read_only', name: 'Read Only', permissionSet: { kind: 'PROFILE' } },
+      { systemKey: 'standard_user', name: 'Standard User', permissionSet: { kind: 'PROFILE' } },
+      {
+        systemKey: 'system_administrator',
+        name: 'System Administrator',
+        permissionSet: { kind: 'PROFILE' },
+      },
+    ]);
+    expect(access.owner?.profile?.systemKey).toBe('system_administrator');
+    expect(access.adminSystem).toBeGreaterThan(10);
+    expect(access.readOnlyEdits).toBe(0);
+
     const early = await post('/auth/login', body.tenantId, {
       email: 'owner@pixelcraft.test',
       password: PASSWORD,

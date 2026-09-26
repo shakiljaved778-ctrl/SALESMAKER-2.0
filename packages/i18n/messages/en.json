@@ -495,5 +495,42 @@
         "completedAt": "Completed at"
       }
     }
+  },
+  "permissions": {
+    "system": {
+      "manageUsers": "Manage users",
+      "customizeApplication": "Customise application",
+      "viewSetup": "View Setup",
+      "importRecords": "Import records",
+      "exportReports": "Export reports",
+      "massUpdate": "Mass update records",
+      "transferRecords": "Transfer records",
+      "runReports": "Run reports",
+      "manageDashboards": "Manage dashboards",
+      "apiEnabled": "API enabled",
+      "viewAllData": "View all data",
+      "modifyAllData": "Modify all data",
+      "manageBilling": "Manage billing",
+      "useAiAssistant": "Use the AI assistant",
+      "approveAiActions": "Approve AI actions",
+      "manageAutomations": "Manage automations",
+      "manageTerritories": "Manage territories",
+      "viewWallboard": "View wallboard",
+      "bypassCallingWindow": "Bypass calling window"
+    },
+    "profiles": {
+      "systemAdministrator": {
+        "name": "System Administrator",
+        "description": "Full access to every object, record and Setup page."
+      },
+      "standardUser": {
+        "name": "Standard User",
+        "description": "Works leads, accounts, contacts, opportunities and activities they can see."
+      },
+      "readOnly": {
+        "name": "Read Only",
+        "description": "Can view the records they have access to, but cannot change anything."
+      }
+    }
   }
 }

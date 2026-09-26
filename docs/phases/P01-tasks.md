@@ -5,7 +5,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T01** `ci: coverage gates` — shared `coverage()` gate in `@sm/config/vitest` (80% lines; 90% for formula, permissions and query-engine, guarded by a test); every vitest workspace runs `--coverage`. Web gates the BFF (`src/server`); pages are covered by e2e.
 - [x] **T02** `feat(metadata): standard object catalogue` — `@sm/metadata`: 10 standard objects, standard fields, OWD defaults, FLS scope; labels in `@sm/i18n` under `objects.*`. Open calls recorded in `P01-notes.md`.
 - [x] **T03** `feat(db): hierarchy schema` — `org_unit` + trigger-maintained `org_unit_closure` (cycle-checked moves, per-tenant advisory lock, sm_app read-only), `user.org_unit_id`, `manager_id` (cycle trigger), title, department, phone, `deactivated_at`.
-- [ ] **T04** `feat(db): permission schema`
+- [x] **T04** `feat(db): permission schema` — migration 0006 (profiles own a PROFILE set; STANDARD and MUTING sets; groups; assignments; system/object/field grants with dependency checks; kind triggers; `perm_version` bumps), `@sm/permissions` catalogue and default profiles, provisioned at signup.
 - [ ] **T05** `feat(permissions): permission engine`
 - [ ] **T06** `feat(db): groups and queues`
 - [ ] **T07** `feat(worker): outbox + worker app`

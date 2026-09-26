@@ -115,22 +115,27 @@ model User {
   title           String?
   department      String?
   phone           String?
+  /// The user's profile (§6.2): their baseline permissions. Every active user has one.
+  profileId       String?           @map("profile_id") @db.Uuid
   /// Set when an admin deactivates the user (sessions revoked, cannot sign in, records kept).
   deactivatedAt   DateTime?         @map("deactivated_at") @db.Timestamptz(6)
 
-  orgUnit       OrgUnit?          @relation(fields: [tenantId, orgUnitId], references: [tenantId, id], onDelete: Restrict)
-  manager       User?             @relation("UserManager", fields: [tenantId, managerId], references: [tenantId, id], onDelete: Restrict)
-  directReports User[]            @relation("UserManager")
-  identities    UserIdentity[]
-  sessions      Session[]
-  mfaFactors    MfaFactor[]
-  recoveryCodes MfaRecoveryCode[]
-  authTokens    AuthToken[]
+  orgUnit               OrgUnit?               @relation(fields: [tenantId, orgUnitId], references: [tenantId, id], onDelete: Restrict)
+  profile               Profile?               @relation(fields: [tenantId, profileId], references: [tenantId, id], onDelete: Restrict)
+  permissionAssignments PermissionAssignment[]
+  manager               User?                  @relation("UserManager", fields: [tenantId, managerId], references: [tenantId, id], onDelete: Restrict)
+  directReports         User[]                 @relation("UserManager")
+  identities            UserIdentity[]
+  sessions              Session[]
+  mfaFactors            MfaFactor[]
+  recoveryCodes         MfaRecoveryCode[]
+  authTokens            AuthToken[]
 
   @@id([tenantId, id])
   @@unique([tenantId, email])
   @@index([tenantId, orgUnitId])
   @@index([tenantId, managerId])
+  @@index([tenantId, profileId])
   @@map("user")
 }
 
@@ -316,4 +321,175 @@ model IdempotencyKey {
   @@id([tenantId, key])
   @@index([tenantId, expiresAt])
   @@map("idempotency_key")
+}
+
+enum PermissionSetKind {
+  /// The grants of one profile (every profile owns exactly one).
+  PROFILE
+  /// An assignable, additive permission set.
+  STANDARD
+  /// Subtracts from the sets of the one permission set group that owns it (§6.2).
+  MUTING
+
+  @@map("permission_set_kind")
+}
+
+/// A user's baseline permissions (§6.2). Its grants live in its own PROFILE permission set.
+model Profile {
+  tenantId        String    @map("tenant_id") @db.Uuid
+  id              String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name            String
+  description     String?
+  /// Built-in profile key (system_administrator, standard_user, read_only); null for custom ones.
+  systemKey       String?   @map("system_key")
+  permissionSetId String    @map("permission_set_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy       String?   @map("created_by") @db.Uuid
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy       String?   @map("updated_by") @db.Uuid
+  version         Int       @default(1)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  permissionSet PermissionSet @relation(fields: [tenantId, permissionSetId], references: [tenantId, id], onDelete: Restrict)
+  users         User[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, name])
+  @@unique([tenantId, systemKey])
+  @@unique([tenantId, permissionSetId])
+  @@map("profile")
+}
+
+/// A bundle of grants (§6.2): system, object and field permissions.
+model PermissionSet {
+  tenantId    String            @map("tenant_id") @db.Uuid
+  id          String            @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  kind        PermissionSetKind @default(STANDARD)
+  name        String
+  description String?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy   String?           @map("created_by") @db.Uuid
+  updatedAt   DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?           @map("updated_by") @db.Uuid
+  version     Int               @default(1)
+  deletedAt   DateTime?         @map("deleted_at") @db.Timestamptz(6)
+
+  profile           Profile?
+  systemPermissions SystemPermission[]
+  objectPermissions ObjectPermission[]
+  fieldPermissions  FieldPermission[]
+  groupMemberships  PermissionSetGroupMember[]
+  mutingFor         PermissionSetGroup?
+  assignments       PermissionAssignment[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, kind, name])
+  @@map("permission_set")
+}
+
+/// Bundles permission sets; its optional muting set removes grants from those sets only.
+model PermissionSetGroup {
+  tenantId    String    @map("tenant_id") @db.Uuid
+  id          String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name        String
+  description String?
+  mutingSetId String?   @map("muting_set_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy   String?   @map("created_by") @db.Uuid
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?   @map("updated_by") @db.Uuid
+  version     Int       @default(1)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  mutingSet   PermissionSet?             @relation(fields: [tenantId, mutingSetId], references: [tenantId, id], onDelete: Restrict)
+  members     PermissionSetGroupMember[]
+  assignments PermissionAssignment[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, name])
+  @@unique([tenantId, mutingSetId])
+  @@map("permission_set_group")
+}
+
+model PermissionSetGroupMember {
+  tenantId        String   @map("tenant_id") @db.Uuid
+  groupId         String   @map("group_id") @db.Uuid
+  permissionSetId String   @map("permission_set_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy       String?  @map("created_by") @db.Uuid
+
+  group         PermissionSetGroup @relation(fields: [tenantId, groupId], references: [tenantId, id], onDelete: Cascade)
+  permissionSet PermissionSet      @relation(fields: [tenantId, permissionSetId], references: [tenantId, id], onDelete: Restrict)
+
+  @@id([tenantId, groupId, permissionSetId])
+  @@index([tenantId, permissionSetId])
+  @@map("permission_set_group_member")
+}
+
+/// Gives a user a permission set or a permission set group (exactly one of the two).
+model PermissionAssignment {
+  tenantId             String   @map("tenant_id") @db.Uuid
+  id                   String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId               String   @map("user_id") @db.Uuid
+  permissionSetId      String?  @map("permission_set_id") @db.Uuid
+  permissionSetGroupId String?  @map("permission_set_group_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy            String?  @map("created_by") @db.Uuid
+
+  user               User                @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+  permissionSet      PermissionSet?      @relation(fields: [tenantId, permissionSetId], references: [tenantId, id], onDelete: Restrict)
+  permissionSetGroup PermissionSetGroup? @relation(fields: [tenantId, permissionSetGroupId], references: [tenantId, id], onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, userId, permissionSetId])
+  @@unique([tenantId, userId, permissionSetGroupId])
+  @@index([tenantId, permissionSetId])
+  @@index([tenantId, permissionSetGroupId])
+  @@map("permission_assignment")
+}
+
+/// A system permission (§6.2 layer 2) granted by a permission set. Names are validated by
+/// @sm/permissions; unknown names are ignored by the engine.
+model SystemPermission {
+  tenantId        String @map("tenant_id") @db.Uuid
+  permissionSetId String @map("permission_set_id") @db.Uuid
+  name            String
+
+  permissionSet PermissionSet @relation(fields: [tenantId, permissionSetId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, permissionSetId, name])
+  @@map("system_permission")
+}
+
+/// Object permissions (§6.2 layer 3) of one permission set on one object (by API name).
+model ObjectPermission {
+  tenantId        String  @map("tenant_id") @db.Uuid
+  permissionSetId String  @map("permission_set_id") @db.Uuid
+  object          String
+  canRead         Boolean @default(false) @map("can_read")
+  canCreate       Boolean @default(false) @map("can_create")
+  canEdit         Boolean @default(false) @map("can_edit")
+  canDelete       Boolean @default(false) @map("can_delete")
+  viewAll         Boolean @default(false) @map("view_all")
+  modifyAll       Boolean @default(false) @map("modify_all")
+
+  permissionSet PermissionSet @relation(fields: [tenantId, permissionSetId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, permissionSetId, object])
+  @@map("object_permission")
+}
+
+/// Field-level security (§6.2 layer 5) of one permission set on one field.
+model FieldPermission {
+  tenantId        String  @map("tenant_id") @db.Uuid
+  permissionSetId String  @map("permission_set_id") @db.Uuid
+  object          String
+  field           String
+  canRead         Boolean @default(false) @map("can_read")
+  canEdit         Boolean @default(false) @map("can_edit")
+
+  permissionSet PermissionSet @relation(fields: [tenantId, permissionSetId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, permissionSetId, object, field])
+  @@map("field_permission")
 }

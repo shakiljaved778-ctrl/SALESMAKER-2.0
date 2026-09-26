@@ -1,0 +1,28 @@
+{
+  "name": "@sm/permissions",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Permission model (§6.2): system permission catalogue, default profiles and the effective-permission engine. Pure functions; callers load grants and cache results by permVersion.",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@sm/metadata": "workspace:*"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@sm/i18n": "workspace:*",
+    "@types/node": "26.6.2",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}

@@ -22,3 +22,17 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   change the tree without the closure. The trigger functions are `SECURITY DEFINER` (schema owner) and `sm_app` has
   only SELECT on `org_unit_closure`. Moves and manager changes take a per-tenant transaction advisory lock, which
   stops two concurrent moves from forming a cycle between them.
+- **Profiles own a permission set (T04).** Each profile's grants live in its own `PROFILE`-kind permission set, as in
+  Salesforce, so system, object and field grants reference only `permission_set`. Kinds are enforced by triggers:
+  profiles point at `PROFILE` sets, group muting sets are `MUTING`, and only `STANDARD` sets are assigned or grouped.
+- **Object access is stored closed under its dependencies (T04).** A check constraint mirrors the Salesforce rules
+  (create/edit need read, delete needs edit, view all needs read, modify all needs delete and view all), and
+  `normaliseObjectAccess` applies the same closure before writing.
+- **`perm_version` is bumped by statement triggers (T04)** on every permission table, on `org_unit` inserts, deletes
+  and moves, and on `user` inserts, deletes and changes to profile, org unit, manager, status or deactivation. No code
+  path can forget to invalidate the cache.
+- **Default profiles (T04)** are created at signup in the organisation's default locale; the owner gets System
+  Administrator. Standard User: full access to leads, accounts, contacts, opportunities, activities and quotes;
+  create and edit on contracts and orders; read on campaigns and products; `run_reports` and `use_ai_assistant`.
+  Read Only: read everything, read-only FLS, `run_reports`. Organisations created before P01 get profiles from the
+  identity seeds (T16).

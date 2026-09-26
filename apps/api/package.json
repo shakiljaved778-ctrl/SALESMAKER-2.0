@@ -22,6 +22,7 @@
     "@sm/emails": "workspace:*",
     "@sm/i18n": "workspace:*",
     "@sm/integrations": "workspace:*",
+    "@sm/permissions": "workspace:*",
     "@sm/server-kit": "workspace:*",
     "argon2": "0.45.1",
     "fastify": "5.12.5",
