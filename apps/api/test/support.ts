@@ -9,8 +9,10 @@ import { inject } from 'vitest';
 import type { z } from 'zod';
 
 import { createApiApp, type ApiApp } from '../src/app.js';
+import type { RecordTables } from '../src/access/record-tables.js';
 import { AuthService } from '../src/auth/auth.service.js';
 import { PasswordService } from '../src/auth/password.service.js';
+import { TokenService } from '../src/auth/token.service.js';
 import { ApiConfigSchema, type ApiConfig } from '../src/config.js';
 import { PRISMA } from '../src/tokens.js';
 
@@ -28,6 +30,8 @@ export interface TestApi extends ApiApp {
     password: string,
     options?: { verified?: boolean },
   ): Promise<string>;
+  /** A signed access token for an existing user (no session row; for authorisation tests). */
+  tokenFor(tenantId: string, userId: string): Promise<string>;
   dispose(): Promise<void>;
 }
 
@@ -49,6 +53,7 @@ const CELL_SERVICE_KEYS = ed25519();
  */
 export async function startTestApi(
   overrides: Partial<z.input<typeof ApiConfigSchema>> = {},
+  deps: { recordTables?: RecordTables } = {},
 ): Promise<TestApi> {
   const db = await createTestCellDatabase(inject('pgServerAdminUrl'));
   const config = ApiConfigSchema.parse({
@@ -77,6 +82,7 @@ export async function startTestApi(
     email,
     breachedPasswords: new FakeBreachedPasswordChecker(),
     controlPlane,
+    ...deps,
   });
   const prisma = api.app.get<symbol, CellPrisma>(PRISMA);
   return {
@@ -116,6 +122,12 @@ export async function startTestApi(
         }
         return userId;
       });
+    },
+    async tokenFor(tenantId, userId) {
+      const { token } = await api.app
+        .get(TokenService)
+        .issueAccessToken({ tenantId, userId, sessionId: uuidv7(), amr: ['pwd'] });
+      return token;
     },
     async dispose() {
       await api.close();

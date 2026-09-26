@@ -88,3 +88,7 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   changes.
 - **Raw writes count with RETURNING (T09).** Inside a tenant transaction, Kysely's raw statements run through
   Prisma's raw query API, which reports rows, not affected counts.
+- **Record access per action (T10)**, following Salesforce. Read needs Read. Edit needs Read-Write. Delete, transfer
+  and share need Full (owner, hierarchy, queue or a Full share). A record the caller cannot see at all is a 404; one
+  they can see but not change is a 403. Before P02 creates the object tables, every record lookup finds no table
+  and answers "none" (404).

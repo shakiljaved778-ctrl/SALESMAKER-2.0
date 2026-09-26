@@ -1,4 +1,5 @@
 import {
+  accessRoutes,
   authRoutes,
   mfaRoutes,
   oidcRoutes,
@@ -21,6 +22,7 @@ export const apiRoutes: readonly RouteContract[] = [
   ...Object.values(mfaRoutes),
   ...Object.values(oidcRoutes),
   ...Object.values(signupRoutes),
+  ...Object.values(accessRoutes),
 ];
 
 export const API_INFO = {

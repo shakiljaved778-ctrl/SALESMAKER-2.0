@@ -57,6 +57,9 @@ importers:
       '@sm/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions
+      '@sm/query-engine':
+        specifier: workspace:*
+        version: link:../../packages/query-engine
       '@sm/server-kit':
         specifier: workspace:*
         version: link:../../packages/server-kit
@@ -72,6 +75,9 @@ importers:
       jose:
         specifier: 6.2.12
         version: 6.2.12
+      kysely:
+        specifier: 0.29.6
+        version: 0.29.6
       otplib:
         specifier: 13.5.0
         version: 13.5.0

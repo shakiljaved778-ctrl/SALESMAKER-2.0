@@ -6,3 +6,4 @@ export * from './routes/system.js';
 export * from './routes/control-plane.js';
 export * from './routes/auth.js';
 export * from './routes/signup.js';
+export * from './routes/access.js';

@@ -22,6 +22,10 @@ import type { ApiConfig } from './config.js';
 import { HealthController } from './health/health.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
 import { SignupController } from './signup/signup.controller.js';
+import { AccessController } from './access/access.controller.js';
+import { AccessService } from './access/access.service.js';
+import { defaultRecordTables, type RecordTables } from './access/record-tables.js';
+import { SystemPermissionGuard } from './access/system-permission.guard.js';
 import { PermissionService } from './permissions/permission.service.js';
 import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
@@ -35,11 +39,14 @@ import {
   PRISMA,
   OIDC_PROVIDERS,
   RATE_LIMITER,
+  RECORD_TABLES,
   REDIS,
   SECRET_BOX,
 } from './tokens.js';
 
 export interface ApiDependencies {
+  /** Where each object's records live (fixtures in tests until P02's tables exist). */
+  recordTables?: RecordTables;
   config: ApiConfig;
   prisma: CellPrisma;
   redis: Redis;
@@ -66,6 +73,7 @@ export class AppModule {
         MfaController,
         OidcController,
         SignupController,
+        AccessController,
       ],
       providers: [
         { provide: CONFIG, useValue: deps.config },
@@ -78,6 +86,7 @@ export class AppModule {
         { provide: OIDC_PROVIDERS, useValue: deps.oidcProviders },
         { provide: CONTROL_PLANE, useValue: deps.controlPlane },
         { provide: RATE_LIMITER, useValue: deps.limiter },
+        { provide: RECORD_TABLES, useValue: deps.recordTables ?? defaultRecordTables },
         TenantContextGuard,
         AuthGuard,
         TokenService,
@@ -91,6 +100,8 @@ export class AppModule {
         SignupService,
         PermissionService,
         SharingService,
+        AccessService,
+        SystemPermissionGuard,
       ],
       exports: [
         CONFIG,
@@ -105,6 +116,8 @@ export class AppModule {
         TokenService,
         PermissionService,
         SharingService,
+        AccessService,
+        SystemPermissionGuard,
       ],
     };
   }

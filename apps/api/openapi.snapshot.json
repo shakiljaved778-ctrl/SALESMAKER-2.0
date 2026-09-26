@@ -1410,6 +1410,94 @@
         ]
       }
     },
+    "/v1/me/access/{object}/{id}": {
+      "get": {
+        "operationId": "explainMyRecordAccess",
+        "summary": "“Why can I see this?”: every reason the caller can access a record, and at what level",
+        "tags": [
+          "me"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "object",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ObjectApiName"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller’s access and its reasons",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessExplanation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such record, or the caller cannot see it"
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/v1/me/preferences": {
       "patch": {
         "operationId": "updateMyPreferences",
@@ -1568,6 +1656,131 @@
   },
   "components": {
     "schemas": {
+      "AccessExplanation": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "$ref": "#/components/schemas/ObjectApiName"
+          },
+          "recordId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "access": {
+            "$ref": "#/components/schemas/RecordAccessLevel"
+          },
+          "objectPermissions": {
+            "type": "object",
+            "properties": {
+              "read": {
+                "type": "boolean"
+              },
+              "create": {
+                "type": "boolean"
+              },
+              "edit": {
+                "type": "boolean"
+              },
+              "delete": {
+                "type": "boolean"
+              },
+              "viewAll": {
+                "type": "boolean"
+              },
+              "modifyAll": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "read",
+              "create",
+              "edit",
+              "delete",
+              "viewAll",
+              "modifyAll"
+            ],
+            "additionalProperties": false
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessReason"
+            }
+          }
+        },
+        "required": [
+          "object",
+          "recordId",
+          "access",
+          "objectPermissions",
+          "reasons"
+        ],
+        "additionalProperties": false
+      },
+      "AccessReason": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SYSTEM_PERMISSION",
+              "OBJECT_PERMISSION",
+              "ORG_WIDE_DEFAULT",
+              "OWNER",
+              "HIERARCHY",
+              "QUEUE",
+              "SHARE",
+              "PARENT"
+            ]
+          },
+          "level": {
+            "$ref": "#/components/schemas/RecordAccessLevel"
+          },
+          "permission": {
+            "type": "string"
+          },
+          "sharingModel": {
+            "type": "string"
+          },
+          "ownerId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "shareReason": {
+            "type": "string",
+            "enum": [
+              "RULE",
+              "MANUAL",
+              "TEAM",
+              "TERRITORY",
+              "IMPLICIT_PARENT",
+              "IMPLICIT_CHILD"
+            ]
+          },
+          "principalType": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "GROUP",
+              "QUEUE",
+              "ORG_UNIT",
+              "ORG_UNIT_AND_SUBORDINATES"
+            ]
+          },
+          "principalId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "parentObject": {
+            "$ref": "#/components/schemas/ObjectApiName"
+          },
+          "parentId": {
+            "$ref": "#/components/schemas/Uuid"
+          }
+        },
+        "required": [
+          "kind",
+          "level"
+        ],
+        "additionalProperties": false
+      },
       "CurrencyCode": {
         "type": "string",
         "pattern": "^[A-Z]{3}$",
@@ -1890,6 +2103,11 @@
         "minLength": 12,
         "maxLength": 256
       },
+      "ObjectApiName": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9_]{0,40}$",
+        "example": "opportunity"
+      },
       "OidcCallbackRequest": {
         "type": "object",
         "properties": {
@@ -2156,6 +2374,16 @@
           "checks"
         ],
         "additionalProperties": false
+      },
+      "RecordAccessLevel": {
+        "type": "string",
+        "enum": [
+          "none",
+          "read",
+          "edit",
+          "full"
+        ],
+        "description": "Record access (§6.3): Full is owner-equivalent"
       },
       "RefreshRequest": {
         "type": "object",

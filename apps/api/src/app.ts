@@ -73,6 +73,7 @@ export async function createApiApp(
     overrides.limiter ?? new TokenBucketRateLimiter(redis, config.RATE_LIMIT_NAMESPACE);
   const deps: ApiDependencies = {
     config,
+    ...(overrides.recordTables ? { recordTables: overrides.recordTables } : {}),
     prisma,
     redis,
     logger,
