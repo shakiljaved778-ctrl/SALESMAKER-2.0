@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --coverage",
-    "openapi:write": "node scripts/write-openapi.js"
+    "openapi:write": "node scripts/write-openapi.js",
+    "perf:sharing": "node --env-file-if-exists=../../.env scripts/perf-sharing.js"
   },
   "dependencies": {
     "@nestjs/common": "12.1.0",

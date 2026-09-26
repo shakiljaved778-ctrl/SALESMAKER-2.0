@@ -204,3 +204,26 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   Enrolment reuses `/auth/mfa/totp/enroll|confirm`, which the BFF relays through a POST-only allowlist. The
   enrolment QR code is drawn in the page from the `otpauth://` URI (`uqr`, MIT) so the secret never leaves the
   browser for a QR service.
+- **Bank-scale check (T22).** `pnpm --filter @sm/api perf:sharing` (after `pnpm db:seed --scenario=bank`) adds a
+  500k-row fixture table with forced RLS and 25k explicit shares (group, role-and-subordinates, user) to the bank
+  tenant, measures, and drops it again. Results on the dev container (Postgres 16, 930 active users, org depth 3,
+  40 runs per case after 3 warm-up runs, times include the tenant transaction):
+
+  | Measure                                                      | Result                       |
+  | ------------------------------------------------------------ | ---------------------------- |
+  | Owner-visibility closure size                                | 5,408 rows                   |
+  | Full closure rebuild (a change at the root)                  | p50 134 ms                   |
+  | Leaf-unit rebuild (the 3 viewers above a team)               | p50 22 ms, max 26 ms         |
+  | Principal set, computed (52 users)                           | p50 9.0 ms, p95 12.3 ms      |
+  | Principal set, Valkey cache hit                              | p50 0.5 ms, p95 0.8 ms       |
+  | List page of 50, head of sales (sees all 500k)               | p95 6.6 ms                   |
+  | List page of 50, regional director (125k visible)            | p95 15.1 ms                  |
+  | List page of 50, branch / hub manager (17k–24k visible)      | p95 18.1 ms                  |
+  | List page of 50, team leader (6k visible)                    | p95 8.2 ms                   |
+  | List page of 50, telesales agent (881 visible, own + shares) | p95 37.8 ms (sorted by name) |
+
+  Worst p95 is 38 ms against the §11.1 budget of 400 ms. The slowest case is a rep sorting by name: few rows
+  match, so the planner walks the name index further before it has 50. It is the case to watch when P02 adds real
+  list views (an owner-leading index per sortable field is the lever). One run's first full rebuild, immediately
+  after the 500k-row load, hit the 5 s statement timeout; it did not recur in later runs and the rebuild is
+  144 ms in isolation, so it is attributed to the load's I/O, not the rebuild.
