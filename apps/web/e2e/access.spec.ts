@@ -7,6 +7,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { expectHome, signIn, signUpWithPassword, verifyFromEmail } from './flows';
 import {
   expectAccessible,
+  expectScreenshot,
   latestEmail,
   linkIn,
   PASSWORD,
@@ -145,6 +146,17 @@ for (const theme of ['light', 'dark'] as const) {
       await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible();
       await expect(page.locator('[aria-busy="true"]')).toHaveCount(0);
       await expectAccessible(page);
+      // Visual baseline of the Setup template (T5) on a page whose content is the same everywhere.
+      if (path === '/setup/profiles') {
+        await page.mouse.move(700, 700); // no row under the pointer
+        await expectScreenshot(page, `setup-profiles-${theme}.png`, {
+          mask: [
+            page.getByRole('banner'),
+            page.locator('aside').getByText(`E2E ${slug}`),
+            page.locator('aside span[aria-hidden="true"]').first(),
+          ],
+        });
+      }
     }
   });
 }
