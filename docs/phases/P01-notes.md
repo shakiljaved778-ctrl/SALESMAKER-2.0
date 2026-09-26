@@ -152,3 +152,10 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   hierarchies" is fixed on for standard objects.
 - **Queue-owned records (T14).** Queues cannot yet check whether they own records (no object tables until P02);
   deleting a queue that owns records must be refused once P02 adds them.
+- **Permission matrix (T15).** Hierarchy expectations come from an oracle written from §6.3 alone (own records,
+  anything owned in a unit strictly below yours, your direct reports'), not from the implementation. Sharing rules in
+  the suite are recalculated with the worker's own `recalculateRule`, in small batches. Observed semantics worth
+  knowing: an Org-Unit-and-Subordinates share does not reach users *above* that unit; a Controlled-by-Parent child
+  never exceeds its parent's level (a Read-Write rule on the account gives edit, not delete, on its contacts); queue
+  ownership gives members Full access but does not flow up the hierarchy; Public Read/Write still needs the object
+  edit permission.
