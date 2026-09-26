@@ -134,7 +134,24 @@ describe('permission grants (§6.2)', () => {
           },
         }),
       ),
-    ).rejects.toThrow(/field_permission_edit_needs_read/);
+    ).rejects.toThrow(/field_permission_dependencies/);
+  });
+
+  it('lets a muting set name one flag alone (it removes, never grants)', async () => {
+    await inTenant(TENANT, async (tx) => {
+      await tx.objectPermission.create({
+        data: { tenantId: TENANT, permissionSetId: mutingSetId, object: 'lead', canEdit: true },
+      });
+      await tx.fieldPermission.create({
+        data: {
+          tenantId: TENANT,
+          permissionSetId: mutingSetId,
+          object: 'lead',
+          field: 'phone',
+          canEdit: true,
+        },
+      });
+    });
   });
 });
 

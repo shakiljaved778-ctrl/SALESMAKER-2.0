@@ -32,6 +32,15 @@ import { PermissionService } from './permissions/permission.service.js';
 import { LoginHistoryController, MySessionsController } from './sessions/sessions.controller.js';
 import { InvitationsController, UsersController } from './users/users.controller.js';
 import { UsersService } from './users/users.service.js';
+import { GroupsService } from './setup/groups.service.js';
+import { OrgUnitsService } from './setup/org-units.service.js';
+import { PermissionSetupService } from './setup/permission-setup.service.js';
+import {
+  PeopleSetupController,
+  RecordShareController,
+  SharingSetupController,
+} from './setup/setup.controller.js';
+import { SharingSetupService } from './setup/sharing-setup.service.js';
 import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
@@ -84,6 +93,9 @@ export class AppModule {
         LoginHistoryController,
         UsersController,
         InvitationsController,
+        PeopleSetupController,
+        SharingSetupController,
+        RecordShareController,
       ],
       providers: [
         { provide: CONFIG, useValue: deps.config },
@@ -107,6 +119,10 @@ export class AppModule {
         AuthService,
         LoginHistoryService,
         MfaService,
+        OrgUnitsService,
+        GroupsService,
+        PermissionSetupService,
+        SharingSetupService,
         OidcService,
         SignupService,
         PermissionService,

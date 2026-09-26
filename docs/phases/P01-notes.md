@@ -127,3 +127,28 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   the visibility of the user, their old and new managers, and the users above their old and new units. A change of
   org unit also queues recalculation of the active owner-based rules. The workspace owner and the caller cannot be
   deactivated, and deactivation ends every session at once.
+- **Setup API permissions (T14).** Reading any Setup entity needs `view_setup`. Org units, profiles, permission
+  sets and groups, public groups and queues change with `manage_users`; org-wide defaults and sharing rules with
+  `customize_application`. Manual shares need no system permission: the caller needs Full access to the record
+  (owner, above the owner, or Modify All), else 403, or 404 when they cannot see it.
+- **Deletes refuse what is in use (T14).** An org unit goes only when it has no child units, users, group or queue
+  memberships, or rules naming it; a group only when no other group, queue or rule refers to it; a profile only
+  when it is custom and unused; a permission set or group only when unassigned (and ungrouped). Manual shares to a
+  deleted group, queue or unit are removed with it. Deletes are hard deletes, so the name can be reused; the Setup
+  audit trail keeps the history.
+- **Access stays current after Setup changes (T14).** Every write bumps `permVersion` through the database triggers.
+  A move rebuilds, in the same transaction, the visibility of the users above the moved subtree before and after
+  (and of the subtree's users when a queue names a subtree or group). Queue membership changes rebuild the
+  visibility of users who joined or left. Group membership changes and unit moves queue a recalculation of every
+  active owner-based rule. Rule create/update (when its source, criteria, target, access or activity changes)
+  creates a `job_run` and emits `sharing.rule_changed` with its id; deleting a rule emits `sharing.rule_deleted`.
+- **Muting sets name single flags (T14, migration 0014).** A muting set removes what it names, so "mute Edit" must
+  not also mute Read. The dependency rules (edit needs read, …) moved from CHECK constraints into a trigger that
+  enforces them for PROFILE and STANDARD sets and skips MUTING sets. Grants sent to the API are closed under the
+  dependencies before they are stored.
+- **Lockout guard (T14).** The built-in System Administrator profile's grants cannot be changed through the API, so
+  a workspace cannot remove its own ability to administer itself. Sharing rules and manual shares are refused on
+  objects whose default is Public Read/Write or Controlled by Parent (they would add nothing). "Grant access using
+  hierarchies" is fixed on for standard objects.
+- **Queue-owned records (T14).** Queues cannot yet check whether they own records (no object tables until P02);
+  deleting a queue that owns records must be refused once P02 adds them.
