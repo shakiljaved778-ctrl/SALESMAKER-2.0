@@ -62,3 +62,11 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   custom ones included, but never bypass FLS. A deactivated, inactive or deleted user holds no permissions, whatever
   is assigned. The effective result is cached per user under `perm:{tenant}:{user}:{permVersion}`; the version is
   read before the grants, so an entry is never older than its key.
+- **Owner visibility (T08).** A viewer's closure holds themselves, users in org units strictly below theirs (peers
+  in the same unit do not see each other, as with Salesforce roles), their direct reports through `manager_id` (the
+  spec says direct, so reports of reports are reached only through the org hierarchy), and the queues they belong
+  to. Only `rebuild_user_visibility()` writes the closure: it runs as the schema owner, is serialised per tenant, and
+  is set-based. A change can rebuild the affected viewers in its own transaction (`users_above_org_units` finds
+  them), or emit `sharing.visibility_changed` for the worker. The Setup API (T14) chooses between them per change.
+- **Principals (T08)** separate the user's own org unit (matches "role" shares) from their unit plus its ancestors
+  (matches "role and subordinates" shares). A flat id list would let a share to role X reach users below X.

@@ -642,3 +642,42 @@ model OutboxEvent {
   @@index([tenantId, publishedAt, createdAt])
   @@map("outbox_event")
 }
+
+/// Org-wide default sharing (§6.3), per object API name.
+enum SharingModel {
+  PRIVATE
+  PUBLIC_READ
+  PUBLIC_READ_WRITE
+  CONTROLLED_BY_PARENT
+
+  @@map("sharing_model")
+}
+
+/// The baseline record access for an object. Standard objects get a row at signup; an object
+/// without one uses its catalogue default (custom objects: PRIVATE).
+model OrgWideDefault {
+  tenantId       String       @map("tenant_id") @db.Uuid
+  object         String
+  sharingModel   SharingModel @map("sharing_model")
+  /// "Grant access using hierarchies": managers see their subordinates' records.
+  grantHierarchy Boolean      @default(true) @map("grant_hierarchy")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy      String?      @map("updated_by") @db.Uuid
+  version        Int          @default(1)
+
+  @@id([tenantId, object])
+  @@map("org_wide_default")
+}
+
+/// For each viewer, every owner whose records hierarchy access lets them see (§6.4): themselves,
+/// users in org units below theirs, their direct reports, and the queues they belong to.
+/// Written only by rebuild_user_visibility().
+model UserVisibilityClosure {
+  tenantId     String @map("tenant_id") @db.Uuid
+  viewerUserId String @map("viewer_user_id") @db.Uuid
+  ownerId      String @map("owner_id") @db.Uuid
+
+  @@id([tenantId, viewerUserId, ownerId])
+  @@index([tenantId, ownerId])
+  @@map("user_visibility_closure")
+}

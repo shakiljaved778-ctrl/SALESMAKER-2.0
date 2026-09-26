@@ -15,6 +15,7 @@ import {
   type Grants,
   type ObjectAccess,
   type PermissionSource,
+  VersionedCache,
 } from '../src/index.js';
 
 const grants = (g: Partial<Grants> = {}): Grants => ({ system: [], objects: {}, fields: {}, ...g });
@@ -330,5 +331,24 @@ describe('PermissionCache', () => {
       fields: {},
     });
     expect([...restored.system]).toEqual(['run_reports']);
+  });
+});
+
+describe('VersionedCache', () => {
+  it('namespaces keys and round-trips plain JSON values', async () => {
+    const data = new Map<string, string>();
+    const store: CacheStore = {
+      get: (k) => Promise.resolve(data.get(k) ?? null),
+      set: (k, v) => {
+        data.set(k, v);
+        return Promise.resolve('OK');
+      },
+    };
+    const cache = new VersionedCache<{ ids: string[] }>(store, 'principals');
+    expect(cache.key('t', 'u', 3)).toBe('principals:t:u:3');
+    await cache.getOrCompute('t', 'u', 3, () => Promise.resolve({ ids: ['a'] }));
+    expect(
+      await cache.getOrCompute('t', 'u', 3, () => Promise.reject(new Error('not called'))),
+    ).toEqual({ ids: ['a'] });
   });
 });

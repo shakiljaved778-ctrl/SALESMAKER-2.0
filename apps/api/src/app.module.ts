@@ -23,6 +23,7 @@ import { HealthController } from './health/health.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
 import { SignupController } from './signup/signup.controller.js';
 import { PermissionService } from './permissions/permission.service.js';
+import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
 import {
@@ -89,6 +90,7 @@ export class AppModule {
         OidcService,
         SignupService,
         PermissionService,
+        SharingService,
       ],
       exports: [
         CONFIG,
@@ -102,6 +104,7 @@ export class AppModule {
         SessionService,
         TokenService,
         PermissionService,
+        SharingService,
       ],
     };
   }

@@ -25,4 +25,4 @@ export {
   type PermissionSource,
   type SerialisedPermissions,
 } from './engine.js';
-export { PermissionCache, type CacheStore } from './cache.js';
+export { PermissionCache, VersionedCache, type CacheStore, type Codec } from './cache.js';

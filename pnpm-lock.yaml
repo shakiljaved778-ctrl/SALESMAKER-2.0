@@ -51,6 +51,9 @@ importers:
       '@sm/integrations':
         specifier: workspace:*
         version: link:../../packages/integrations
+      '@sm/metadata':
+        specifier: workspace:*
+        version: link:../../packages/metadata
       '@sm/permissions':
         specifier: workspace:*
         version: link:../../packages/permissions

@@ -27,3 +27,4 @@ export {
   type OutboxMessage,
   type QueueName,
 } from './outbox.js';
+export { principalsOf, visibility, type Principals } from './sharing.js';

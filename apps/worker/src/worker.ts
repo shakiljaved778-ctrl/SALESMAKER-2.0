@@ -16,9 +16,10 @@ import type { Handlers } from './jobs.js';
 import { maintenanceHandler, scheduleMaintenance } from './maintenance.js';
 import { createQueues, type QueueSet } from './queues.js';
 import { OutboxRelay } from './relay.js';
+import { sharingHandler } from './sharing.js';
 
-/** Consumers registered in this phase; later phases add theirs (sharing in T08, …). */
-export const HANDLERS: Handlers = { maintenance: maintenanceHandler };
+/** The consumers this worker runs; later tasks add theirs. */
+export const HANDLERS: Handlers = { maintenance: maintenanceHandler, sharing: sharingHandler };
 
 export interface WorkerDeps {
   controlPlane?: Pick<ControlPlane, 'listCellTenants'>;

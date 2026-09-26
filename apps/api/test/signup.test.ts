@@ -122,6 +122,8 @@ describe('POST /auth/signup (§7.20a)', () => {
         readOnlyEdits: await prisma.fieldPermission.count({
           where: { canEdit: true, permissionSet: { profile: { systemKey: 'read_only' } } },
         }),
+        owd: await prisma.orgWideDefault.findMany({ select: { object: true, sharingModel: true } }),
+        visible: await prisma.userVisibilityClosure.findMany({ select: { ownerId: true } }),
       }),
     );
     expect(access.profiles).toEqual([
@@ -136,6 +138,9 @@ describe('POST /auth/signup (§7.20a)', () => {
     expect(access.owner?.profile?.systemKey).toBe('system_administrator');
     expect(access.adminSystem).toBeGreaterThan(10);
     expect(access.readOnlyEdits).toBe(0);
+    expect(access.owd).toHaveLength(10);
+    expect(access.owd).toContainEqual({ object: 'opportunity', sharingModel: 'PRIVATE' });
+    expect(access.visible).toEqual([{ ownerId: settings?.ownerUserId }]);
 
     const early = await post('/auth/login', body.tenantId, {
       email: 'owner@pixelcraft.test',

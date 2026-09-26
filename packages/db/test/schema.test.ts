@@ -92,6 +92,7 @@ describe('tenant tables (§3.5, §4.1)', () => {
         'field_permission',
         'group_member',
         'object_permission',
+        'org_wide_default',
         'org_unit',
         'org_unit_closure',
         'permission_assignment',
@@ -109,6 +110,7 @@ describe('tenant tables (§3.5, §4.1)', () => {
         'tenant_settings',
         'user',
         'user_identity',
+        'user_visibility_closure',
       ]),
     );
     for (const r of rows)
