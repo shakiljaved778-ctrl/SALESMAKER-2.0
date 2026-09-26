@@ -192,3 +192,38 @@ describe('Toasts', () => {
     expect(undo).toHaveBeenCalledOnce();
   });
 });
+
+describe('popover layering (§9.10 z-scale)', () => {
+  const options = [{ value: 'a', label: 'Alpha' }];
+
+  it('stacks a combobox opened inside a dialog above the dialog', async () => {
+    const { Combobox } = await import('../combobox.js');
+    render(
+      <Dialog open onOpenChange={vi.fn()} title="Invite" closeLabel="Close">
+        <Combobox
+          options={options}
+          placeholder="Pick"
+          searchPlaceholder="Search"
+          emptyText="None"
+        />
+      </Dialog>,
+    );
+    await userEvent.click(screen.getByRole('combobox'));
+    const panel = await screen.findByRole('option', { name: 'Alpha' });
+    expect(panel.closest('[data-radix-popper-content-wrapper] > *')?.className).toContain(
+      'z-[calc(var(--z-modal)+1)]',
+    );
+  });
+
+  it('keeps page-level popovers at the popover layer', async () => {
+    const { Combobox } = await import('../combobox.js');
+    render(
+      <Combobox options={options} placeholder="Pick" searchPlaceholder="Search" emptyText="None" />,
+    );
+    await userEvent.click(screen.getByRole('combobox'));
+    const panel = await screen.findByRole('option', { name: 'Alpha' });
+    expect(panel.closest('[data-radix-popper-content-wrapper] > *')?.className).toContain(
+      'z-[var(--z-popover)]',
+    );
+  });
+});

@@ -166,3 +166,18 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   (`SEED_PASSWORD`, default printed by the command); it refuses to run with `NODE_ENV=production`. Emails use the
   reserved `.example` domain. `--scale` is accepted now and matters once P02 seeds CRM records. The spec's staging-only
   `demo+…@salesmaker.app` users and "Reset demo" action belong to the staging deployment work, not this task.
+- **Browser → cell calls go through a BFF relay (T17).** The page keeps its access token in memory and CSP allows only
+  `connect-src 'self'`, so `/api/v1/…` on the workspace origin relays to the cell's `/v1/…` (base URL from the tenant
+  directory) with the caller's bearer token, query string, JSON body and idempotency key, and relays problems as
+  they are. Writes must come from this origin; a GET without an Origin header is accepted because the bearer token
+  cannot be attached by another site. Only `/v1/` paths are relayed. On a 401 the page refreshes its session once
+  and retries.
+- **Hiding Setup (T17).** `/v1/me` now lists the caller's system permissions. The sidebar and command menu hide
+  Setup without `view_setup`; a direct URL shows a "Setup is for administrators" page, and the API answers 403
+  regardless. Write controls are hidden without `manage_users`.
+- **Popovers inside overlays (T17).** Combobox, Select, DropdownMenu, Popover and HoverCard portal to the body at
+  `--z-popover` (40), below modals (70) and sheets (60), so a picker inside a dialog opened underneath it. They now
+  read the enclosing overlay from context and stack at `calc(var(--z-modal) + 1)` (or the sheet's) instead. The
+  §9 z-scale tokens are unchanged.
+- **Next.js agent files.** `next dev` writes `AGENTS.md` and `CLAUDE.md` into the app; `agentRules: false` in
+  `next.config.ts` turns that off so they are never committed.

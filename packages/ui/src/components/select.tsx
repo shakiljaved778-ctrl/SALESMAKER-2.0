@@ -5,6 +5,7 @@ import { Select as SelectPrimitive } from 'radix-ui';
 import type { ReactNode } from 'react';
 
 import { cn } from '../lib/cn.js';
+import { usePopoverLayerClass } from '../lib/layer.js';
 import { useFormField } from './form-field.js';
 
 export interface SelectOption {
@@ -29,6 +30,7 @@ export interface SelectProps {
  * Radix handles keyboard, typeahead and focus; it inherits FormField wiring.
  */
 export function Select({ options, placeholder, className, disabled, ...props }: SelectProps) {
+  const layer = usePopoverLayerClass();
   const field = useFormField();
   return (
     <SelectPrimitive.Root {...props} disabled={disabled ?? field?.disabled}>
@@ -51,7 +53,10 @@ export function Select({ options, placeholder, className, disabled, ...props }: 
         <SelectPrimitive.Content
           position="popper"
           sideOffset={4}
-          className="z-[var(--z-popover)] max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-line bg-surface-raised p-1 shadow-e2"
+          className={cn(
+            layer,
+            'max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-line bg-surface-raised p-1 shadow-e2',
+          )}
         >
           <SelectPrimitive.Viewport>
             {options.map((o) => (

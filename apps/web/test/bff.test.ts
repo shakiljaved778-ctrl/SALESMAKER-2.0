@@ -32,6 +32,7 @@ const USER = {
   density: 'default',
   mfaEnabled: false,
   workspace: { name: 'Acme Ltd', slug: 'acme' },
+  permissions: ['run_reports'],
 };
 const PROBLEM_401 = {
   type: 'https://developers.salesmaker.app/problems/unauthenticated',

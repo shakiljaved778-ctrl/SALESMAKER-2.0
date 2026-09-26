@@ -522,3 +522,14 @@ describe('/v1/permission-sets and /v1/permission-set-groups (§6.2)', () => {
     await f.expectGuarded('DELETE', `/v1/permission-set-groups/${g}`, {});
   });
 });
+
+describe('/v1/me permissions', () => {
+  it('lists the caller’s system permissions, so the UI can hide Setup', async () => {
+    const me = (who: string) =>
+      f.call(who, 'GET', '/v1/me').then((r) => r.json<{ permissions: string[] }>().permissions);
+    expect(await me('viewer')).toContain('view_setup');
+    expect(await me('viewer')).not.toContain('manage_users');
+    expect(await me('rep')).not.toContain('view_setup');
+    expect(await me('admin')).toEqual(expect.arrayContaining(['manage_users', 'view_setup']));
+  });
+});

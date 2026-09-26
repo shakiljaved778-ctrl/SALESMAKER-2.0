@@ -30,6 +30,8 @@ export const MeResponse = z
     density: z.enum(['comfortable', 'default', 'compact']),
     mfaEnabled: z.boolean(),
     workspace: z.object({ name: z.string(), slug: z.string() }),
+    /** The caller's system permissions (§6.2), so the UI can hide what they cannot use. */
+    permissions: z.array(z.string()),
   })
   .meta({ id: 'Me' });
 

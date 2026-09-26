@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 
 import { applyDisplay } from '../../lib/display';
 import { useShell } from './app-shell';
-import { ALL_NAV } from './nav';
+import { ALL_NAV, visibleNav } from './nav';
 
 /**
  * ⌘K in P00 (§7.19): navigation and display commands. Record search joins in P02, and the
@@ -23,13 +23,13 @@ export function ShellCommandMenu({
   const t = useTranslations('shell');
   const tc = useTranslations('common');
   const router = useRouter();
-  const { openShortcuts, signOut } = useShell();
+  const { openShortcuts, signOut, user } = useShell();
 
   const sections: CommandSection[] = [
     {
       id: 'go',
       heading: t('palette.navigation'),
-      items: ALL_NAV.map((n) => {
+      items: visibleNav(ALL_NAV, user?.permissions).map((n) => {
         const Icon = n.icon;
         return {
           id: n.key,

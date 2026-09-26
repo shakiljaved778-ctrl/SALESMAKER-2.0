@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 
 import { useShell } from './app-shell';
-import { FOOTER_NAV, MAIN_NAV, navFor, type NavItem } from './nav';
+import { FOOTER_NAV, MAIN_NAV, navFor, visibleNav, type NavItem } from './nav';
 
 /**
  * Sidebar (§9.7): dark in both themes for a stable frame; 232 px, or 56 px with icons and
@@ -15,7 +15,7 @@ import { FOOTER_NAV, MAIN_NAV, navFor, type NavItem } from './nav';
  */
 export function Sidebar({ pathname }: { pathname: string }) {
   const t = useTranslations('shell.nav');
-  const { collapsed, toggleSidebar, workspace } = useShell();
+  const { collapsed, toggleSidebar, workspace, user } = useShell();
   const rtl = directionOf(useLocale()) === 'rtl';
   const active = navFor(pathname)?.key;
   const Toggle = collapsed ? PanelLeftOpen : PanelLeftClose;
@@ -68,7 +68,7 @@ export function Sidebar({ pathname }: { pathname: string }) {
       >
         <ul className="flex flex-col gap-0.5">{MAIN_NAV.map(item)}</ul>
         <ul className="flex flex-col gap-0.5">
-          {FOOTER_NAV.map(item)}
+          {visibleNav(FOOTER_NAV, user?.permissions).map(item)}
           <li>
             <button
               type="button"

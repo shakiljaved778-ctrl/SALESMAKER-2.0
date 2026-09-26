@@ -5,6 +5,7 @@ import { DropdownMenu as MenuPrimitive } from 'radix-ui';
 import type { ReactNode } from 'react';
 
 import { cn } from '../lib/cn.js';
+import { usePopoverLayerClass } from '../lib/layer.js';
 import { Kbd } from './primitives.js';
 
 export type MenuEntry =
@@ -45,6 +46,7 @@ export function DropdownMenu({
   /** Modal menus trap focus and hide the rest of the page from assistive tech (default). */
   modal?: boolean;
 }) {
+  const layer = usePopoverLayerClass();
   return (
     <MenuPrimitive.Root modal={modal} {...(defaultOpen ? { defaultOpen } : {})}>
       <MenuPrimitive.Trigger asChild>{trigger}</MenuPrimitive.Trigger>
@@ -53,7 +55,10 @@ export function DropdownMenu({
           align={align}
           sideOffset={4}
           aria-label={label}
-          className="z-[var(--z-popover)] min-w-48 rounded-md border border-line bg-surface-raised p-1 text-fg shadow-e2 animate-pop-in"
+          className={cn(
+            layer,
+            'min-w-48 rounded-md border border-line bg-surface-raised p-1 text-fg shadow-e2 animate-pop-in',
+          )}
         >
           {items.map((entry, i) => {
             if (entry.type === 'separator')

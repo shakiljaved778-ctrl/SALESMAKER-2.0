@@ -9,6 +9,7 @@ import {
 } from '@sm/server-kit';
 
 import type { ApiConfig } from '../config.js';
+import { PermissionService } from '../permissions/permission.service.js';
 import { CONFIG, CONTROL_PLANE, PRISMA } from '../tokens.js';
 import {
   AuthEmailService,
@@ -42,6 +43,7 @@ export interface MeDto {
   density: 'comfortable' | 'default' | 'compact';
   mfaEnabled: boolean;
   workspace: { name: string; slug: string };
+  permissions: string[];
 }
 
 const invalidCredentials = () => errors.unauthenticated("That email and password don't match");
@@ -58,6 +60,7 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly mail: AuthEmailService,
     private readonly history: LoginHistoryService,
+    private readonly permissions: PermissionService,
   ) {}
 
   /** The workspace named by a pre-auth request must exist in this cell; otherwise 404. */
@@ -332,6 +335,7 @@ export class AuthService {
       density: user.density,
       mfaEnabled: user.mfaFactors.length > 0,
       workspace: { name: settings.name, slug: settings.slug },
+      permissions: [...(await this.permissions.forUser(tx, userId)).system].sort(),
     };
   }
 

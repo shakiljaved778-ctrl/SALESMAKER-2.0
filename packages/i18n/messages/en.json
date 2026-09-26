@@ -118,8 +118,12 @@
       "createInstead": "Starting fresh? Create an organisation"
     },
     "acceptInvite": {
-      "title": "Join your team on SalesMaker",
-      "comingSoon": "Invitations are being set up. Ask your admin to try again shortly."
+      "title": "Join {workspace}",
+      "subtitle": "Choose a password to finish setting up your account.",
+      "submit": "Join and sign in",
+      "expired": "This invitation has expired or was already used. Ask your administrator to send a new one.",
+      "sso": "Invited with a Google or Microsoft address? Use it to sign in instead.",
+      "signInInstead": "Go to sign in"
     },
     "errors": {
       "invalidCredentials": "That email and password don't match. Check them and try again.",
@@ -537,6 +541,109 @@
       "readOnly": {
         "name": "Read Only",
         "description": "Can view the records they have access to, but cannot change anything."
+      }
+    }
+  },
+  "setup": {
+    "title": "Setup",
+    "search": "Search Setup",
+    "noMatches": "No Setup pages match",
+    "groups": {
+      "usersAccess": "Users & access",
+      "security": "Security"
+    },
+    "items": {
+      "users": "Users"
+    },
+    "forbidden": {
+      "title": "Setup is for administrators",
+      "body": "Your profile doesn't include View Setup. Ask an administrator if you need access."
+    },
+    "common": {
+      "loadMore": "Load more",
+      "none": "None",
+      "saved": "Changes saved",
+      "staleVersion": "Someone else changed this while you were editing. Reload to see their changes, then try again.",
+      "unavailable": "That didn't go through. Check your connection and try again.",
+      "notAllowed": "You don't have permission to make this change.",
+      "notFound": "This no longer exists. It may have been deleted.",
+      "invalid": "Some fields need attention.",
+      "reload": "Reload",
+      "edit": "Edit",
+      "back": "Back"
+    },
+    "users": {
+      "title": "Users",
+      "description": "Invite people, choose their profile and place them in the org hierarchy.",
+      "invite": "Invite user",
+      "searchPlaceholder": "Search by name or email",
+      "statusFilter": "Status",
+      "allStatuses": "All statuses",
+      "columns": {
+        "name": "Name",
+        "email": "Email",
+        "profile": "Profile",
+        "orgUnit": "Org unit",
+        "status": "Status"
+      },
+      "status": {
+        "pending": "Invited",
+        "active": "Active",
+        "disabled": "Disabled",
+        "deactivated": "Deactivated"
+      },
+      "empty": {
+        "title": "Nobody matches",
+        "description": "Try another name or email, or clear the status filter."
+      },
+      "inviteDialog": {
+        "title": "Invite a user",
+        "description": "They'll get an email with a link to join. The link works for 7 days.",
+        "email": "Email",
+        "name": "Name",
+        "profile": "Profile",
+        "orgUnit": "Org unit",
+        "manager": "Manager",
+        "jobTitle": "Job title",
+        "submit": "Send invitation",
+        "sent": "Invitation sent to {email}",
+        "emailTaken": "That email already belongs to a user of this workspace.",
+        "profileRequired": "Choose a profile."
+      },
+      "detail": {
+        "allUsers": "All users",
+        "details": "Details",
+        "access": "Access",
+        "name": "Name",
+        "email": "Email",
+        "jobTitle": "Job title",
+        "department": "Department",
+        "phone": "Phone",
+        "profile": "Profile",
+        "orgUnit": "Org unit",
+        "manager": "Manager",
+        "permissionSets": "Permission sets",
+        "permissionSetGroups": "Permission set groups",
+        "noneAssigned": "None assigned",
+        "invitationPending": "Invitation sent {sentAt}. It expires {expiresAt}.",
+        "invitationExpired": "The invitation expired {expiresAt}.",
+        "resend": "Resend invitation",
+        "resent": "Invitation sent again",
+        "withdraw": "Withdraw invitation",
+        "withdrawn": "Invitation withdrawn",
+        "deactivate": "Deactivate",
+        "reactivate": "Reactivate",
+        "deactivateTitle": "Deactivate {name}?",
+        "deactivateBody": "They'll be signed out everywhere at once and won't be able to sign in. Their records and history stay.",
+        "deactivated": "{name} is deactivated",
+        "reactivated": "{name} is active again",
+        "cannotDeactivate": "You can't deactivate yourself or the workspace owner.",
+        "managerCycle": "That manager reports to this user. Choose someone else.",
+        "save": "Save changes",
+        "discardTitle": "Discard your changes?",
+        "discardBody": "You have unsaved changes to this user.",
+        "discard": "Discard",
+        "keepEditing": "Keep editing"
       }
     }
   }

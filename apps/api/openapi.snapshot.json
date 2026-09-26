@@ -8978,6 +8978,12 @@
               "slug"
             ],
             "additionalProperties": false
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -8991,7 +8997,8 @@
           "theme",
           "density",
           "mfaEnabled",
-          "workspace"
+          "workspace",
+          "permissions"
         ],
         "additionalProperties": false
       },

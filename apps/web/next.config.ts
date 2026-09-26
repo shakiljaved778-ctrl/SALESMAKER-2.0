@@ -14,6 +14,8 @@ const securityHeaders = [
 const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Do not write AGENTS.md / CLAUDE.md into the app on `next dev`; repo guidance lives at the root.
+  agentRules: false,
   // Workspace packages ship compiled ESM; CSS from @sm/ui is processed by this app's Tailwind.
   transpilePackages: ['@sm/ui'],
   headers() {

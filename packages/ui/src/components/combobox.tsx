@@ -6,6 +6,7 @@ import { Popover } from 'radix-ui';
 import { useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn.js';
+import { usePopoverLayerClass } from '../lib/layer.js';
 import { useFormField } from './form-field.js';
 
 export interface ComboboxOption {
@@ -55,6 +56,7 @@ export function Combobox({
   className,
   ...aria
 }: ComboboxProps) {
+  const layer = usePopoverLayerClass();
   const field = useFormField();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -100,7 +102,10 @@ export function Combobox({
         <Popover.Content
           sideOffset={4}
           align="start"
-          className="z-[var(--z-popover)] w-[var(--radix-popover-trigger-width)] min-w-56 rounded-md border border-line bg-surface-raised p-1 shadow-e2"
+          className={cn(
+            layer,
+            'w-[var(--radix-popover-trigger-width)] min-w-56 rounded-md border border-line bg-surface-raised p-1 shadow-e2',
+          )}
         >
           <Command shouldFilter={!onSearch} className="flex flex-col">
             <Command.Input

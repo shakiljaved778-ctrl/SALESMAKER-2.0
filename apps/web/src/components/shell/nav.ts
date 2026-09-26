@@ -68,8 +68,18 @@ export const ALL_NAV = [...MAIN_NAV, ...FOOTER_NAV];
 
 /** Sections that exist as routes but whose modules arrive in later phases. */
 export const PLACEHOLDER_SECTIONS = new Set(
-  ALL_NAV.filter((n) => n.key !== 'home').map((n) => n.key),
+  ALL_NAV.filter((n) => n.key !== 'home' && n.key !== 'setup').map((n) => n.key),
 );
+
+/** Items that need a system permission to appear (Setup needs view_setup, §6.2). */
+export const NAV_PERMISSION: Partial<Record<NavKey, string>> = { setup: 'view_setup' };
+
+export function visibleNav(items: NavItem[], permissions: readonly string[] | undefined) {
+  return items.filter((n) => {
+    const needed = NAV_PERMISSION[n.key];
+    return !needed || Boolean(permissions?.includes(needed));
+  });
+}
 
 export function navFor(pathname: string): NavItem | undefined {
   return ALL_NAV.find((n) => pathname === n.href || pathname.startsWith(`${n.href}/`));

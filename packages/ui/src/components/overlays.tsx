@@ -9,10 +9,10 @@ import {
 import { useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn.js';
+import { OverlayLayerContext, usePopoverLayerClass } from '../lib/layer.js';
 import { Button } from './button.js';
 
-const floating =
-  'z-[var(--z-popover)] rounded-md border border-line bg-surface-raised text-fg shadow-e2 animate-pop-in';
+const floating = 'rounded-md border border-line bg-surface-raised text-fg shadow-e2 animate-pop-in';
 
 /** Popover (§9.10): e-2, r-md. */
 export function Popover({
@@ -33,6 +33,7 @@ export function Popover({
   onOpenChange?: (open: boolean) => void;
   className?: string;
 }) {
+  const layer = usePopoverLayerClass();
   return (
     <PopoverPrimitive.Root
       {...(open === undefined ? {} : { open })}
@@ -44,7 +45,7 @@ export function Popover({
           aria-label={label}
           align={align}
           sideOffset={6}
-          className={cn(floating, 'w-72 p-3', className)}
+          className={cn(floating, layer, 'w-72 p-3', className)}
         >
           {children}
         </PopoverPrimitive.Content>
@@ -63,11 +64,15 @@ export function HoverCard({
   children: ReactNode;
   className?: string;
 }) {
+  const layer = usePopoverLayerClass();
   return (
     <HoverCardPrimitive.Root openDelay={300} closeDelay={100}>
       <HoverCardPrimitive.Trigger asChild>{trigger}</HoverCardPrimitive.Trigger>
       <HoverCardPrimitive.Portal>
-        <HoverCardPrimitive.Content sideOffset={6} className={cn(floating, 'w-80 p-3', className)}>
+        <HoverCardPrimitive.Content
+          sideOffset={6}
+          className={cn(floating, layer, 'w-80 p-3', className)}
+        >
           {children}
         </HoverCardPrimitive.Content>
       </HoverCardPrimitive.Portal>
@@ -202,25 +207,27 @@ export function Dialog({
             DIALOG_SIZES[size],
           )}
         >
-          <ModalHeader title={title} description={description} closeLabel={closeLabel} />
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-          {footer ? (
-            <footer className="flex justify-end gap-2 border-t border-line-subtle px-5 py-3">
-              {footer}
-            </footer>
-          ) : null}
-          {guard.confirming && discardCopy ? (
-            <DiscardConfirm
-              copy={discardCopy}
-              onKeep={() => {
-                guard.setConfirming(false);
-              }}
-              onDiscard={() => {
-                guard.setConfirming(false);
-                onOpenChange(false);
-              }}
-            />
-          ) : null}
+          <OverlayLayerContext.Provider value="modal">
+            <ModalHeader title={title} description={description} closeLabel={closeLabel} />
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+            {footer ? (
+              <footer className="flex justify-end gap-2 border-t border-line-subtle px-5 py-3">
+                {footer}
+              </footer>
+            ) : null}
+            {guard.confirming && discardCopy ? (
+              <DiscardConfirm
+                copy={discardCopy}
+                onKeep={() => {
+                  guard.setConfirming(false);
+                }}
+                onDiscard={() => {
+                  guard.setConfirming(false);
+                  onOpenChange(false);
+                }}
+              />
+            ) : null}
+          </OverlayLayerContext.Provider>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -252,25 +259,27 @@ export function Sheet({
             SHEET_SIZES[size],
           )}
         >
-          <ModalHeader title={title} description={description} closeLabel={closeLabel} />
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-          {footer ? (
-            <footer className="flex justify-end gap-2 border-t border-line-subtle px-5 py-3">
-              {footer}
-            </footer>
-          ) : null}
-          {guard.confirming && discardCopy ? (
-            <DiscardConfirm
-              copy={discardCopy}
-              onKeep={() => {
-                guard.setConfirming(false);
-              }}
-              onDiscard={() => {
-                guard.setConfirming(false);
-                onOpenChange(false);
-              }}
-            />
-          ) : null}
+          <OverlayLayerContext.Provider value="sheet">
+            <ModalHeader title={title} description={description} closeLabel={closeLabel} />
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
+            {footer ? (
+              <footer className="flex justify-end gap-2 border-t border-line-subtle px-5 py-3">
+                {footer}
+              </footer>
+            ) : null}
+            {guard.confirming && discardCopy ? (
+              <DiscardConfirm
+                copy={discardCopy}
+                onKeep={() => {
+                  guard.setConfirming(false);
+                }}
+                onDiscard={() => {
+                  guard.setConfirming(false);
+                  onOpenChange(false);
+                }}
+              />
+            ) : null}
+          </OverlayLayerContext.Provider>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

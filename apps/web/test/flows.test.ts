@@ -47,6 +47,7 @@ const USER = {
   density: 'default',
   mfaEnabled: false,
   workspace: { name: 'Acme Ltd', slug: 'acme' },
+  permissions: [],
 };
 const START = {
   authorizationUrl: 'http://idp.test/authorize?x=1',

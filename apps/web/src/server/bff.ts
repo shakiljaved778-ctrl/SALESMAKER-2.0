@@ -1,4 +1,5 @@
 import {
+  AcceptInvitationRequest,
   EmailRequest,
   LoginRequest,
   LoginResponse,
@@ -55,6 +56,8 @@ export async function tenantFor(
   }
 }
 
+export type CellMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+
 export interface CellResult {
   status: number;
   body: unknown;
@@ -70,7 +73,7 @@ export async function cellRequest(
   baseUrl: string,
   path: string,
   init: {
-    method?: 'GET' | 'POST' | 'PATCH';
+    method?: CellMethod;
     body?: unknown;
     headers?: Record<string, string>;
     request?: Request;
@@ -294,3 +297,68 @@ export const savePreferences: Handler = withTenantAndOrigin(async (request, deps
   const user = MeResponse.safeParse(result.body);
   return user.success ? json(user.data) : unavailable();
 });
+
+export const acceptInvitation: Handler = withTenantAndOrigin(async (request, deps, tenant) => {
+  const input = await readJson(request, AcceptInvitationRequest);
+  if (!input.success) return invalid(input.error);
+  const result = await callCell(deps, tenant, '/auth/invitations/accept', input.data, request);
+  return result ? loginOutcome(deps, result) : unavailable();
+});
+
+/** Cell routes the page may reach through the relay: the signed-in `/v1` API, nothing else. */
+const RELAYABLE = /^\/v1\/[A-Za-z0-9_\-/.]*$/;
+
+/**
+ * The page's signed-in API (§3.1): `/api/v1/…` relays to the workspace's cell `/v1/…` with the
+ * caller's bearer token, so the browser only ever talks to its own origin (CSP connect-src
+ * 'self'). The token is held in page memory, never in a cookie, so another site cannot make the
+ * browser send it; writes must also come from this origin. The cell decides everything else.
+ */
+export async function relayToCell(
+  request: Request,
+  deps: BffDeps,
+  method: CellMethod,
+): Promise<Response> {
+  const writing = method !== 'GET';
+  const origin = request.headers.get('origin');
+  if ((writing || origin) && !isSameOrigin(request, deps.scheme)) {
+    return problem(403, 'forbidden', 'Request refused', 'Cross-origin requests are not allowed.');
+  }
+  const authorization = request.headers.get('authorization');
+  if (!authorization?.startsWith('Bearer ')) {
+    return problem(401, 'unauthenticated', 'Sign in to continue');
+  }
+  const url = new URL(request.url);
+  const path = url.pathname.replace(/^\/api/, '');
+  if (!RELAYABLE.test(path) || path.split('/').some((s) => s === '..' || s === '.')) {
+    return problem(404, 'not_found', 'Not found');
+  }
+  const resolved = await tenantFor(request, deps);
+  if ('response' in resolved) return resolved.response;
+  let body: unknown;
+  if (writing && method !== 'DELETE') {
+    const text = await request.text();
+    if (text) {
+      try {
+        body = JSON.parse(text) as unknown;
+      } catch {
+        return problem(400, 'validation_failed', 'The request body is not JSON');
+      }
+    }
+  }
+  const headers: Record<string, string> = { authorization };
+  const idempotencyKey = request.headers.get('idempotency-key');
+  if (idempotencyKey) headers['idempotency-key'] = idempotencyKey;
+  const result = await cellRequest(deps, resolved.tenant.cell.apiBaseUrl, `${path}${url.search}`, {
+    method,
+    ...(body === undefined ? {} : { body }),
+    headers,
+    request,
+  });
+  if (!result) return unavailable();
+  if (result.status >= 400) return relayProblem(result);
+  if (result.status === 204 || result.body === undefined) {
+    return new Response(null, { status: result.status, headers: { 'cache-control': 'no-store' } });
+  }
+  return json(result.body, { status: result.status });
+}
