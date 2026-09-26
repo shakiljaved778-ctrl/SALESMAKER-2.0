@@ -8,7 +8,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T04** `feat(db): permission schema` — migration 0006 (profiles own a PROFILE set; STANDARD and MUTING sets; groups; assignments; system/object/field grants with dependency checks; kind triggers; `perm_version` bumps), `@sm/permissions` catalogue and default profiles, provisioned at signup.
 - [ ] **T05** `feat(permissions): permission engine`
 - [x] **T06** `feat(db): groups and queues` — migration 0007: `public_group`, `group_member`, `queue`, `queue_member`, `queue_object`; typed members (user, group, org unit, org unit + subordinates) with a cycle trigger; SQL expansion functions wrapped by `membership` in `@sm/db`.
-- [ ] **T07** `feat(worker): outbox + worker app`
+- [x] **T07** `feat(worker): outbox + worker app` — migration 0008 (daily-partitioned `outbox_event`, NOTIFY, owner-run partition maintenance); `outbox` API in `@sm/db`; `apps/worker` (relay via LISTEN + control-plane sweep, fair per-tenant priorities, retries, dead-letter queue, hourly maintenance); `GET /cp/v1/cells/self/tenants`.
 - [ ] **T08** `feat(sharing): OWD, closure and principals`
 - [ ] **T09** `feat(sharing): shares, rules and predicate`
 - [ ] **T10** `feat(access): AccessService + guards`

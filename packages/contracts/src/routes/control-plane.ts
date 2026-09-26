@@ -57,6 +57,18 @@ export const FindWorkspacesRequest = z
 
 const tenantIdParams = z.object({ tenantId: Uuid });
 
+export const CellTenantsQuery = z.object({
+  after: Uuid.optional().describe('Return tenant ids after this one (cursor from `next`)'),
+  limit: z.coerce.number().int().min(1).max(1000).default(500),
+});
+
+export const CellTenantPage = z
+  .object({
+    tenantIds: z.array(Uuid),
+    next: Uuid.nullable().describe('Cursor for the next page, or null on the last page'),
+  })
+  .meta({ id: 'CellTenantPage' });
+
 /** Control-plane API (§3.4): tenant directory, login routing and signup reservations. */
 export const controlPlaneRoutes = {
   listCells: defineRoute({
@@ -68,6 +80,19 @@ export const controlPlaneRoutes = {
     auth: 'public',
     visibility: 'internal',
     responses: { 200: { description: 'Cells', body: z.object({ cells: z.array(CellSummary) }) } },
+  }),
+  listCellTenants: defineRoute({
+    method: 'get',
+    path: '/cp/v1/cells/self/tenants',
+    operationId: 'listCellTenants',
+    summary: 'Ids of every tenant hosted by the calling cell (for cell-wide background sweeps)',
+    tags: ['tenants'],
+    auth: 'service',
+    visibility: 'internal',
+    request: { query: CellTenantsQuery },
+    responses: {
+      200: { description: 'One page of tenant ids, in id order', body: CellTenantPage },
+    },
   }),
   resolveTenant: defineRoute({
     method: 'get',

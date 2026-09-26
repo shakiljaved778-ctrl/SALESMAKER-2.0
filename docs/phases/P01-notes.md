@@ -36,3 +36,23 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   create and edit on contracts and orders; read on campaigns and products; `run_reports` and `use_ai_assistant`.
   Read Only: read everything, read-only FLS, `run_reports`. Organisations created before P01 get profiles from the
   identity seeds (T16).
+- **The outbox relay never reads across tenants (T07).** A commit that writes outbox events NOTIFYs `sm_outbox`
+  with its tenant id, and the relay drains that tenant inside an ordinary tenant transaction, so RLS still applies.
+  To catch events a missed notification left behind (worker down, listener reconnecting), a periodic sweep asks the
+  control plane for the cell's tenant ids (new service route `GET /cp/v1/cells/self/tenants`) and drains each one.
+  The alternatives were a cross-tenant relay role, or a global table of tenants with pending events; both would
+  need an RLS exemption, which is a tenancy change, so neither was used.
+- **Per-tenant fairness on open-source BullMQ (T07).** BullMQ's group keys are a paid Pro feature, which §0.3 rules
+  out. Instead, each queue counts every tenant's jobs in flight in Valkey, and a new job's priority is that count: a
+  tenant's first job runs at priority 1, its thousandth at 1000. The queue therefore interleaves tenants round-robin,
+  and one tenant's large import cannot starve the others. Completion or dead-lettering frees the slot.
+- **BullMQ 6.3.9 (MIT)** is pinned (ADR-0002 addendum at the P01 handoff). Custom job ids must not contain `:`, so
+  dead-letter ids are `<queue>.<job id>`.
+- **Outbox ordering (T07).** Events from one transaction share `created_at`, so a `seq` column (bigserial) orders
+  them; consumers see events in insert order within a tenant.
+- **Cell-wide system jobs (T07)** such as outbox partition maintenance carry `tenantId: null` and never touch tenant
+  rows. Partition DDL runs through `outbox_maintain_partitions()`, a `SECURITY DEFINER` function owned by the schema
+  owner. It creates daily partitions with forced RLS and drops those past the 7-day retention; the runtime role
+  holds no DDL rights.
+- **LISTEN needs a session (T07).** Behind PgBouncer's transaction pooling, set `CELL_DATABASE_LISTEN_URL` to a
+  direct database connection for the worker.

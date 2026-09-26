@@ -1,10 +1,11 @@
-import { ReservedTenant, type ProblemDetails } from '@sm/contracts';
+import { CellTenantPage, ReservedTenant, type ProblemDetails } from '@sm/contracts';
 import type { z } from 'zod';
 
 import { DomainError } from './problem.js';
 import { signServiceToken, type SigningKey } from './service-token.js';
 
 export type ReservedTenantDto = z.infer<typeof ReservedTenant>;
+export type CellTenantPageDto = z.infer<typeof CellTenantPage>;
 
 /** What a cell needs from the control plane (§3.4). Implemented over HTTP, or faked in tests. */
 export interface ControlPlane {
@@ -14,6 +15,8 @@ export interface ControlPlane {
   ): Promise<ReservedTenantDto>;
   activateTenant(tenantId: string): Promise<ReservedTenantDto>;
   releaseTenant(tenantId: string): Promise<void>;
+  /** One page of the ids of every tenant this cell hosts, in id order. */
+  listCellTenants(options?: { after?: string; limit?: number }): Promise<CellTenantPageDto>;
 }
 
 export class ControlPlaneUnavailableError extends Error {
@@ -58,6 +61,14 @@ export class HttpControlPlane implements ControlPlane {
 
   async releaseTenant(tenantId: string): Promise<void> {
     await this.call('DELETE', `/cp/v1/tenants/${encodeURIComponent(tenantId)}/reservation`);
+  }
+
+  async listCellTenants(options: { after?: string; limit?: number } = {}) {
+    const query = new URLSearchParams();
+    if (options.after) query.set('after', options.after);
+    if (options.limit) query.set('limit', String(options.limit));
+    const suffix = query.size ? `?${query.toString()}` : '';
+    return CellTenantPage.parse(await this.call('GET', `/cp/v1/cells/self/tenants${suffix}`));
   }
 
   private async call(

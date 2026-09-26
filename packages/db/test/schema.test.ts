@@ -88,6 +88,7 @@ describe('tenant tables (§3.5, §4.1)', () => {
         'idempotency_key',
         'mfa_factor',
         'mfa_recovery_code',
+        'outbox_event',
         'field_permission',
         'group_member',
         'object_permission',

@@ -44,6 +44,19 @@ describe('FakeControlPlane', () => {
     expect(again.tenantId).not.toBe(first.tenantId);
   });
 
+  it('pages through its tenants in id order', async () => {
+    const cp = new FakeControlPlane();
+    for (const slug of ['a', 'b', 'c']) await cp.reserveTenant(slug, { slug, ...owner });
+    const all = await cp.listCellTenants();
+    expect(all.tenantIds).toEqual([...cp.tenants.keys()].sort());
+    expect(all.next).toBeNull();
+    const first = await cp.listCellTenants({ limit: 2 });
+    expect(first.next).toBe(first.tenantIds[1]);
+    const rest = await cp.listCellTenants({ limit: 2, after: first.next ?? '' });
+    expect([...first.tenantIds, ...rest.tenantIds]).toEqual(all.tenantIds);
+    expect(rest.next).toBeNull();
+  });
+
   it('simulates an outage on every call', async () => {
     const cp = new FakeControlPlane();
     cp.unavailable = true;
@@ -52,5 +65,6 @@ describe('FakeControlPlane', () => {
     );
     await expect(cp.activateTenant('t')).rejects.toBeInstanceOf(ControlPlaneUnavailableError);
     await expect(cp.releaseTenant('t')).rejects.toBeInstanceOf(ControlPlaneUnavailableError);
+    await expect(cp.listCellTenants()).rejects.toBeInstanceOf(ControlPlaneUnavailableError);
   });
 });

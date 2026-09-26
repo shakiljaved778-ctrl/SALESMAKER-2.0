@@ -48,6 +48,24 @@ describe('HttpControlPlane ⇄ control-api', () => {
     expect(await client.activateTenant(first.tenantId)).toMatchObject({ status: 'ACTIVE' });
   });
 
+  it('pages through the cell’s tenant ids', async () => {
+    const { tenantId } = await client.reserveTenant('signup:list-0001', {
+      slug: 'listed-co',
+      name: 'Listed Co',
+      ownerEmailHmac: hmac('owner@listed.test'),
+    });
+    const ids: string[] = [];
+    let after: string | undefined;
+    for (;;) {
+      const page = await client.listCellTenants({ limit: 1, ...(after ? { after } : {}) });
+      ids.push(...page.tenantIds);
+      if (!page.next) break;
+      after = page.next;
+    }
+    expect(ids).toContain(tenantId);
+    expect((await client.listCellTenants()).tenantIds).toEqual(ids);
+  });
+
   it('maps a taken slug to a 409 DomainError', async () => {
     await client.reserveTenant('signup:taken-0001', {
       slug: 'taken-contract',

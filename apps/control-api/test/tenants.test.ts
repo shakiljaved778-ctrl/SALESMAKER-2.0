@@ -190,6 +190,37 @@ describe('tenant lifecycle', () => {
   });
 });
 
+describe('GET /cp/v1/cells/self/tenants', () => {
+  const list = async (query = '', cell: 'eu-central-1' | 'me-central-1' | null = 'eu-central-1') =>
+    cp.app.inject({
+      method: 'GET',
+      url: `/cp/v1/cells/self/tenants${query}`,
+      headers: cell ? { authorization: `Bearer ${await cp.tokenFor(cell)}` } : {},
+    });
+
+  it('requires a service token', async () => {
+    expect((await list('', null)).statusCode).toBe(401);
+  });
+
+  it('pages through the calling cell’s tenants only, in id order', async () => {
+    for (const slug of ['page-one', 'page-two', 'page-three']) await reserve(slug);
+    const all = (await list('?limit=1000')).json<{ tenantIds: string[]; next: null }>();
+    expect(all.next).toBeNull();
+    expect(all.tenantIds).toEqual([...all.tenantIds].sort());
+    expect(all.tenantIds.length).toBeGreaterThanOrEqual(3);
+
+    const first = (await list('?limit=2')).json<{ tenantIds: string[]; next: string }>();
+    expect(first.tenantIds).toEqual(all.tenantIds.slice(0, 2));
+    expect(first.next).toBe(first.tenantIds[1]);
+    const second = (await list(`?limit=2&after=${first.next}`)).json<{ tenantIds: string[] }>();
+    expect(second.tenantIds).toEqual(all.tenantIds.slice(2, 4));
+
+    const other = (await list('', 'me-central-1')).json<{ tenantIds: string[] }>();
+    for (const id of other.tenantIds) expect(all.tenantIds).not.toContain(id);
+    expect((await list('?limit=0')).statusCode).toBe(400);
+  });
+});
+
 describe('POST /cp/v1/workspaces/find', () => {
   it('always answers 202 and emails the workspace list to the address', async () => {
     const { tenantId } = (await reserve('golf', { email: 'Owner@Golf.test' })).json<{

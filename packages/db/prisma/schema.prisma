@@ -620,3 +620,25 @@ model QueueObject {
   @@index([tenantId, object])
   @@map("queue_object")
 }
+
+/// Transactional outbox (§3.7, §3.9): written in the same transaction as the change it announces,
+/// published to BullMQ by the worker's relay after commit. Partitioned by day (created_at), kept
+/// for 7 days; partitions are created and dropped by outbox_maintain_partitions().
+model OutboxEvent {
+  tenantId      String    @map("tenant_id") @db.Uuid
+  id            String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// Insert order: events of one transaction share created_at, and consumers see them in order.
+  seq           BigInt    @default(autoincrement())
+  /// `<queue>.<event>`, e.g. `sharing.owner_changed`; the prefix picks the BullMQ queue.
+  topic         String
+  aggregateType String?   @map("aggregate_type")
+  aggregateId   String?   @map("aggregate_id") @db.Uuid
+  payload       Json      @default("{}")
+  /// Set by the relay once the job is in BullMQ (at-least-once; the job id is this row's id).
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(6)
+
+  @@id([tenantId, createdAt, id])
+  @@index([tenantId, publishedAt, createdAt])
+  @@map("outbox_event")
+}

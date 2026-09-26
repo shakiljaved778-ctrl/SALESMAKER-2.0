@@ -72,6 +72,20 @@ export class FakeControlPlane implements ControlPlane {
     return Promise.resolve();
   }
 
+  listCellTenants(options: { after?: string; limit?: number } = {}) {
+    if (this.unavailable)
+      return Promise.reject(new ControlPlaneUnavailableError(new Error('fake outage')));
+    const limit = options.limit ?? 500;
+    const ids = [...this.tenants.keys()]
+      .sort()
+      .filter((id) => !options.after || id > options.after);
+    const tenantIds = ids.slice(0, limit);
+    return Promise.resolve({
+      tenantIds,
+      next: ids.length > limit ? (tenantIds.at(-1) ?? null) : null,
+    });
+  }
+
   statusOf(tenantId: string): string | undefined {
     return this.tenants.get(tenantId)?.status;
   }

@@ -19,3 +19,11 @@ export {
 } from './tenant.js';
 export { auditRowLevelSecurity, type RlsViolation } from './rls-audit.js';
 export { membership } from './membership.js';
+export {
+  outbox,
+  QUEUES,
+  queueOf,
+  type OutboxEvent,
+  type OutboxMessage,
+  type QueueName,
+} from './outbox.js';

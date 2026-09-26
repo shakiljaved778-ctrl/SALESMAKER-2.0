@@ -26,6 +26,18 @@ export class CellsService {
     return Promise.resolve(this.keys.get(cellId));
   }
 
+  /** Tenant ids hosted by a cell, in id order, one page at a time. */
+  async tenantsOf(cellId: string, page: { after?: string | undefined; limit: number }) {
+    const rows = await this.prisma.tenant.findMany({
+      where: { cellId, ...(page.after ? { id: { gt: page.after } } : {}) },
+      orderBy: { id: 'asc' },
+      take: page.limit + 1,
+      select: { id: true },
+    });
+    const tenantIds = rows.slice(0, page.limit).map((r) => r.id);
+    return { tenantIds, next: rows.length > page.limit ? (tenantIds.at(-1) ?? null) : null };
+  }
+
   async list() {
     const cells = await this.prisma.cell.findMany({ orderBy: { id: 'asc' } });
     return cells.map(({ id, region, label, apiBaseUrl, signupOpen }) => ({
