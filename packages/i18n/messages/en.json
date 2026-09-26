@@ -553,7 +553,11 @@
       "security": "Security"
     },
     "items": {
-      "users": "Users"
+      "users": "Users",
+      "orgUnits": "Org hierarchy",
+      "profiles": "Profiles",
+      "permissionSets": "Permission sets",
+      "permissionSetGroups": "Permission set groups"
     },
     "forbidden": {
       "title": "Setup is for administrators",
@@ -570,7 +574,26 @@
       "invalid": "Some fields need attention.",
       "reload": "Reload",
       "edit": "Edit",
-      "back": "Back"
+      "back": "Back",
+      "create": "Create",
+      "delete": "Delete",
+      "rename": "Rename",
+      "name": "Name",
+      "description": "Description",
+      "nameTaken": "That name is already in use.",
+      "inUse": "It's still in use, so it can't be deleted.",
+      "deleted": "{name} deleted",
+      "created": "{name} created",
+      "builtIn": "Built-in",
+      "users": "Users",
+      "deleteTitle": "Delete {name}?",
+      "deleteBody": "This can't be undone.",
+      "discardTitle": "Discard your changes?",
+      "discardBody": "You have unsaved changes.",
+      "discard": "Discard",
+      "keepEditing": "Keep editing",
+      "saveChanges": "Save changes",
+      "unsaved": "Unsaved changes"
     },
     "users": {
       "title": "Users",
@@ -645,6 +668,90 @@
         "discard": "Discard",
         "keepEditing": "Keep editing"
       }
+    },
+    "orgUnits": {
+      "title": "Org hierarchy",
+      "description": "Your company's structure. People see the records of everyone in the units below theirs.",
+      "addRoot": "Add top-level unit",
+      "addChild": "Add unit below",
+      "move": "Move",
+      "moveTitle": "Move {name}",
+      "moveBody": "The whole branch moves with it. People above its new position will see its records.",
+      "newParent": "New parent",
+      "topLevel": "Top level (no parent)",
+      "moved": "{name} moved",
+      "createTitle": "New org unit",
+      "parent": "Parent",
+      "treeLabel": "Org units",
+      "selectHint": "Select a unit to see its details.",
+      "userCount": "{count, plural, =0 {No users} one {# user} other {# users}}",
+      "cycle": "A unit can't move under itself or one of its own units.",
+      "notEmpty": "Move its users and the units below it elsewhere first, and remove it from groups, queues and sharing rules.",
+      "empty": {
+        "title": "No org units yet",
+        "description": "Add a top-level unit for your company, then the teams below it."
+      }
+    },
+    "profiles": {
+      "title": "Profiles",
+      "description": "Every user has one profile. It sets the baseline of what they can do.",
+      "new": "New profile",
+      "cloneFrom": "Copy permissions from",
+      "cloneNone": "Start with no permissions",
+      "adminLocked": "The System Administrator profile always keeps full access, so its permissions can't be changed.",
+      "builtInDelete": "Built-in profiles can't be deleted.",
+      "usersAssigned": "Give this profile's users another profile first.",
+      "empty": {
+        "title": "No profiles",
+        "description": "Create a profile to give a group of users the same baseline access."
+      }
+    },
+    "permissionSets": {
+      "title": "Permission sets",
+      "description": "Extra access you can give specific users on top of their profile.",
+      "new": "New permission set",
+      "assigned": "Assigned users",
+      "inGroups": "In groups",
+      "inUse": "Unassign this permission set and remove it from its groups first.",
+      "empty": {
+        "title": "No permission sets yet",
+        "description": "Create one to grant extra access to a few users without changing their profile."
+      }
+    },
+    "permissionSetGroups": {
+      "title": "Permission set groups",
+      "description": "Bundle permission sets for a role, and mute anything the bundle shouldn't grant.",
+      "new": "New permission set group",
+      "sets": "Permission sets in this group",
+      "noSets": "No permission sets yet.",
+      "muting": "Muted permissions",
+      "mutingHelp": "Ticked permissions are removed from what this group's sets grant. Access from the profile or other sets is not affected.",
+      "addMuting": "Mute permissions",
+      "removeMuting": "Stop muting",
+      "inUse": "Unassign this group from its users first.",
+      "empty": {
+        "title": "No permission set groups yet",
+        "description": "Group permission sets that always go together, like everything a team lead needs."
+      }
+    },
+    "grants": {
+      "system": "System permissions",
+      "objects": "Object permissions",
+      "fields": "Field permissions",
+      "object": "Object",
+      "field": "Field",
+      "read": "Read",
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete",
+      "viewAll": "View all",
+      "modifyAll": "Modify all",
+      "chooseObject": "Object",
+      "dependencyNote": "Some permissions include others: Edit includes Read, Delete includes Edit, and Modify all includes Delete and View all.",
+      "mutingNote": "Tick what to remove.",
+      "noFields": "Field-level security doesn't apply to any field of this object.",
+      "readOnlyNote": "You can view these permissions but not change them.",
+      "label": "Permissions"
     }
   }
 }

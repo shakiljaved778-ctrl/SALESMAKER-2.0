@@ -255,6 +255,12 @@ importers:
       '@sm/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@sm/metadata':
+        specifier: workspace:*
+        version: link:../../packages/metadata
+      '@sm/permissions':
+        specifier: workspace:*
+        version: link:../../packages/permissions
       '@sm/ui':
         specifier: workspace:*
         version: link:../../packages/ui

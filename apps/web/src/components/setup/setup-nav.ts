@@ -3,7 +3,8 @@
  * list pages that exist. Later phases add their items here.
  */
 /** Keys of `setup.items` / `setup.groups` in the message catalogue. */
-export type SetupItemKey = 'users';
+export type SetupItemKey =
+  'users' | 'orgUnits' | 'profiles' | 'permissionSets' | 'permissionSetGroups';
 export type SetupGroupKey = 'usersAccess' | 'security';
 
 export interface SetupItem {
@@ -17,7 +18,16 @@ export interface SetupGroup {
 }
 
 export const SETUP_TREE: SetupGroup[] = [
-  { key: 'usersAccess', items: [{ key: 'users', href: '/setup/users' }] },
+  {
+    key: 'usersAccess',
+    items: [
+      { key: 'users', href: '/setup/users' },
+      { key: 'orgUnits', href: '/setup/org-units' },
+      { key: 'profiles', href: '/setup/profiles' },
+      { key: 'permissionSets', href: '/setup/permission-sets' },
+      { key: 'permissionSetGroups', href: '/setup/permission-set-groups' },
+    ],
+  },
 ];
 
 export const SETUP_HOME = '/setup/users';

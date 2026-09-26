@@ -181,3 +181,10 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   §9 z-scale tokens are unchanged.
 - **Next.js agent files.** `next dev` writes `AGENTS.md` and `CLAUDE.md` into the app; `agentRules: false` in
   `next.config.ts` turns that off so they are never committed.
+- **Grants editor (T18).** One editor serves profiles, permission sets and muting sets. Ticking an object flag
+  brings its dependencies (Edit brings Read) and unticking removes what depended on it, with the same rules the
+  server applies (`@sm/permissions`); a muting set keeps exactly what is ticked. Saving a profile or set renames it
+  first and then replaces its grants, each with the version the previous step returned.
+- **Moving an org unit (T18)** is a dialog with a parent picker that leaves out the unit and its own subtree, so a
+  move never needs drag and drop; the tree itself follows the WAI-ARIA tree pattern (roving focus, arrows,
+  Home/End, Enter to select, mirrored arrows in RTL).
