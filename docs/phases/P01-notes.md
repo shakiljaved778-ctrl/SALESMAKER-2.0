@@ -188,3 +188,12 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Moving an org unit (T18)** is a dialog with a parent picker that leaves out the unit and its own subtree, so a
   move never needs drag and drop; the tree itself follows the WAI-ARIA tree pattern (roving focus, arrows,
   Home/End, Enter to select, mirrored arrows in RTL).
+- **Rules before P02 (T19).** Standard objects get record tables in P02, so until then a sharing rule's
+  recalculation found no table and failed. The worker now checks for the object's table first: with none, there are
+  no records to share and the job run succeeds with 0 of 0. A failed recalculation shows a plain message in Setup;
+  the underlying error stays on `job_run.error` for support.
+- **Rule editor (T19).** Criteria are edited as a list of conditions that must all match (equals, does not equal,
+  contains, starts with, is empty, is not empty) on the object's text-like fields. Criteria written through the
+  API in other shapes are shown as read-only. Editing a rule sends its source, criteria or target only when they
+  changed, so renaming a rule does not recalculate it. The page polls every 2 s while a run is queued or running,
+  for at most two minutes.

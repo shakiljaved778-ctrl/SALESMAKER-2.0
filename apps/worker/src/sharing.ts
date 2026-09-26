@@ -58,6 +58,17 @@ async function runRecalculation(
       tx.jobRun.update({ where: { tenantId_id: { tenantId, id: jobRunId } }, data }),
     );
   await setRun({ status: 'RUNNING', startedAt: new Date(), error: null });
+  const table = options.recordTable(stored.object);
+  // An object whose records have no table yet (standard objects before P02) has nothing to
+  // share: the rule is up to date with zero records.
+  const exists = await inTenant(
+    ({ prisma: tx }) =>
+      tx.$queryRaw<{ ok: boolean }[]>`SELECT to_regclass(${`public.${table}`}) IS NOT NULL AS ok`,
+  );
+  if (exists[0]?.ok !== true) {
+    await setRun({ status: 'SUCCEEDED', done: 0, total: 0, finishedAt: new Date() });
+    return;
+  }
   const rule: SharingRuleDefinition = {
     id: stored.id,
     object: stored.object,
@@ -74,7 +85,7 @@ async function runRecalculation(
     const result = await recalculateRule((fn) => inTenant((tx) => fn(tx.kysely as unknown as Db)), {
       tenantId,
       rule,
-      recordTable: options.recordTable(rule.object),
+      recordTable: table,
       batchSize: options.batchSize,
       onProgress: async ({ done, total }) => {
         await setRun({ done, total });

@@ -185,16 +185,49 @@ describe('sharing rule jobs (§6.4)', () => {
     );
   });
 
+  it('succeeds with zero records for an object that has no records table yet', async () => {
+    const jobRunId = await w.inTenant(tenantId, async (tx) => {
+      const rule = await tx.prisma.sharingRule.create({
+        data: {
+          tenantId,
+          object: 'nothing', // no fx_nothing table: like standard objects before P02
+          name: 'no table yet',
+          kind: 'OWNER',
+          sourceType: 'GROUP',
+          sourceId: groupId,
+          targetType: 'GROUP',
+          targetId: groupId,
+          access: 1,
+        },
+      });
+      const run = await tx.prisma.jobRun.create({
+        data: { tenantId, kind: RULE_CHANGED, subjectId: rule.id },
+      });
+      await outbox.emit(tx, {
+        topic: RULE_CHANGED,
+        payload: { ruleId: rule.id, jobRunId: run.id },
+      });
+      return run.id;
+    });
+    const run = await eventually(async () => {
+      const r = await w.inTenant(tenantId, (tx) =>
+        tx.prisma.jobRun.findUniqueOrThrow({ where: { tenantId_id: { tenantId, id: jobRunId } } }),
+      );
+      return r.status === 'SUCCEEDED' ? r : undefined;
+    });
+    expect(run).toMatchObject({ done: 0, total: 0, error: null });
+  });
+
   it('marks the job run failed when recalculation fails', async () => {
     const jobRunId = await w.inTenant(tenantId, async (tx) => {
       const broken = await tx.prisma.sharingRule.create({
         data: {
           tenantId,
-          object: 'nothing', // no fx_nothing table
+          object: 'account',
           name: 'broken',
-          kind: 'OWNER',
-          sourceType: 'GROUP',
-          sourceId: groupId,
+          kind: 'CRITERIA',
+          // A column fx_account does not have: the recalculation query itself fails.
+          criteria: { field: 'no_such_column', op: 'eq', value: 'x' },
           targetType: 'GROUP',
           targetId: groupId,
           access: 1,
@@ -215,6 +248,6 @@ describe('sharing rule jobs (§6.4)', () => {
       );
       return r.status === 'FAILED' ? r : undefined;
     }, 20_000);
-    expect(run.error).toMatch(/fx_nothing/);
+    expect(run.error).toMatch(/no_such_column/);
   });
 });

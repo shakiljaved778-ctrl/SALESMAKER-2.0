@@ -4,8 +4,15 @@
  */
 /** Keys of `setup.items` / `setup.groups` in the message catalogue. */
 export type SetupItemKey =
-  'users' | 'orgUnits' | 'profiles' | 'permissionSets' | 'permissionSetGroups';
-export type SetupGroupKey = 'usersAccess' | 'security';
+  | 'users'
+  | 'orgUnits'
+  | 'profiles'
+  | 'permissionSets'
+  | 'permissionSetGroups'
+  | 'groups'
+  | 'queues'
+  | 'sharing';
+export type SetupGroupKey = 'usersAccess' | 'sharing' | 'security';
 
 export interface SetupItem {
   key: SetupItemKey;
@@ -26,6 +33,14 @@ export const SETUP_TREE: SetupGroup[] = [
       { key: 'profiles', href: '/setup/profiles' },
       { key: 'permissionSets', href: '/setup/permission-sets' },
       { key: 'permissionSetGroups', href: '/setup/permission-set-groups' },
+    ],
+  },
+  {
+    key: 'sharing',
+    items: [
+      { key: 'groups', href: '/setup/groups' },
+      { key: 'queues', href: '/setup/queues' },
+      { key: 'sharing', href: '/setup/sharing' },
     ],
   },
 ];

@@ -550,14 +550,18 @@
     "noMatches": "No Setup pages match",
     "groups": {
       "usersAccess": "Users & access",
-      "security": "Security"
+      "security": "Security",
+      "sharing": "Sharing"
     },
     "items": {
       "users": "Users",
       "orgUnits": "Org hierarchy",
       "profiles": "Profiles",
       "permissionSets": "Permission sets",
-      "permissionSetGroups": "Permission set groups"
+      "permissionSetGroups": "Permission set groups",
+      "groups": "Public groups",
+      "queues": "Queues",
+      "sharing": "Sharing settings"
     },
     "forbidden": {
       "title": "Setup is for administrators",
@@ -752,6 +756,110 @@
       "noFields": "Field-level security doesn't apply to any field of this object.",
       "readOnlyNote": "You can view these permissions but not change them.",
       "label": "Permissions"
+    },
+    "members": {
+      "title": "Members",
+      "add": "Add member",
+      "type": "Member type",
+      "member": "Member",
+      "remove": "Remove {name}",
+      "none": "No members yet.",
+      "types": {
+        "user": "User",
+        "group": "Public group",
+        "orgUnit": "Org unit",
+        "orgUnitAndSubordinates": "Org unit and below"
+      },
+      "userCount": "{count, plural, =0 {No users} one {# user} other {# users}} in total, through nested groups and units"
+    },
+    "publicGroups": {
+      "title": "Public groups",
+      "description": "Groups of people to share records with. Groups can contain users, org units and other groups.",
+      "new": "New public group",
+      "inUse": "Remove this group from other groups and queues, and from sharing rules, first.",
+      "cycle": "A group can't contain itself, directly or through other groups.",
+      "empty": {
+        "title": "No public groups yet",
+        "description": "Create a group to share records with a team that doesn't match your hierarchy."
+      },
+      "conflict": "That name is already in use, or the change would make a group contain itself."
+    },
+    "queues": {
+      "title": "Queues",
+      "description": "Shared inboxes that own records until someone takes them. Members see and work everything in the queue.",
+      "new": "New queue",
+      "email": "Queue email",
+      "objects": "Objects this queue holds",
+      "objectsRequired": "Choose at least one object.",
+      "empty": {
+        "title": "No queues yet",
+        "description": "Create a queue so unassigned leads wait where the whole team can pick them up."
+      }
+    },
+    "sharing": {
+      "title": "Sharing settings",
+      "description": "Org-wide defaults decide the baseline; sharing rules open access up from there.",
+      "owdTitle": "Org-wide defaults",
+      "owdHelp": "The access everyone has to records they don't own. People above the owner in the hierarchy always see them.",
+      "object": "Object",
+      "defaultAccess": "Default access",
+      "owdSaved": "{object} is now {model}",
+      "models": {
+        "private": "Private",
+        "publicRead": "Public read only",
+        "publicReadWrite": "Public read/write",
+        "controlledByParent": "Controlled by parent"
+      },
+      "rulesTitle": "Sharing rules",
+      "rulesHelp": "Rules give groups or org units access to records they couldn't otherwise see.",
+      "convergence": "After a change, access is recalculated in the background. It reaches everyone within about a minute.",
+      "newRule": "New sharing rule",
+      "noRules": "No sharing rules yet. Records are shared only through the defaults and the hierarchy.",
+      "rule": {
+        "object": "Object",
+        "name": "Rule name",
+        "kind": "Share records",
+        "owner": "Owned by members of",
+        "criteria": "That match criteria",
+        "source": "Owners",
+        "target": "Share with",
+        "access": "Access",
+        "read": "Read only",
+        "edit": "Read/write",
+        "active": "Active",
+        "inactive": "Inactive",
+        "field": "Field",
+        "operator": "Operator",
+        "value": "Value",
+        "addCondition": "Add condition",
+        "removeCondition": "Remove condition",
+        "allConditions": "Records must match all conditions.",
+        "advanced": "These criteria were set up through the API and can't be edited here.",
+        "ops": {
+          "eq": "equals",
+          "ne": "does not equal",
+          "contains": "contains",
+          "startsWith": "starts with",
+          "isNull": "is empty",
+          "isNotNull": "is not empty"
+        },
+        "principal": {
+          "group": "Public group",
+          "orgUnit": "Org unit",
+          "orgUnitAndSubordinates": "Org unit and below"
+        },
+        "noRulesObject": "Sharing rules can't be used while this object is {model}.",
+        "saved": "Rule saved. Access is being recalculated.",
+        "deleted": "Rule deleted. Its shares are being removed."
+      },
+      "run": {
+        "queued": "Recalculation queued",
+        "running": "Recalculating: {done} of {total}",
+        "runningUnknown": "Recalculating…",
+        "succeeded": "Up to date",
+        "failed": "Recalculation failed. Save the rule again to retry.",
+        "never": "Not calculated yet"
+      }
     }
   }
 }

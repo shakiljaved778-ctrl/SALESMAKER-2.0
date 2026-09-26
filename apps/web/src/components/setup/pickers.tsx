@@ -60,7 +60,7 @@ export function UserPicker({
 }: {
   value: string | null;
   initial?: { id: string; name: string } | null;
-  onChange: (id: string | null) => void;
+  onChange: (id: string | null, name?: string) => void;
   placeholder: string;
   exclude?: string;
 }) {
@@ -96,7 +96,7 @@ export function UserPicker({
       options={[{ value: '', label: tc('none') }, ...options]}
       value={value ?? ''}
       onValueChange={(v) => {
-        onChange(v || null);
+        onChange(v || null, options.find((o) => o.value === v)?.label);
       }}
       onSearch={search}
       loading={loading}
