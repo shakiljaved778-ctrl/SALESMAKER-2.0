@@ -1,0 +1,31 @@
+{
+  "name": "@sm/query-engine",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The Query Engine (§3.8). P01: the filter tree shared by sharing rules and list views, and the record-sharing predicate (§6.4). P02 adds SMQ.",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "kysely": "0.29.6",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@sm/db": "workspace:*",
+    "@types/node": "26.6.2",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2",
+    "pg": "8.23.0",
+    "@types/pg": "8.23.1"
+  }
+}

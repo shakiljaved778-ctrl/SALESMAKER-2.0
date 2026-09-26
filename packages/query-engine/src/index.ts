@@ -1,0 +1,36 @@
+export {
+  COMPARISON_OPS,
+  compileFilter,
+  evaluateFilter,
+  filterFields,
+  filterSql,
+  FilterNodeSchema,
+  parseFilter,
+  TEXT_OPS,
+  type FilterCondition,
+  type FilterNode,
+} from './filter.js';
+export {
+  ACCESS_LEVEL,
+  MAX_PARENT_DEPTH,
+  sharingPredicate,
+  type AccessLevel,
+  type ObjectSharing,
+  type SharingContext,
+  type SharingModel,
+  type SharingPrincipals,
+} from './sharing-predicate.js';
+export {
+  evaluateRulesForRecord,
+  grantManualShare,
+  NIL_UUID,
+  recalculateRule,
+  removeRuleShares,
+  revokeManualShare,
+  ruleMatches,
+  type Db,
+  type PrincipalRef,
+  type RecalculationProgress,
+  type SharePrincipalType,
+  type SharingRuleDefinition,
+} from './sharing-rules.js';

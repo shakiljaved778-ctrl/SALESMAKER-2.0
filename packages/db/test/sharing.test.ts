@@ -214,3 +214,61 @@ describe('principalsOf (§6.4)', () => {
     expect(await version()).toBeGreaterThan(before);
   });
 });
+
+describe('record_share (§6.4)', () => {
+  it('keeps a partition per object, adds one for a new object, and rejects bad names', async () => {
+    const partitions = async () => {
+      const admin = new pg.Client({ connectionString: db.adminUrl });
+      await admin.connect();
+      try {
+        const { rows } = await admin.query<{ relname: string }>(
+          `SELECT c.relname FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
+           WHERE i.inhparent = 'record_share'::regclass ORDER BY 1`,
+        );
+        return rows.map((r) => r.relname);
+      } finally {
+        await admin.end();
+      }
+    };
+    expect(await partitions()).toEqual(
+      expect.arrayContaining([
+        'record_share_default',
+        'record_share_lead',
+        'record_share_opportunity',
+      ]),
+    );
+    await prisma.$queryRaw`SELECT record_share_ensure_partition('project__c')`;
+    await prisma.$queryRaw`SELECT record_share_ensure_partition('project__c')`; // idempotent
+    expect(await partitions()).toContain('record_share_project__c');
+    await expect(
+      prisma.$queryRaw`SELECT record_share_ensure_partition('Bad; name')`,
+    ).rejects.toThrow(/invalid object api name/);
+  });
+
+  it('enforces access levels and the manual-share source', async () => {
+    const base = {
+      tenantId: TENANT,
+      object: 'lead',
+      recordId: id['cara'] ?? '',
+      principalType: 'USER' as const,
+      principalId: id['sam'] ?? '',
+    };
+    await expect(
+      inTenant(TENANT, ({ prisma: tx }) =>
+        tx.recordShare.create({ data: { ...base, access: 4, reason: 'MANUAL' } }),
+      ),
+    ).rejects.toThrow(/record_share_access/);
+    await expect(
+      inTenant(TENANT, ({ prisma: tx }) =>
+        tx.recordShare.create({
+          data: { ...base, access: 1, reason: 'MANUAL', sourceId: id['ceo'] ?? '' },
+        }),
+      ),
+    ).rejects.toThrow(/record_share_manual_source/);
+    const share = await inTenant(TENANT, ({ prisma: tx }) =>
+      tx.recordShare.create({ data: { ...base, access: 1, reason: 'MANUAL' } }),
+    );
+    expect(share.sourceId).toBe('00000000-0000-0000-0000-000000000000');
+    expect(await inTenant(OTHER, ({ prisma: tx }) => tx.recordShare.count())).toBe(0);
+  });
+});

@@ -681,3 +681,118 @@ model UserVisibilityClosure {
   @@index([tenantId, ownerId])
   @@map("user_visibility_closure")
 }
+
+/// Who a share or a sharing rule names (§6.3, §6.4).
+enum SharePrincipalType {
+  USER
+  GROUP
+  QUEUE
+  /// Users in exactly this org unit (a Salesforce "role").
+  ORG_UNIT
+  /// Users in this org unit or any unit below it.
+  ORG_UNIT_AND_SUBORDINATES
+
+  @@map("share_principal_type")
+}
+
+/// Why a share exists (§6.4).
+enum ShareReason {
+  RULE
+  MANUAL
+  TEAM
+  TERRITORY
+  IMPLICIT_PARENT
+  IMPLICIT_CHILD
+
+  @@map("share_reason")
+}
+
+enum SharingRuleKind {
+  /// Records owned by members of a group or org unit.
+  OWNER
+  /// Records that match a filter.
+  CRITERIA
+
+  @@map("sharing_rule_kind")
+}
+
+/// An explicit grant of access to one record (§6.4), LIST-partitioned by object. `access` is 1 Read,
+/// 2 Read-Write, 3 Full. `source_id` names what created it (the rule, team membership, territory or
+/// parent record), and the nil UUID for manual shares, so each source grants a principal once.
+model RecordShare {
+  tenantId      String             @map("tenant_id") @db.Uuid
+  object        String
+  id            String             @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  recordId      String             @map("record_id") @db.Uuid
+  principalType SharePrincipalType @map("principal_type")
+  principalId   String             @map("principal_id") @db.Uuid
+  access        Int                @db.SmallInt
+  reason        ShareReason
+  sourceId      String             @default(dbgenerated("'00000000-0000-0000-0000-000000000000'::uuid")) @map("source_id") @db.Uuid
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?            @map("created_by") @db.Uuid
+
+  @@id([tenantId, object, id])
+  @@unique([tenantId, object, recordId, principalType, principalId, reason, sourceId])
+  @@index([tenantId, object, principalId, recordId])
+  @@index([tenantId, object, reason, sourceId])
+  @@map("record_share")
+}
+
+/// A sharing rule (§6.3): owner-based (records owned by members of `source`) or criteria-based
+/// (records matching `criteria`), shared with `target` at Read or Read-Write.
+model SharingRule {
+  tenantId    String              @map("tenant_id") @db.Uuid
+  id          String              @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object      String
+  name        String
+  description String?
+  kind        SharingRuleKind
+  sourceType  SharePrincipalType? @map("source_type")
+  sourceId    String?             @map("source_id") @db.Uuid
+  /// Filter tree (@sm/query-engine FilterNode) for criteria rules.
+  criteria    Json?
+  targetType  SharePrincipalType  @map("target_type")
+  targetId    String              @map("target_id") @db.Uuid
+  access      Int                 @db.SmallInt
+  active      Boolean             @default(true)
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy   String?             @map("created_by") @db.Uuid
+  updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?             @map("updated_by") @db.Uuid
+  version     Int                 @default(1)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, name])
+  @@index([tenantId, object, active])
+  @@map("sharing_rule")
+}
+
+enum JobRunStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+
+  @@map("job_run_status")
+}
+
+/// Progress of a long tenant job (sharing recalculation, imports, …) for Setup to show.
+model JobRun {
+  tenantId   String       @map("tenant_id") @db.Uuid
+  id         String       @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  kind       String
+  subjectId  String?      @map("subject_id") @db.Uuid
+  status     JobRunStatus @default(QUEUED)
+  done       Int          @default(0)
+  total      Int?
+  error      String?
+  createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy  String?      @map("created_by") @db.Uuid
+  startedAt  DateTime?    @map("started_at") @db.Timestamptz(6)
+  finishedAt DateTime?    @map("finished_at") @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@index([tenantId, kind, subjectId, createdAt])
+  @@map("job_run")
+}

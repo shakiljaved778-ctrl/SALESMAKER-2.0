@@ -70,3 +70,21 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   them), or emit `sharing.visibility_changed` for the worker. The Setup API (T14) chooses between them per change.
 - **Principals (T08)** separate the user's own org unit (matches "role" shares) from their unit plus its ancestors
   (matches "role and subordinates" shares). A flat id list would let a share to role X reach users below X.
+- **Share identity (T09).** A share is unique per (record, principal, reason, `source_id`). `source_id` is the rule,
+  team membership, territory or parent record that created it, and the nil UUID for manual shares. This makes
+  recalculating one rule an exact delete-and-insert of its own shares, and lets two sources grant the same principal
+  independently. A partial or `NULLS NOT DISTINCT` unique index would have done the same, but Prisma cannot express
+  either, and the drift check would fail.
+- **Predicate details (T09).** The owner always sees their own records, even before their closure row exists. Only
+  the viewer's own org unit matches `ORG_UNIT` shares; their unit and its ancestors match `ORG_UNIT_AND_SUBORDINATES`
+  shares. `CONTROLLED_BY_PARENT` grants access to the child at the same level as its parent, through any parent
+  lookup. A child with no parent falls back to owner, hierarchy and shares. Parents are followed at most three
+  levels deep (activity → contact → account); anything deeper is denied rather than being an unbounded query.
+- **Record tables (T09).** Standard CRM tables arrive in P02, so rule recalculation takes the object's table from the
+  caller. The worker defaults to a table named after the object, and tests use fixture tables with the §4.1 columns.
+  The T15 permission matrix runs on the same fixtures.
+- **Owner-based rules follow membership (T09 → T14).** An owner-based rule depends on who is in its source group or
+  org unit, so the Setup API emits `sharing.rule_changed` for the affected rules when group membership or placement
+  changes.
+- **Raw writes count with RETURNING (T09).** Inside a tenant transaction, Kysely's raw statements run through
+  Prisma's raw query API, which reports rows, not affected counts.
