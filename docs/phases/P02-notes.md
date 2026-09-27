@@ -105,3 +105,25 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Gaps left for later tasks (T07).** A queue-owned record's owner comes back without a name (the owner lookup
   joins users only; T19 shows queues). Statement timeouts are the caller's (`withTenant` options, 5 s interactive,
   60 s async per §3.8); EXPLAIN sampling of slow queries lands with the API in T12.
+- **Verification waits for a chain run (fix during T07).** Verifying chained a tenant first but, if another run held
+  the tenant's chain lock, went straight on, so rows committed a moment earlier showed as pending (an intermittent
+  failure of the on-demand verify test under load). Verification now waits for the holder, then chains.
+- **RecordService is a package (T08).** `@sm/records` holds the write pipeline so the API, the worker (mass
+  actions, T10) and the seeds share one implementation (golden rule 2). Order per §3.7: object access (404 when the
+  object is unknown or unreadable, 403 without create/edit) → record access through the sharing predicate (404 when
+  invisible, 403 without edit; changing the owner needs Full access) → input check (unknown and read-only fields
+  400, FLS 403 listing the fields, types via `normaliseValue`) → defaults (owner = writer, Master record type, field
+  defaults, default picklist values; opportunity pipeline from the record type, else the default; first open
+  stage) → stage rules (probability and forecast category from the stage unless given, `is_closed`/`is_won`, loss
+  reason required when lost) → required fields and references (targets must exist, be live and readable by the
+  writer; owners are active users or queues that take the object) → currency (active currencies only) → before-save
+  and duplicate hooks (no-ops until P08/P03) → validation rules → corporate amounts → optimistic write
+  (`version`, 409 with the current version) → stage history, field history → sharing rules for the record →
+  audit (`record.created`/`record.updated`, field names only) and outbox events. Validation rules read related
+  records in system context, as in Salesforce, and a rule that no longer type checks blocks the save.
+- **Record events go to the `automation` queue (T08).** An outbox topic routes to one queue, and a queue with no
+  consumer would grow in Valkey. `automation.record_created|updated|…`, `automation.owner_changed` and
+  `automation.stage_changed` are acknowledged by the worker until flows, webhooks and AI signals consume them
+  (P07/P08). Payloads hold the record id and changed field names, never values.
+- **Leads (T08).** The converted status is set only by conversion; a converted lead is read-only (409
+  `record_locked`) except to the conversion itself (T13).

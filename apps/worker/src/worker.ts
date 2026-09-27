@@ -17,6 +17,7 @@ import { createMaintenanceHandler, scheduleMaintenance } from './maintenance.js'
 import { createQueues, type QueueSet } from './queues.js';
 import { OutboxRelay } from './relay.js';
 import { sharingHandler } from './sharing.js';
+import { automationHandler } from './automation.js';
 
 export interface WorkerDeps {
   controlPlane?: Pick<ControlPlane, 'listCellTenants'>;
@@ -73,6 +74,7 @@ export async function createWorker(
   const handlers: Handlers = deps.handlers ?? {
     maintenance: createMaintenanceHandler({ auditPrisma, redis, controlPlane }),
     sharing: sharingHandler,
+    automation: automationHandler,
   };
 
   return {

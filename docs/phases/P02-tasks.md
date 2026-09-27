@@ -9,7 +9,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T05** `feat(db): core CRM schema` — migration 0016: lead, account, contact, opportunity, campaign (catalogue columns, §4.1 columns, `custom`, money + corporate columns, search trigger, owner-leading sort indexes), pipeline and stages, account-contact relations, contact roles, append-only stage history, campaign members, lead conversions; default pipeline in the metadata sync.
 - [x] **T06** `feat(db): record support tables` — migration 0017: monthly-partitioned append-only `field_history` (+ partition upkeep in the worker), `recycle_bin_item`, `recent_item`, `tenant_currency`, `currency_rate`, account and opportunity team members, `custom_field_index`.
 - [x] **T07** `feat(query-engine): SMQ compiler` — `compileQuery`/`runQuery`/`countQuery`: metadata-resolved fields and ≤ 3-level lookup paths (each join shared), FLS projection and refusal in filters/sorts, custom fields out of `custom`, keyset pagination with nulls, recent scope, capped counts; filter compiler generalised to expressions and paths; 77 tests, 98% lines.
-- [ ] **T08** `feat(records): RecordService writes`
+- [x] **T08** `feat(records): RecordService writes` — new `@sm/records`: create/update in §3.7 order (access, FLS, types, defaults, opportunity stage rules, required fields, references, currency, hooks, validation rules with cross-object values, corporate amounts, optimistic lock, stage and field history, sharing rules, audit, events); worker acknowledges `automation` record events; 14 tests, 95% lines.
 - [ ] **T09** `feat(records): delete, undelete, recycle bin`
 - [ ] **T10** `feat(records): bulk, mass update and transfer`
 - [ ] **T11** `feat(sharing): sharing on CRM tables`
