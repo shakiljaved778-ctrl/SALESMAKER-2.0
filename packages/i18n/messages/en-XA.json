@@ -1023,5 +1023,123 @@
       "signedOut": "［Šíĝñéð óúţ óƒ ţĥáţ šéššíóñ.·········］",
       "mfaVerified": "［Ţŵó-šţéþ ṽéŕíƒíéð······］"
     }
+  },
+  "picklists": {
+    "leadStatus": {
+      "open": "［Ñéŵ·］",
+      "working": "［Ŵóŕķíñĝ···］",
+      "nurture": "［Ñúŕţúŕíñĝ···］",
+      "qualified": "［Ǫúáļíƒíéð···］",
+      "unqualified": "［Úñǫúáļíƒíéð····］",
+      "converted": "［Çóñṽéŕţéð···］"
+    },
+    "unqualifiedReason": {
+      "noBudget": "［Ñó ƀúðĝéţ···］",
+      "noAuthority": "［Ñó áúţĥóŕíţý····］",
+      "noNeed": "［Ñó ñééð···］",
+      "badTiming": "［Ɓáð ţíɱíñĝ···］",
+      "wentWithCompetitor": "［Ŵéñţ ŵíţĥ á çóɱþéţíţóŕ·······］",
+      "unreachable": "［Úñŕéáçĥáƀļé····］",
+      "duplicate": "［Ðúþļíçáţé···］",
+      "other": "［Óţĥéŕ··］"
+    },
+    "rating": {
+      "hot": "［Ĥóţ·］",
+      "warm": "［Ŵáŕɱ··］",
+      "cold": "［Çóļð··］"
+    },
+    "leadSource": {
+      "web": "［Ŵéƀ·］",
+      "phoneInquiry": "［Þĥóñé íñǫúíŕý····］",
+      "partnerReferral": "［Þáŕţñéŕ ŕéƒéŕŕáļ·····］",
+      "customerReferral": "［Çúšţóɱéŕ ŕéƒéŕŕáļ······］",
+      "event": "［Éṽéñţ··］",
+      "advertisement": "［Áðṽéŕţíšéɱéñţ····］",
+      "social": "［Šóçíáļ ɱéðíá····］",
+      "email": "［Éɱáíļ··］",
+      "other": "［Óţĥéŕ··］"
+    },
+    "industry": {
+      "banking": "［Ɓáñķíñĝ···］",
+      "insurance": "［Íñšúŕáñçé···］",
+      "technology": "［Ţéçĥñóļóĝý···］",
+      "telecommunications": "［Ţéļéçóɱɱúñíçáţíóñš······］",
+      "retail": "［Ŕéţáíļ··］",
+      "healthcare": "［Ĥéáļţĥçáŕé···］",
+      "manufacturing": "［Ṁáñúƒáçţúŕíñĝ····］",
+      "realEstate": "［Ŕéáļ éšţáţé····］",
+      "education": "［Éðúçáţíóñ···］",
+      "government": "［Ĝóṽéŕñɱéñţ···］",
+      "hospitality": "［Ĥóšþíţáļíţý····］",
+      "media": "［Ṁéðíá··］",
+      "energy": "［Éñéŕĝý··］",
+      "transportation": "［Ţŕáñšþóŕţáţíóñ·····］",
+      "consulting": "［Çóñšúļţíñĝ···］",
+      "other": "［Óţĥéŕ··］"
+    },
+    "accountType": {
+      "prospect": "［Þŕóšþéçţ···］",
+      "customer": "［Çúšţóɱéŕ···］",
+      "partner": "［Þáŕţñéŕ···］",
+      "competitor": "［Çóɱþéţíţóŕ···］",
+      "other": "［Óţĥéŕ··］"
+    },
+    "forecastCategory": {
+      "pipeline": "［Þíþéļíñé···］",
+      "bestCase": "［Ɓéšţ çášé···］",
+      "commit": "［Çóɱɱíţ··］",
+      "closed": "［Çļóšéð··］",
+      "omitted": "［Óɱíţţéð···］"
+    },
+    "opportunityType": {
+      "new": "［Ñéŵ ƀúšíñéšš····］",
+      "upsell": "［Úþšéļļ··］",
+      "renewal": "［Ŕéñéŵáļ···］"
+    },
+    "lossReason": {
+      "price": "［Þŕíçé··］",
+      "competitor": "［Çóɱþéţíţóŕ···］",
+      "noDecision": "［Ñó ðéçíšíóñ····］",
+      "timing": "［Ţíɱíñĝ··］",
+      "productFit": "［Þŕóðúçţ ƒíţ····］",
+      "other": "［Óţĥéŕ··］"
+    },
+    "campaignType": {
+      "email": "［Éɱáíļ··］",
+      "event": "［Éṽéñţ··］",
+      "webinar": "［Ŵéƀíñáŕ···］",
+      "advertisement": "［Áðṽéŕţíšéɱéñţ····］",
+      "social": "［Šóçíáļ ɱéðíá····］",
+      "directMail": "［Ðíŕéçţ ɱáíļ····］",
+      "partner": "［Þáŕţñéŕ···］",
+      "other": "［Óţĥéŕ··］"
+    },
+    "campaignStatus": {
+      "planned": "［Þļáññéð···］",
+      "inProgress": "［Íñ þŕóĝŕéšš····］",
+      "completed": "［Çóɱþļéţéð···］",
+      "aborted": "［Áƀóŕţéð···］"
+    }
+  },
+  "layouts": {
+    "sections": {
+      "details": "［Ðéţáíļš···］",
+      "address": "［Áððŕéšš···］",
+      "description": "［Ðéšçŕíþţíóñ····］",
+      "system": "［Šýšţéɱ íñƒóŕɱáţíóñ······］"
+    }
+  },
+  "metadata": {
+    "defaults": {
+      "pageLayout": "［{object} ļáýóúţ·····］",
+      "compactLayout": "［{object} ĥíĝĥļíĝĥţš······］",
+      "recordType": "［Ṁášţéŕ··］",
+      "recordTypeDescription": "［Úšéð ŵĥéñ áñ óƀĵéçţ ĥáš ñó óţĥéŕ ŕéçóŕð ţýþéš.··············］",
+      "listViews": {
+        "all": "［Áļļ {objects}····］",
+        "mine": "［Ṁý {objects}····］",
+        "recent": "［Ŕéçéñţļý ṽíéŵéð·····］"
+      }
+    }
   }
 }

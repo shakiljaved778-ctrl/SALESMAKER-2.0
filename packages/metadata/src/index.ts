@@ -14,6 +14,18 @@ export {
   STANDARD_OBJECTS,
 } from './catalogue.js';
 export {
+  CATALOGUE_VERSION,
+  DEFAULT_COMPACT_FIELDS,
+  DEFAULT_SEARCHABLE,
+  defaultLayoutSections,
+  defaultPicklistValues,
+  METADATA_OBJECTS,
+  picklistLabelKeys,
+  type DefaultPicklistValue,
+  type LayoutSection,
+  type ValueSetName,
+} from './defaults.js';
+export {
   FIELD_TYPES,
   SHARING_MODELS,
   type FieldType,

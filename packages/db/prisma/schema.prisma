@@ -78,6 +78,8 @@ model TenantSettings {
   defaultTimezone      String    @map("default_timezone")
   fiscalYearStartMonth Int       @default(1) @map("fiscal_year_start_month") @db.SmallInt
   metadataVersion      Int       @default(1) @map("metadata_version")
+  /// Catalogue revision whose standard metadata this tenant has (P02 T01); synced when behind.
+  catalogueVersion     Int       @default(0) @map("catalogue_version")
   permVersion          Int       @default(1) @map("perm_version")
   logoFileId           String?   @map("logo_file_id") @db.Uuid
   /// The user who created the organisation at signup.
@@ -133,6 +135,7 @@ model User {
   groupMembers          GroupMember[]
   queueMembers          QueueMember[]
   invitations           Invitation[]
+  listViews             ListView[]
 
   @@id([tenantId, id])
   @@unique([tenantId, email])
@@ -355,8 +358,9 @@ model Profile {
   version         Int       @default(1)
   deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  permissionSet PermissionSet @relation(fields: [tenantId, permissionSetId], references: [tenantId, id], onDelete: Restrict)
-  users         User[]
+  permissionSet     PermissionSet      @relation(fields: [tenantId, permissionSetId], references: [tenantId, id], onDelete: Restrict)
+  users             User[]
+  layoutAssignments LayoutAssignment[]
 
   @@id([tenantId, id])
   @@unique([tenantId, name])
@@ -957,4 +961,363 @@ model Invitation {
   @@unique([tenantId, tokenHash])
   @@index([tenantId, userId])
   @@map("invitation")
+}
+
+// ── Metadata (P02 T01, §5) ─────────────────────────────────────────────────────────────────
+// Every change bumps tenant_settings.metadata_version (statement triggers), which keys the
+// metadata cache. Standard objects and fields are synced from the @sm/metadata catalogue; their
+// API names never change. Custom fields (P02) live in the object table's `custom` jsonb column.
+
+enum FieldType {
+  id
+  text
+  textarea
+  long_text
+  rich_text
+  email
+  phone
+  url
+  number
+  currency
+  percent
+  date
+  datetime
+  time
+  checkbox
+  picklist
+  multi_picklist
+  lookup
+  master_detail
+  auto_number
+  formula
+  rollup_summary
+  geolocation
+  user
+
+  @@map("field_type")
+}
+
+enum ListViewVisibility {
+  PRIVATE
+  GROUPS
+  ALL
+
+  @@map("list_view_visibility")
+}
+
+model ObjectDefinition {
+  tenantId           String    @map("tenant_id") @db.Uuid
+  id                 String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  /// lower snake_case; custom objects (P11) end in `__c`.
+  apiName            String    @map("api_name")
+  isStandard         Boolean   @default(false) @map("is_standard")
+  /// Admin overrides of the label; null means the catalogue's i18n label.
+  labelSingular      String?   @map("label_singular")
+  labelPlural        String?   @map("label_plural")
+  description        String?
+  icon               String
+  color              String
+  recordNumberPrefix String    @map("record_number_prefix")
+  nameField          String    @map("name_field")
+  /// Enabled features (activities, history, search, reports, api).
+  features           Json      @default("{}")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy          String?   @map("created_by") @db.Uuid
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy          String?   @map("updated_by") @db.Uuid
+  version            Int       @default(1)
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  fields           FieldDefinition[]
+  recordTypes      RecordType[]
+  pageLayouts      PageLayout[]
+  compactLayouts   CompactLayout[]
+  validationRules  ValidationRule[]
+  listViews        ListView[]
+  layoutAssignment LayoutAssignment[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, apiName])
+  @@map("object_definition")
+}
+
+model FieldDefinition {
+  tenantId          String     @map("tenant_id") @db.Uuid
+  id                String     @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  objectId          String     @map("object_id") @db.Uuid
+  /// Standard fields: the column name. Custom fields: `name__c`, a key in `custom`.
+  apiName           String     @map("api_name")
+  isStandard        Boolean    @default(false) @map("is_standard")
+  type              FieldType
+  /// Null for standard fields (the catalogue's i18n label) unless an admin renamed it.
+  label             String?
+  description       String?
+  helpText          String?    @map("help_text")
+  required          Boolean    @default(false)
+  isUnique          Boolean    @default(false) @map("is_unique")
+  /// Maintained by the platform: always readable, never editable, outside FLS.
+  system            Boolean    @default(false)
+  isExternalId      Boolean    @default(false) @map("is_external_id")
+  searchable        Boolean    @default(false)
+  /// Custom fields only: a per-tenant expression index is requested (Q11, ADR-0030).
+  indexed           Boolean    @default(false)
+  /// Field history tracking (§7.17; at most 60 per object).
+  trackHistory      Boolean    @default(false) @map("track_history")
+  length            Int?
+  precision         Int?
+  scale             Int?
+  /// Lookup, master-detail and user targets (object API names).
+  referenceTo       String[]   @default([]) @map("reference_to")
+  relationshipName  String?    @map("relationship_name")
+  defaultValue      Json?      @map("default_value")
+  formula           String?
+  formulaReturnType FieldType? @map("formula_return_type")
+  sortOrder         Int        @default(0) @map("sort_order")
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy         String?    @map("created_by") @db.Uuid
+  updatedAt         DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy         String?    @map("updated_by") @db.Uuid
+  version           Int        @default(1)
+  deletedAt         DateTime?  @map("deleted_at") @db.Timestamptz(6)
+
+  object         ObjectDefinition    @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
+  picklistValues PicklistValue[]
+  pathSettings   PathSetting[]
+  autoNumber     AutoNumberSequence?
+
+  @@id([tenantId, id])
+  @@unique([tenantId, objectId, apiName])
+  @@map("field_definition")
+}
+
+model PicklistValue {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  id        String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  fieldId   String   @map("field_id") @db.Uuid
+  /// Stored in records; never changes once used.
+  apiValue  String   @map("api_value")
+  /// Null for catalogue values (i18n label) unless an admin renamed it.
+  label     String?
+  /// System category the value maps to (lead status §4.3); null elsewhere.
+  category  String?
+  sortOrder Int      @default(0) @map("sort_order")
+  isDefault Boolean  @default(false) @map("is_default")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?  @map("updated_by") @db.Uuid
+  version   Int      @default(1)
+
+  field       FieldDefinition      @relation(fields: [tenantId, fieldId], references: [tenantId, id], onDelete: Cascade)
+  recordTypes RecordTypePicklist[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, fieldId, apiValue])
+  @@map("picklist_value")
+}
+
+model RecordType {
+  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  objectId    String   @map("object_id") @db.Uuid
+  apiName     String   @map("api_name")
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  isDefault   Boolean  @default(false) @map("is_default")
+  /// Opportunities: the pipeline this business process uses (FK added with `pipeline`, T05).
+  pipelineId  String?  @map("pipeline_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy   String?  @map("created_by") @db.Uuid
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?  @map("updated_by") @db.Uuid
+  version     Int      @default(1)
+
+  object            ObjectDefinition     @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
+  picklistValues    RecordTypePicklist[]
+  layoutAssignments LayoutAssignment[]
+  pathSettings      PathSetting[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, objectId, apiName])
+  @@map("record_type")
+}
+
+/// The picklist values a record type offers; a field with no rows for a record type offers all.
+model RecordTypePicklist {
+  tenantId        String  @map("tenant_id") @db.Uuid
+  recordTypeId    String  @map("record_type_id") @db.Uuid
+  picklistValueId String  @map("picklist_value_id") @db.Uuid
+  isDefault       Boolean @default(false) @map("is_default")
+
+  recordType    RecordType    @relation(fields: [tenantId, recordTypeId], references: [tenantId, id], onDelete: Cascade)
+  picklistValue PicklistValue @relation(fields: [tenantId, picklistValueId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, recordTypeId, picklistValueId])
+  @@index([tenantId, picklistValueId])
+  @@map("record_type_picklist")
+}
+
+model PageLayout {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  id           String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  objectId     String   @map("object_id") @db.Uuid
+  name         String
+  /// The object's layout wherever no assignment says otherwise.
+  isDefault    Boolean  @default(false) @map("is_default")
+  /// [{ key, label?, columns: 1|2, fields: [{ field, required?, readOnly? }] }]
+  sections     Json     @default("[]")
+  /// [{ object, field, columns[], sort? }]
+  relatedLists Json     @default("[]") @map("related_lists")
+  actions      Json     @default("[]")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy    String?  @map("created_by") @db.Uuid
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy    String?  @map("updated_by") @db.Uuid
+  version      Int      @default(1)
+
+  object      ObjectDefinition   @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
+  assignments LayoutAssignment[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, objectId, name])
+  @@map("page_layout")
+}
+
+/// Which layout a profile sees for a record type (§5.4); absent means the object's default.
+model LayoutAssignment {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  objectId     String   @map("object_id") @db.Uuid
+  profileId    String   @map("profile_id") @db.Uuid
+  recordTypeId String   @map("record_type_id") @db.Uuid
+  pageLayoutId String   @map("page_layout_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy    String?  @map("created_by") @db.Uuid
+
+  object     ObjectDefinition @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
+  profile    Profile          @relation(fields: [tenantId, profileId], references: [tenantId, id], onDelete: Cascade)
+  recordType RecordType       @relation(fields: [tenantId, recordTypeId], references: [tenantId, id], onDelete: Cascade)
+  pageLayout PageLayout       @relation(fields: [tenantId, pageLayoutId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, profileId, recordTypeId])
+  @@index([tenantId, pageLayoutId])
+  @@index([tenantId, objectId])
+  @@map("layout_assignment")
+}
+
+model CompactLayout {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  id        String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  objectId  String   @map("object_id") @db.Uuid
+  name      String
+  isDefault Boolean  @default(false) @map("is_default")
+  /// Up to 7 field API names (§5.4).
+  fields    String[] @default([])
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?  @map("updated_by") @db.Uuid
+  version   Int      @default(1)
+
+  object ObjectDefinition @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, objectId, name])
+  @@map("compact_layout")
+}
+
+/// Path guidance per stage (§5.4) for one picklist field and record type.
+model PathSetting {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  id           String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  recordTypeId String   @map("record_type_id") @db.Uuid
+  fieldId      String   @map("field_id") @db.Uuid
+  active       Boolean  @default(true)
+  /// { [apiValue]: { keyFields: string[], guidance: string } }
+  steps        Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy    String?  @map("created_by") @db.Uuid
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy    String?  @map("updated_by") @db.Uuid
+  version      Int      @default(1)
+
+  recordType RecordType      @relation(fields: [tenantId, recordTypeId], references: [tenantId, id], onDelete: Cascade)
+  field      FieldDefinition @relation(fields: [tenantId, fieldId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, recordTypeId, fieldId])
+  @@index([tenantId, fieldId])
+  @@map("path_setting")
+}
+
+model ValidationRule {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  id           String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  objectId     String   @map("object_id") @db.Uuid
+  apiName      String   @map("api_name")
+  description  String?
+  /// @sm/formula expression; the record is rejected when it evaluates to true (§5.5).
+  formula      String
+  errorMessage String   @map("error_message")
+  /// Field the error is shown on; null shows it at the top of the form.
+  errorField   String?  @map("error_field")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy    String?  @map("created_by") @db.Uuid
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy    String?  @map("updated_by") @db.Uuid
+  version      Int      @default(1)
+
+  object ObjectDefinition @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, objectId, apiName])
+  @@map("validation_rule")
+}
+
+/// Format of an auto-number field; values come from a per-tenant sequence (auto_number_next).
+model AutoNumberSequence {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  fieldId   String   @map("field_id") @db.Uuid
+  /// e.g. `L-{000000}`: literal text around one zero-padded counter.
+  format    String
+  startAt   BigInt   @default(1) @map("start_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  field FieldDefinition @relation(fields: [tenantId, fieldId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, fieldId])
+  @@map("auto_number_sequence")
+}
+
+/// Saved list views (§5.4). System views (All, Mine, Recently viewed) have a system key and no owner.
+model ListView {
+  tenantId   String             @map("tenant_id") @db.Uuid
+  id         String             @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  objectId   String             @map("object_id") @db.Uuid
+  name       String
+  systemKey  String?            @map("system_key")
+  ownerId    String?            @map("owner_id") @db.Uuid
+  visibility ListViewVisibility @default(PRIVATE)
+  /// Public groups that see a GROUPS view.
+  groupIds   String[]           @default([]) @map("group_ids") @db.Uuid
+  /// Filter tree (@sm/query-engine).
+  filter     Json?
+  columns    String[]           @default([])
+  /// [{ field, direction }]
+  sort       Json               @default("[]")
+  createdAt  DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy  String?            @map("created_by") @db.Uuid
+  updatedAt  DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy  String?            @map("updated_by") @db.Uuid
+  version    Int                @default(1)
+
+  object ObjectDefinition @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
+  owner  User?            @relation(fields: [tenantId, ownerId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, objectId, systemKey])
+  @@index([tenantId, objectId, ownerId])
+  @@map("list_view")
 }

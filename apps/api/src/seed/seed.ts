@@ -2,6 +2,7 @@ import { visibility, withTenant, type CellPrisma } from '@sm/db';
 import { uuidv7 } from 'uuidv7';
 
 import { provisionDefaultProfiles, writeGrants } from '../permissions/default-profiles.js';
+import { syncStandardMetadata } from '../metadata/standard-metadata.js';
 import { provisionOrgWideDefaults } from '../sharing/sharing.service.js';
 import type { SeedMember, SeedPlan } from './scenarios.js';
 
@@ -56,6 +57,7 @@ export async function applySeedPlan(
         },
       });
       await provisionOrgWideDefaults(tx);
+      await syncStandardMetadata(tx);
 
       // Profiles and permission sets.
       const builtIns = await provisionDefaultProfiles(tx, tenantId, plan.workspace.locale);

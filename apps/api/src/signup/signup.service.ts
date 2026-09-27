@@ -17,6 +17,7 @@ import { OidcService } from '../auth/oidc.service.js';
 import { PasswordService } from '../auth/password.service.js';
 import { SessionService } from '../auth/session.service.js';
 import { provisionDefaultProfiles } from '../permissions/default-profiles.js';
+import { syncStandardMetadata } from '../metadata/standard-metadata.js';
 import { provisionOrgWideDefaults } from '../sharing/sharing.service.js';
 import type { ApiConfig } from '../config.js';
 import { CONFIG, CONTROL_PLANE, LOGGER, PRISMA, RATE_LIMITER } from '../tokens.js';
@@ -254,6 +255,7 @@ export class SignupService {
         });
         const profiles = await provisionDefaultProfiles(tx, tenantId, input.locale ?? 'en');
         await provisionOrgWideDefaults(tx);
+        await syncStandardMetadata(tx);
         const created = await createOwner(tx);
         await tx.prisma.user.update({
           where: { tenantId_id: { tenantId, id: created.userId } },

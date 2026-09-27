@@ -2,7 +2,7 @@
 
 Tick each box when the task's commit is pushed with CI green. Details are in `P02-plan.md`.
 
-- [ ] **T01** `feat(db): metadata schema`
+- [x] **T01** `feat(db): metadata schema` — migration 0015 (object and field definitions, picklist values, record types and their values, page layouts and assignments, compact layouts, path settings, validation rules, auto-number formats, list views; `metadata_version` triggers; `auto_number_next`); catalogue defaults in `@sm/metadata`; idempotent `syncStandardMetadata` at signup and in the seeds.
 - [ ] **T02** `feat(metadata): metadata service`
 - [ ] **T03** `feat(formula): parser and type checker`
 - [ ] **T04** `feat(formula): evaluator and SQL compiler`

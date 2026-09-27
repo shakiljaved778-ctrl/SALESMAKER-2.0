@@ -1023,5 +1023,123 @@
       "signedOut": "Signed out of that session.",
       "mfaVerified": "Two-step verified"
     }
+  },
+  "picklists": {
+    "leadStatus": {
+      "open": "New",
+      "working": "Working",
+      "nurture": "Nurturing",
+      "qualified": "Qualified",
+      "unqualified": "Unqualified",
+      "converted": "Converted"
+    },
+    "unqualifiedReason": {
+      "noBudget": "No budget",
+      "noAuthority": "No authority",
+      "noNeed": "No need",
+      "badTiming": "Bad timing",
+      "wentWithCompetitor": "Went with a competitor",
+      "unreachable": "Unreachable",
+      "duplicate": "Duplicate",
+      "other": "Other"
+    },
+    "rating": {
+      "hot": "Hot",
+      "warm": "Warm",
+      "cold": "Cold"
+    },
+    "leadSource": {
+      "web": "Web",
+      "phoneInquiry": "Phone inquiry",
+      "partnerReferral": "Partner referral",
+      "customerReferral": "Customer referral",
+      "event": "Event",
+      "advertisement": "Advertisement",
+      "social": "Social media",
+      "email": "Email",
+      "other": "Other"
+    },
+    "industry": {
+      "banking": "Banking",
+      "insurance": "Insurance",
+      "technology": "Technology",
+      "telecommunications": "Telecommunications",
+      "retail": "Retail",
+      "healthcare": "Healthcare",
+      "manufacturing": "Manufacturing",
+      "realEstate": "Real estate",
+      "education": "Education",
+      "government": "Government",
+      "hospitality": "Hospitality",
+      "media": "Media",
+      "energy": "Energy",
+      "transportation": "Transportation",
+      "consulting": "Consulting",
+      "other": "Other"
+    },
+    "accountType": {
+      "prospect": "Prospect",
+      "customer": "Customer",
+      "partner": "Partner",
+      "competitor": "Competitor",
+      "other": "Other"
+    },
+    "forecastCategory": {
+      "pipeline": "Pipeline",
+      "bestCase": "Best case",
+      "commit": "Commit",
+      "closed": "Closed",
+      "omitted": "Omitted"
+    },
+    "opportunityType": {
+      "new": "New business",
+      "upsell": "Upsell",
+      "renewal": "Renewal"
+    },
+    "lossReason": {
+      "price": "Price",
+      "competitor": "Competitor",
+      "noDecision": "No decision",
+      "timing": "Timing",
+      "productFit": "Product fit",
+      "other": "Other"
+    },
+    "campaignType": {
+      "email": "Email",
+      "event": "Event",
+      "webinar": "Webinar",
+      "advertisement": "Advertisement",
+      "social": "Social media",
+      "directMail": "Direct mail",
+      "partner": "Partner",
+      "other": "Other"
+    },
+    "campaignStatus": {
+      "planned": "Planned",
+      "inProgress": "In progress",
+      "completed": "Completed",
+      "aborted": "Aborted"
+    }
+  },
+  "layouts": {
+    "sections": {
+      "details": "Details",
+      "address": "Address",
+      "description": "Description",
+      "system": "System information"
+    }
+  },
+  "metadata": {
+    "defaults": {
+      "pageLayout": "{object} layout",
+      "compactLayout": "{object} highlights",
+      "recordType": "Master",
+      "recordTypeDescription": "Used when an object has no other record types.",
+      "listViews": {
+        "all": "All {objects}",
+        "mine": "My {objects}",
+        "recent": "Recently viewed"
+      }
+    }
   }
 }
