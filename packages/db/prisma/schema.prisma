@@ -1126,7 +1126,7 @@ model RecordType {
   description String?
   active      Boolean  @default(true)
   isDefault   Boolean  @default(false) @map("is_default")
-  /// Opportunities: the pipeline this business process uses (FK added with `pipeline`, T05).
+  /// Opportunities: the pipeline this business process uses.
   pipelineId  String?  @map("pipeline_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   createdBy   String?  @map("created_by") @db.Uuid
@@ -1135,6 +1135,7 @@ model RecordType {
   version     Int      @default(1)
 
   object            ObjectDefinition     @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
+  pipeline          Pipeline?            @relation(fields: [tenantId, pipelineId], references: [tenantId, id], onDelete: Restrict)
   picklistValues    RecordTypePicklist[]
   layoutAssignments LayoutAssignment[]
   pathSettings      PathSetting[]
@@ -1320,4 +1321,481 @@ model ListView {
   @@unique([tenantId, objectId, systemKey])
   @@index([tenantId, objectId, ownerId])
   @@map("list_view")
+}
+
+// ── Core CRM objects (P02 T05, §4) ──────────────────────────────────────────────────────────
+// Generated from the @sm/metadata catalogue: one typed column per standard field, plus the §4.1
+// columns. Custom field values live in `custom`. Lookups are logical references (no foreign keys):
+// RecordService checks targets, and deletes go through the recycle bin (P02 plan §3.3). Every
+// write goes through RecordService (golden rule 2) and every read through the Query Engine (rule 3).
+
+model Lead {
+  tenantId               String                   @map("tenant_id") @db.Uuid
+  id                     String                   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  recordNumber           String                   @map("record_number")
+  ownerId                String                   @map("owner_id") @db.Uuid
+  recordTypeId           String?                  @map("record_type_id") @db.Uuid
+  externalId             String?                  @map("external_id")
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy              String?                  @map("created_by") @db.Uuid
+  updatedAt              DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy              String?                  @map("updated_by") @db.Uuid
+  firstName              String?                  @map("first_name")
+  lastName               String                   @map("last_name")
+  company                String
+  title                  String?
+  email                  String?
+  phone                  String?
+  mobilePhone            String?                  @map("mobile_phone")
+  website                String?
+  status                 String
+  unqualifiedReason      String?                  @map("unqualified_reason")
+  rating                 String?
+  leadSource             String?                  @map("lead_source")
+  industry               String?
+  annualRevenue          Decimal?                 @map("annual_revenue") @db.Decimal(18, 2)
+  /// annual_revenue in the corporate currency (Q13, ADR-0031).
+  annualRevenueCorporate Decimal?                 @map("annual_revenue_corporate") @db.Decimal(18, 2)
+  numberOfEmployees      Int?                     @map("number_of_employees")
+  street                 String?
+  city                   String?
+  state                  String?
+  postalCode             String?                  @map("postal_code")
+  country                String?
+  description            String?
+  campaignId             String?                  @map("campaign_id") @db.Uuid
+  doNotCall              Boolean                  @default(false) @map("do_not_call")
+  emailOptOut            Boolean                  @default(false) @map("email_opt_out")
+  convertedAt            DateTime?                @map("converted_at") @db.Timestamptz(6)
+  convertedAccountId     String?                  @map("converted_account_id") @db.Uuid
+  convertedContactId     String?                  @map("converted_contact_id") @db.Uuid
+  convertedOpportunityId String?                  @map("converted_opportunity_id") @db.Uuid
+  /// ISO-4217 currency of the money fields (§0.4 rule 8).
+  currencyCode           String                   @map("currency_code") @db.Char(3)
+  /// Date of the exchange rate the corporate amounts were converted at.
+  corporateRateDate      DateTime?                @map("corporate_rate_date") @db.Date
+  /// Custom field values by API name (`name__c`), §5.2.
+  custom                 Json                     @default("{}")
+  /// Weighted full-text document (§7.19), maintained by a trigger.
+  searchVector           Unsupported("tsvector")? @map("search_vector")
+  version                Int                      @default(1)
+  deletedAt              DateTime?                @map("deleted_at") @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, recordNumber])
+  @@unique([tenantId, externalId])
+  @@index([tenantId, ownerId])
+  @@index([tenantId, lastName, id])
+  @@index([tenantId, ownerId, lastName, id])
+  @@index([tenantId, company, id])
+  @@index([tenantId, ownerId, company, id])
+  @@index([tenantId, email, id])
+  @@index([tenantId, ownerId, email, id])
+  @@index([tenantId, status, id])
+  @@index([tenantId, ownerId, status, id])
+  @@index([tenantId, leadSource, id])
+  @@index([tenantId, ownerId, leadSource, id])
+  @@index([tenantId, createdAt, id])
+  @@index([tenantId, ownerId, createdAt, id])
+  @@index([tenantId, updatedAt, id])
+  @@index([tenantId, ownerId, updatedAt, id])
+  @@index([tenantId, campaignId])
+  @@map("lead")
+}
+
+model Account {
+  tenantId               String                   @map("tenant_id") @db.Uuid
+  id                     String                   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  recordNumber           String                   @map("record_number")
+  ownerId                String                   @map("owner_id") @db.Uuid
+  recordTypeId           String?                  @map("record_type_id") @db.Uuid
+  externalId             String?                  @map("external_id")
+  createdAt              DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy              String?                  @map("created_by") @db.Uuid
+  updatedAt              DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy              String?                  @map("updated_by") @db.Uuid
+  name                   String
+  parentAccountId        String?                  @map("parent_account_id") @db.Uuid
+  type                   String?
+  industry               String?
+  rating                 String?
+  annualRevenue          Decimal?                 @map("annual_revenue") @db.Decimal(18, 2)
+  /// annual_revenue in the corporate currency (Q13, ADR-0031).
+  annualRevenueCorporate Decimal?                 @map("annual_revenue_corporate") @db.Decimal(18, 2)
+  numberOfEmployees      Int?                     @map("number_of_employees")
+  website                String?
+  phone                  String?
+  billingStreet          String?                  @map("billing_street")
+  billingCity            String?                  @map("billing_city")
+  billingState           String?                  @map("billing_state")
+  billingPostalCode      String?                  @map("billing_postal_code")
+  billingCountry         String?                  @map("billing_country")
+  shippingStreet         String?                  @map("shipping_street")
+  shippingCity           String?                  @map("shipping_city")
+  shippingState          String?                  @map("shipping_state")
+  shippingPostalCode     String?                  @map("shipping_postal_code")
+  shippingCountry        String?                  @map("shipping_country")
+  description            String?
+  /// ISO-4217 currency of the money fields (§0.4 rule 8).
+  currencyCode           String                   @map("currency_code") @db.Char(3)
+  /// Date of the exchange rate the corporate amounts were converted at.
+  corporateRateDate      DateTime?                @map("corporate_rate_date") @db.Date
+  /// Custom field values by API name (`name__c`), §5.2.
+  custom                 Json                     @default("{}")
+  /// Weighted full-text document (§7.19), maintained by a trigger.
+  searchVector           Unsupported("tsvector")? @map("search_vector")
+  version                Int                      @default(1)
+  deletedAt              DateTime?                @map("deleted_at") @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, recordNumber])
+  @@unique([tenantId, externalId])
+  @@index([tenantId, ownerId])
+  @@index([tenantId, name, id])
+  @@index([tenantId, ownerId, name, id])
+  @@index([tenantId, type, id])
+  @@index([tenantId, ownerId, type, id])
+  @@index([tenantId, industry, id])
+  @@index([tenantId, ownerId, industry, id])
+  @@index([tenantId, createdAt, id])
+  @@index([tenantId, ownerId, createdAt, id])
+  @@index([tenantId, updatedAt, id])
+  @@index([tenantId, ownerId, updatedAt, id])
+  @@index([tenantId, parentAccountId])
+  @@map("account")
+}
+
+model Contact {
+  tenantId          String                   @map("tenant_id") @db.Uuid
+  id                String                   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  recordNumber      String                   @map("record_number")
+  ownerId           String                   @map("owner_id") @db.Uuid
+  recordTypeId      String?                  @map("record_type_id") @db.Uuid
+  externalId        String?                  @map("external_id")
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy         String?                  @map("created_by") @db.Uuid
+  updatedAt         DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy         String?                  @map("updated_by") @db.Uuid
+  firstName         String?                  @map("first_name")
+  lastName          String                   @map("last_name")
+  accountId         String?                  @map("account_id") @db.Uuid
+  title             String?
+  department        String?
+  email             String?
+  phone             String?
+  mobilePhone       String?                  @map("mobile_phone")
+  reportsToId       String?                  @map("reports_to_id") @db.Uuid
+  leadSource        String?                  @map("lead_source")
+  birthdate         DateTime?                @db.Date
+  mailingStreet     String?                  @map("mailing_street")
+  mailingCity       String?                  @map("mailing_city")
+  mailingState      String?                  @map("mailing_state")
+  mailingPostalCode String?                  @map("mailing_postal_code")
+  mailingCountry    String?                  @map("mailing_country")
+  description       String?
+  doNotCall         Boolean                  @default(false) @map("do_not_call")
+  emailOptOut       Boolean                  @default(false) @map("email_opt_out")
+  /// Custom field values by API name (`name__c`), §5.2.
+  custom            Json                     @default("{}")
+  /// Weighted full-text document (§7.19), maintained by a trigger.
+  searchVector      Unsupported("tsvector")? @map("search_vector")
+  version           Int                      @default(1)
+  deletedAt         DateTime?                @map("deleted_at") @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, recordNumber])
+  @@unique([tenantId, externalId])
+  @@index([tenantId, ownerId])
+  @@index([tenantId, lastName, id])
+  @@index([tenantId, ownerId, lastName, id])
+  @@index([tenantId, email, id])
+  @@index([tenantId, ownerId, email, id])
+  @@index([tenantId, createdAt, id])
+  @@index([tenantId, ownerId, createdAt, id])
+  @@index([tenantId, updatedAt, id])
+  @@index([tenantId, ownerId, updatedAt, id])
+  @@index([tenantId, accountId])
+  @@index([tenantId, reportsToId])
+  @@map("contact")
+}
+
+model Opportunity {
+  tenantId          String                   @map("tenant_id") @db.Uuid
+  id                String                   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  recordNumber      String                   @map("record_number")
+  ownerId           String                   @map("owner_id") @db.Uuid
+  recordTypeId      String?                  @map("record_type_id") @db.Uuid
+  externalId        String?                  @map("external_id")
+  createdAt         DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy         String?                  @map("created_by") @db.Uuid
+  updatedAt         DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy         String?                  @map("updated_by") @db.Uuid
+  name              String
+  accountId         String?                  @map("account_id") @db.Uuid
+  primaryContactId  String?                  @map("primary_contact_id") @db.Uuid
+  pipelineId        String                   @map("pipeline_id") @db.Uuid
+  stage             String
+  probability       Decimal?                 @db.Decimal(5, 2)
+  forecastCategory  String                   @map("forecast_category")
+  amount            Decimal?                 @db.Decimal(18, 2)
+  /// amount in the corporate currency (Q13, ADR-0031).
+  amountCorporate   Decimal?                 @map("amount_corporate") @db.Decimal(18, 2)
+  closeDate         DateTime                 @map("close_date") @db.Date
+  nextStep          String?                  @map("next_step")
+  type              String?
+  leadSource        String?                  @map("lead_source")
+  campaignId        String?                  @map("campaign_id") @db.Uuid
+  lossReason        String?                  @map("loss_reason")
+  competitors       String[]                 @default([])
+  description       String?
+  isClosed          Boolean                  @default(false) @map("is_closed")
+  isWon             Boolean                  @default(false) @map("is_won")
+  /// ISO-4217 currency of the money fields (§0.4 rule 8).
+  currencyCode      String                   @map("currency_code") @db.Char(3)
+  /// Date of the exchange rate the corporate amounts were converted at.
+  corporateRateDate DateTime?                @map("corporate_rate_date") @db.Date
+  /// Custom field values by API name (`name__c`), §5.2.
+  custom            Json                     @default("{}")
+  /// Weighted full-text document (§7.19), maintained by a trigger.
+  searchVector      Unsupported("tsvector")? @map("search_vector")
+  version           Int                      @default(1)
+  deletedAt         DateTime?                @map("deleted_at") @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, recordNumber])
+  @@unique([tenantId, externalId])
+  @@index([tenantId, ownerId])
+  @@index([tenantId, name, id])
+  @@index([tenantId, ownerId, name, id])
+  @@index([tenantId, stage, id])
+  @@index([tenantId, ownerId, stage, id])
+  @@index([tenantId, amount, id])
+  @@index([tenantId, ownerId, amount, id])
+  @@index([tenantId, closeDate, id])
+  @@index([tenantId, ownerId, closeDate, id])
+  @@index([tenantId, createdAt, id])
+  @@index([tenantId, ownerId, createdAt, id])
+  @@index([tenantId, updatedAt, id])
+  @@index([tenantId, ownerId, updatedAt, id])
+  @@index([tenantId, accountId])
+  @@index([tenantId, primaryContactId])
+  @@index([tenantId, campaignId])
+  @@index([tenantId, pipelineId])
+  @@map("opportunity")
+}
+
+model Campaign {
+  tenantId                 String                   @map("tenant_id") @db.Uuid
+  id                       String                   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  recordNumber             String                   @map("record_number")
+  ownerId                  String                   @map("owner_id") @db.Uuid
+  recordTypeId             String?                  @map("record_type_id") @db.Uuid
+  externalId               String?                  @map("external_id")
+  createdAt                DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy                String?                  @map("created_by") @db.Uuid
+  updatedAt                DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy                String?                  @map("updated_by") @db.Uuid
+  name                     String
+  parentCampaignId         String?                  @map("parent_campaign_id") @db.Uuid
+  type                     String?
+  status                   String?
+  isActive                 Boolean                  @default(false) @map("is_active")
+  startDate                DateTime?                @map("start_date") @db.Date
+  endDate                  DateTime?                @map("end_date") @db.Date
+  budgetedCost             Decimal?                 @map("budgeted_cost") @db.Decimal(18, 2)
+  /// budgeted_cost in the corporate currency (Q13, ADR-0031).
+  budgetedCostCorporate    Decimal?                 @map("budgeted_cost_corporate") @db.Decimal(18, 2)
+  actualCost               Decimal?                 @map("actual_cost") @db.Decimal(18, 2)
+  /// actual_cost in the corporate currency (Q13, ADR-0031).
+  actualCostCorporate      Decimal?                 @map("actual_cost_corporate") @db.Decimal(18, 2)
+  expectedRevenue          Decimal?                 @map("expected_revenue") @db.Decimal(18, 2)
+  /// expected_revenue in the corporate currency (Q13, ADR-0031).
+  expectedRevenueCorporate Decimal?                 @map("expected_revenue_corporate") @db.Decimal(18, 2)
+  description              String?
+  numberOfLeads            Int                      @default(0) @map("number_of_leads")
+  numberOfOpportunities    Int                      @default(0) @map("number_of_opportunities")
+  /// ISO-4217 currency of the money fields (§0.4 rule 8).
+  currencyCode             String                   @map("currency_code") @db.Char(3)
+  /// Date of the exchange rate the corporate amounts were converted at.
+  corporateRateDate        DateTime?                @map("corporate_rate_date") @db.Date
+  /// Custom field values by API name (`name__c`), §5.2.
+  custom                   Json                     @default("{}")
+  /// Weighted full-text document (§7.19), maintained by a trigger.
+  searchVector             Unsupported("tsvector")? @map("search_vector")
+  version                  Int                      @default(1)
+  deletedAt                DateTime?                @map("deleted_at") @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, recordNumber])
+  @@unique([tenantId, externalId])
+  @@index([tenantId, ownerId])
+  @@index([tenantId, name, id])
+  @@index([tenantId, ownerId, name, id])
+  @@index([tenantId, status, id])
+  @@index([tenantId, ownerId, status, id])
+  @@index([tenantId, startDate, id])
+  @@index([tenantId, ownerId, startDate, id])
+  @@index([tenantId, createdAt, id])
+  @@index([tenantId, ownerId, createdAt, id])
+  @@index([tenantId, updatedAt, id])
+  @@index([tenantId, ownerId, updatedAt, id])
+  @@index([tenantId, parentCampaignId])
+  @@map("campaign")
+}
+
+/// A sales process for opportunities (§4.5). Kanban, gates and the editor arrive in P04.
+model Pipeline {
+  tenantId    String   @map("tenant_id") @db.Uuid
+  id          String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name        String
+  description String?
+  isDefault   Boolean  @default(false) @map("is_default")
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy   String?  @map("created_by") @db.Uuid
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy   String?  @map("updated_by") @db.Uuid
+  version     Int      @default(1)
+
+  stages      PipelineStage[]
+  recordTypes RecordType[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, name])
+  @@map("pipeline")
+}
+
+/// A stage of a pipeline. `category` says what the stage means (OPEN, WON, LOST); probability and
+/// forecast category are the defaults an opportunity takes when it enters the stage (§4.5).
+model PipelineStage {
+  tenantId         String   @map("tenant_id") @db.Uuid
+  id               String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  pipelineId       String   @map("pipeline_id") @db.Uuid
+  /// Stored in opportunity.stage; never changes once used.
+  apiValue         String   @map("api_value")
+  label            String
+  sortOrder        Int      @default(0) @map("sort_order")
+  category         String   @default("OPEN")
+  probability      Decimal  @default(0) @db.Decimal(5, 2)
+  forecastCategory String   @default("pipeline") @map("forecast_category")
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version          Int      @default(1)
+
+  pipeline Pipeline @relation(fields: [tenantId, pipelineId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, pipelineId, apiValue])
+  @@map("pipeline_stage")
+}
+
+/// A contact's relationship to an account beyond its primary one (§4.6).
+model AccountContactRelation {
+  tenantId  String    @map("tenant_id") @db.Uuid
+  id        String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  accountId String    @map("account_id") @db.Uuid
+  contactId String    @map("contact_id") @db.Uuid
+  roles     String[]  @default([])
+  /// The contact's primary account (contact.account_id) is the direct relation.
+  isDirect  Boolean   @default(false) @map("is_direct")
+  isActive  Boolean   @default(true) @map("is_active")
+  startDate DateTime? @map("start_date") @db.Date
+  endDate   DateTime? @map("end_date") @db.Date
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?   @map("created_by") @db.Uuid
+  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?   @map("updated_by") @db.Uuid
+  version   Int       @default(1)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, accountId, contactId])
+  @@index([tenantId, contactId])
+  @@map("account_contact_relation")
+}
+
+model OpportunityContactRole {
+  tenantId      String   @map("tenant_id") @db.Uuid
+  id            String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  opportunityId String   @map("opportunity_id") @db.Uuid
+  contactId     String   @map("contact_id") @db.Uuid
+  role          String?
+  isPrimary     Boolean  @default(false) @map("is_primary")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?  @map("created_by") @db.Uuid
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy     String?  @map("updated_by") @db.Uuid
+  version       Int      @default(1)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, opportunityId, contactId])
+  @@index([tenantId, contactId])
+  @@map("opportunity_contact_role")
+}
+
+/// Every change of stage, amount, close date or forecast category (§4.5), for velocity and
+/// slippage analytics. Append-only.
+model OpportunityStageHistory {
+  tenantId         String   @map("tenant_id") @db.Uuid
+  id               String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  opportunityId    String   @map("opportunity_id") @db.Uuid
+  stage            String
+  amount           Decimal? @db.Decimal(18, 2)
+  currencyCode     String   @map("currency_code") @db.Char(3)
+  closeDate        DateTime @map("close_date") @db.Date
+  forecastCategory String   @map("forecast_category")
+  probability      Decimal? @db.Decimal(5, 2)
+  changedAt        DateTime @default(now()) @map("changed_at") @db.Timestamptz(6)
+  changedBy        String?  @map("changed_by") @db.Uuid
+
+  @@id([tenantId, id])
+  @@index([tenantId, opportunityId, changedAt])
+  @@map("opportunity_stage_history")
+}
+
+/// A lead or contact in a campaign (§4.2); exactly one of the two.
+model CampaignMember {
+  tenantId         String    @map("tenant_id") @db.Uuid
+  id               String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  campaignId       String    @map("campaign_id") @db.Uuid
+  leadId           String?   @map("lead_id") @db.Uuid
+  contactId        String?   @map("contact_id") @db.Uuid
+  status           String    @default("sent")
+  responded        Boolean   @default(false)
+  firstRespondedAt DateTime? @map("first_responded_at") @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy        String?   @map("created_by") @db.Uuid
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy        String?   @map("updated_by") @db.Uuid
+  version          Int       @default(1)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, campaignId, leadId])
+  @@unique([tenantId, campaignId, contactId])
+  @@index([tenantId, leadId])
+  @@index([tenantId, contactId])
+  @@map("campaign_member")
+}
+
+/// One lead conversion (§4.4): what it created or matched, and whether it was undone.
+model LeadConversion {
+  tenantId       String    @map("tenant_id") @db.Uuid
+  id             String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  leadId         String    @map("lead_id") @db.Uuid
+  accountId      String    @map("account_id") @db.Uuid
+  contactId      String    @map("contact_id") @db.Uuid
+  opportunityId  String?   @map("opportunity_id") @db.Uuid
+  createdAccount Boolean   @map("created_account")
+  createdContact Boolean   @map("created_contact")
+  /// The lead as it was before conversion, for undo.
+  leadBefore     Json      @map("lead_before")
+  convertedAt    DateTime  @default(now()) @map("converted_at") @db.Timestamptz(6)
+  convertedBy    String?   @map("converted_by") @db.Uuid
+  undoneAt       DateTime? @map("undone_at") @db.Timestamptz(6)
+  undoneBy       String?   @map("undone_by") @db.Uuid
+
+  @@id([tenantId, id])
+  @@index([tenantId, leadId])
+  @@map("lead_conversion")
 }

@@ -6,7 +6,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T02** `feat(metadata): metadata service` — `loadTenantMetadata` (@sm/db), `MetadataCache` (LRU + Valkey by `metadataVersion`) and `MetadataIndex`, `normaliseValue` per field type (decimal.js), `MetadataService.forTenant` (syncs lagging tenants) and `describe` (FLS-filtered, localised labels, editable flags).
 - [x] **T03** `feat(formula): parser and type checker` — new `@sm/formula`: lexer, Pratt parser with spans, type checker producing a typed AST (43 functions, cross-object paths through metadata, prior-value functions only where allowed), metadata environment; 217 tests, 99% lines.
 - [x] **T04** `feat(formula): evaluator and SQL compiler` — evaluator (Decimal arithmetic, blank semantics, 43 functions, runtime errors with spans) and `compileToSql` for the filterable subset, proven equal to the evaluator on Postgres for 120 formulas plus 300 random ones; parser fuzz; 542 formula tests, 99% lines.
-- [ ] **T05** `feat(db): core CRM schema`
+- [x] **T05** `feat(db): core CRM schema` — migration 0016: lead, account, contact, opportunity, campaign (catalogue columns, §4.1 columns, `custom`, money + corporate columns, search trigger, owner-leading sort indexes), pipeline and stages, account-contact relations, contact roles, append-only stage history, campaign members, lead conversions; default pipeline in the metadata sync.
 - [ ] **T06** `feat(db): record support tables`
 - [ ] **T07** `feat(query-engine): SMQ compiler`
 - [ ] **T08** `feat(records): RecordService writes`

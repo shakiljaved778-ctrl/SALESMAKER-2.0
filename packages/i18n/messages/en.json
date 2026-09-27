@@ -1139,6 +1139,17 @@
         "all": "All {objects}",
         "mine": "My {objects}",
         "recent": "Recently viewed"
+      },
+      "pipeline": {
+        "name": "Sales pipeline",
+        "stages": {
+          "qualification": "Qualification",
+          "needsAnalysis": "Needs analysis",
+          "proposal": "Proposal",
+          "negotiation": "Negotiation",
+          "closedWon": "Closed won",
+          "closedLost": "Closed lost"
+        }
       }
     }
   }

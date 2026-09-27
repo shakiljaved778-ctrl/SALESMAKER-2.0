@@ -65,3 +65,23 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   date-times and fields of other objects. Where the evaluator raises a runtime error (division by zero) the SQL
   yields NULL, so the row simply does not match. A parser fuzz (3,000 random inputs) only ever produces syntax
   errors.
+- **CRM tables are generated from the catalogue (T05).** The Prisma models for lead, account, contact,
+  opportunity and campaign carry exactly the catalogue's standard fields as typed columns, plus the §4.1 columns,
+  `custom jsonb`, a search document, and for money objects `currency_code`, one `<field>_corporate` column per
+  standard currency field and `corporate_rate_date`. Number fields are integers (`number_of_employees`),
+  percents `numeric(5,2)`, money `numeric(18,2)`, multi-selects `text[]`.
+- **Lookups are logical references (T05).** CRM lookups have no foreign keys: Postgres's `ON DELETE SET NULL` on a
+  composite `(tenant_id, x_id)` key would null the tenant too, and deletes go through the recycle bin anyway.
+  RecordService checks that a lookup target exists and is visible; purge clears references (T09). Structural
+  links keep foreign keys (pipeline stages, a record type's pipeline).
+- **Search documents hold only what every reader sees (T05).** The trigger-maintained `search_vector` holds the
+  record name (first and last name for people, weight A) and a lead's company (weight B). Fields FLS can hide
+  (e-mail, phones, …) are matched per column at query time only when the searcher can read them (T14), so a hidden
+  field never decides whether a record is found (§6.5). First name is treated as part of the record name here, as
+  in Salesforce's compound Name. GIN indexes lead with `tenant_id` (`btree_gin`) and skip deleted rows.
+- **Indexes (T05).** Each object has `(tenant_id, owner_id)` for sharing, and for its likely sort fields both
+  `(tenant_id, field, id)` and `(tenant_id, owner_id, field, id)` (the P01 T22 finding); lookups used by related
+  lists are indexed. T28 revisits these with measured plans at 500k rows.
+- **Default pipeline (T05).** Every organisation gets a "Sales pipeline" (qualification → needs analysis →
+  proposal → negotiation → closed won / closed lost, with default probabilities and forecast categories) that the
+  opportunity Master record type uses; `CATALOGUE_VERSION` 2 brings existing organisations up to date.

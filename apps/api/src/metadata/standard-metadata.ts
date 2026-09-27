@@ -3,11 +3,13 @@ import { serverTranslator } from '@sm/i18n';
 import {
   CATALOGUE_VERSION,
   DEFAULT_COMPACT_FIELDS,
+  DEFAULT_PIPELINE_STAGES,
   DEFAULT_SEARCHABLE,
   defaultLayoutSections,
   defaultPicklistValues,
   METADATA_OBJECTS,
   standardObject,
+  camelCase,
 } from '@sm/metadata';
 
 type Translate = (key: string, values?: Record<string, string>) => string;
@@ -167,9 +169,41 @@ export async function syncStandardMetadata(tx: TenantTransaction): Promise<boole
     });
   }
 
+  await provisionDefaultPipeline(tx, t);
   await prisma.tenantSettings.update({
     where: { tenantId },
     data: { catalogueVersion: CATALOGUE_VERSION },
   });
   return true;
+}
+
+/**
+ * The default sales pipeline (§4.5), created once when an organisation has none, and used by the
+ * opportunity Master record type. Stages are named in the organisation's language.
+ */
+async function provisionDefaultPipeline(tx: TenantTransaction, t: Translate): Promise<void> {
+  const { tenantId } = tx.context;
+  const { prisma } = tx;
+  let pipeline = await prisma.pipeline.findFirst({ where: { isDefault: true } });
+  if (!pipeline) {
+    pipeline = await prisma.pipeline.create({
+      data: { tenantId, name: t('metadata.defaults.pipeline.name'), isDefault: true },
+    });
+    await prisma.pipelineStage.createMany({
+      data: DEFAULT_PIPELINE_STAGES.map((s, i) => ({
+        tenantId,
+        pipelineId: pipeline?.id ?? '',
+        apiValue: s.apiValue,
+        label: t(`metadata.defaults.pipeline.stages.${camelCase(s.apiValue)}`),
+        sortOrder: i,
+        category: s.category,
+        probability: s.probability,
+        forecastCategory: s.forecastCategory,
+      })),
+    });
+  }
+  await prisma.recordType.updateMany({
+    where: { apiName: 'master', pipelineId: null, object: { apiName: 'opportunity' } },
+    data: { pipelineId: pipeline.id },
+  });
 }

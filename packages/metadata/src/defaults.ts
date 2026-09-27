@@ -5,7 +5,7 @@ import type { StandardObjectApiName } from './types.js';
  * Revision of the standard metadata a tenant is provisioned with (P02). Bump it whenever the
  * catalogue or these defaults change what is synced; tenants behind it are synced on next use.
  */
-export const CATALOGUE_VERSION = 1;
+export const CATALOGUE_VERSION = 2;
 
 /** Standard objects whose tables and metadata exist so far; later phases add theirs. */
 export const METADATA_OBJECTS: readonly StandardObjectApiName[] = [
@@ -214,3 +214,18 @@ export function defaultLayoutSections(
     section('system', 2, system),
   ];
 }
+
+/** The pipeline every organisation starts with (§4.5); stage labels are `…pipeline.stages.<key>`. */
+export const DEFAULT_PIPELINE_STAGES: readonly {
+  apiValue: string;
+  category: 'OPEN' | 'WON' | 'LOST';
+  probability: number;
+  forecastCategory: string;
+}[] = [
+  { apiValue: 'qualification', category: 'OPEN', probability: 10, forecastCategory: 'pipeline' },
+  { apiValue: 'needs_analysis', category: 'OPEN', probability: 25, forecastCategory: 'pipeline' },
+  { apiValue: 'proposal', category: 'OPEN', probability: 50, forecastCategory: 'best_case' },
+  { apiValue: 'negotiation', category: 'OPEN', probability: 75, forecastCategory: 'commit' },
+  { apiValue: 'closed_won', category: 'WON', probability: 100, forecastCategory: 'closed' },
+  { apiValue: 'closed_lost', category: 'LOST', probability: 0, forecastCategory: 'omitted' },
+];

@@ -108,6 +108,30 @@ describe('standard metadata sync (P02 T01)', () => {
     });
   });
 
+  it('gives every organisation a default pipeline for opportunities', async () => {
+    await inTenant(alpha, async ({ prisma: p }) => {
+      const pipelines = await p.pipeline.findMany({
+        include: { stages: { orderBy: { sortOrder: 'asc' } } },
+      });
+      expect(pipelines).toHaveLength(1);
+      expect(pipelines[0]).toMatchObject({ name: 'Sales pipeline', isDefault: true });
+      expect(
+        pipelines[0]?.stages.map((s) => [s.apiValue, s.label, s.category, s.forecastCategory]),
+      ).toEqual([
+        ['qualification', 'Qualification', 'OPEN', 'pipeline'],
+        ['needs_analysis', 'Needs analysis', 'OPEN', 'pipeline'],
+        ['proposal', 'Proposal', 'OPEN', 'best_case'],
+        ['negotiation', 'Negotiation', 'OPEN', 'commit'],
+        ['closed_won', 'Closed won', 'WON', 'closed'],
+        ['closed_lost', 'Closed lost', 'LOST', 'omitted'],
+      ]);
+      const master = await p.recordType.findFirstOrThrow({
+        where: { apiName: 'master', object: { apiName: 'opportunity' } },
+      });
+      expect(master.pipelineId).toBe(pipelines[0]?.id);
+    });
+  });
+
   it('is idempotent and never overwrites what an admin changed', async () => {
     expect(await inTenant(alpha, syncStandardMetadata)).toBe(false);
     const counts = () =>
@@ -116,6 +140,8 @@ describe('standard metadata sync (P02 T01)', () => {
         await p.picklistValue.count(),
         await p.listView.count(),
         await p.pageLayout.count(),
+        await p.pipeline.count(),
+        await p.pipelineStage.count(),
       ]);
     const before = await counts();
     // An admin renames a value and a layout; a later catalogue revision syncs again.

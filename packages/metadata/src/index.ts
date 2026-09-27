@@ -37,6 +37,7 @@ export {
   DEFAULT_COMPACT_FIELDS,
   DEFAULT_SEARCHABLE,
   defaultLayoutSections,
+  DEFAULT_PIPELINE_STAGES,
   defaultPicklistValues,
   METADATA_OBJECTS,
   picklistLabelKeys,
