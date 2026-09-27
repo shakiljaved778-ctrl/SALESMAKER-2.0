@@ -22,3 +22,17 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Auto-numbers use per-field sequences (T01).** `auto_number_next(field)` draws from a sequence created on first
   use (the `audit_next_seq` pattern), so concurrent creates never queue on a counter row. Numbers can have gaps, as
   in Salesforce.
+- **Metadata runtime (T02).** `loadTenantMetadata()` (@sm/db) reads every metadata table in one pass into plain
+  JSON (`TenantMetadata`, types in @sm/metadata); `MetadataCache` keeps it in process (LRU, 500 tenants) and in
+  Valkey under `meta:{tenant}:{metadataVersion}`; `MetadataIndex` adds the lookups (fields, name fields, the
+  layout a profile sees, record-type picklist values). The worker can use the same pieces. The API's
+  `MetadataService.forTenant()` syncs a tenant behind the catalogue first, inside the caller's transaction.
+- **Field values (T02).** `normaliseValue()` is the one check for a value written to a field (§5.3): text lengths
+  (text 255, textarea 4,000, long and rich text 128 Ki by default), e-mail, phone (4–20 digits), URLs (http/https
+  with a dot in the host; `https://` added when missing), numbers and money as decimal strings rounded half-up to
+  the scale (number 0, currency and percent 2, precision 18), real calendar dates, date-times with an explicit
+  offset stored in UTC, picklists limited to active (or record-type) values. Computed and system fields refuse
+  writes. A Decimal library (`decimal.js` 10.6.0, MIT) is added for this, per §0.4 rule 8.
+- **Required custom fields are always visible (T02).** `fieldAccess()` takes the field's own system/required flags
+  for fields outside the catalogue, so a required custom field is readable and editable with the object, as
+  standard required fields already were.

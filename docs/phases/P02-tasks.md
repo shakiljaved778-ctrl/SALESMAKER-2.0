@@ -3,7 +3,7 @@
 Tick each box when the task's commit is pushed with CI green. Details are in `P02-plan.md`.
 
 - [x] **T01** `feat(db): metadata schema` — migration 0015 (object and field definitions, picklist values, record types and their values, page layouts and assignments, compact layouts, path settings, validation rules, auto-number formats, list views; `metadata_version` triggers; `auto_number_next`); catalogue defaults in `@sm/metadata`; idempotent `syncStandardMetadata` at signup and in the seeds.
-- [ ] **T02** `feat(metadata): metadata service`
+- [x] **T02** `feat(metadata): metadata service` — `loadTenantMetadata` (@sm/db), `MetadataCache` (LRU + Valkey by `metadataVersion`) and `MetadataIndex`, `normaliseValue` per field type (decimal.js), `MetadataService.forTenant` (syncs lagging tenants) and `describe` (FLS-filtered, localised labels, editable flags).
 - [ ] **T03** `feat(formula): parser and type checker`
 - [ ] **T04** `feat(formula): evaluator and SQL compiler`
 - [ ] **T05** `feat(db): core CRM schema`

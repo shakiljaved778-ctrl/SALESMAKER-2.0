@@ -57,6 +57,7 @@ import {
   REDIS,
   SECRET_BOX,
 } from './tokens.js';
+import { MetadataService } from './metadata/metadata.service.js';
 
 export interface ApiDependencies {
   /** Where each object's records live (fixtures in tests until P02's tables exist). */
@@ -129,6 +130,7 @@ export class AppModule {
         SharingService,
         UsersService,
         AccessService,
+        MetadataService,
         SystemPermissionGuard,
       ],
       exports: [
@@ -143,6 +145,7 @@ export class AppModule {
         SessionService,
         TokenService,
         PermissionService,
+        MetadataService,
         SharingService,
         AccessService,
         SystemPermissionGuard,

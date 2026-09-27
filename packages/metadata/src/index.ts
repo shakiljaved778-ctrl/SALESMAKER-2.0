@@ -13,6 +13,25 @@ export {
   LEAD_STATUS_CATEGORIES,
   STANDARD_OBJECTS,
 } from './catalogue.js';
+export { MetadataCache, type MetadataCacheOptions, type MetadataStore } from './cache.js';
+export {
+  MetadataIndex,
+  type FieldMeta,
+  type FieldStorage,
+  type LayoutMeta,
+  type ObjectMeta,
+  type PicklistValueMeta,
+  type RecordTypeMeta,
+  type TenantMetadata,
+  type ValidationRuleMeta,
+} from './runtime.js';
+export {
+  isSortable,
+  normaliseValue,
+  READ_ONLY_TYPES,
+  type ValueErrorCode,
+  type ValueResult,
+} from './values.js';
 export {
   CATALOGUE_VERSION,
   DEFAULT_COMPACT_FIELDS,

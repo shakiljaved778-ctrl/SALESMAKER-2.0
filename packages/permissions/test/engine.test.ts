@@ -239,6 +239,24 @@ describe('fieldAccess (§6.2 layer 5)', () => {
     expect(fieldAccess(eff, 'account', 'website')).toEqual({ read: true, edit: false });
   });
 
+  it('treats custom fields by their definition', () => {
+    const def = (system: boolean, required: boolean) => ({ system, required });
+    expect(fieldAccess(eff, 'lead', 'score__c', def(true, false))).toEqual({
+      read: true,
+      edit: false,
+    });
+    expect(fieldAccess(eff, 'lead', 'region__c', def(false, true))).toEqual({
+      read: true,
+      edit: true,
+    });
+    expect(fieldAccess(eff, 'lead', 'notes__c', def(false, false))).toEqual({
+      read: false,
+      edit: false,
+    });
+    // The catalogue wins for standard fields, whatever the caller passes.
+    expect(fieldAccess(eff, 'lead', 'email', def(true, false))).toEqual({ read: true, edit: true });
+  });
+
   it('is not bypassed by data-wide permissions', () => {
     const admin = effectivePermissions(
       source({ profile: grants({ system: ['modify_all_data'] }) }),

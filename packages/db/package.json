@@ -23,18 +23,19 @@
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
+    "@sm/metadata": "workspace:*",
+    "@testcontainers/postgresql": "12.1.0",
     "kysely": "0.29.6",
     "pg": "8.23.0",
-    "uuidv7": "1.2.1",
-    "@testcontainers/postgresql": "12.1.0"
+    "uuidv7": "1.2.1"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
-    "testcontainers": "12.1.0",
     "@types/node": "26.6.2",
     "@types/pg": "8.23.1",
     "eslint": "10.11.0",
     "prisma": "7.10.0",
+    "testcontainers": "12.1.0",
     "typescript": "6.0.3",
     "vitest": "5.0.2"
   }

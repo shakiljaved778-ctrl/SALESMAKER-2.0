@@ -147,19 +147,21 @@ const NO_FIELD_ACCESS: FieldAccess = Object.freeze({ read: false, edit: false })
  * (ids, audit stamps, conversion links, roll-ups) are always readable and never editable; required
  * standard fields are readable and editable whenever the object is editable. Every other field,
  * standard or custom, follows FLS: the most permissive grant wins, and Edit implies Read.
- * Data-wide permissions do not bypass FLS (Salesforce semantics).
+ * Data-wide permissions do not bypass FLS (Salesforce semantics). `definition` gives the same
+ * system/required treatment to fields outside the catalogue (custom fields, P02).
  */
 export function fieldAccess(
   permissions: EffectivePermissions,
   object: string,
   field: string,
+  definition?: { system: boolean; required: boolean },
 ): FieldAccess {
   const obj = objectAccess(permissions, object);
   if (!obj.read) return NO_FIELD_ACCESS;
-  const standard = standardField(object, field);
-  if (standard?.system) return { read: true, edit: false };
+  const flags = standardField(object, field) ?? definition;
+  if (flags?.system) return { read: true, edit: false };
   const canWrite = obj.edit || obj.create;
-  if (standard?.required) return { read: true, edit: canWrite };
+  if (flags?.required) return { read: true, edit: canWrite };
   const granted = permissions.fields[object]?.[field] ?? NO_FIELD_ACCESS;
   return { read: granted.read, edit: granted.edit && canWrite };
 }
