@@ -36,3 +36,15 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Required custom fields are always visible (T02).** `fieldAccess()` takes the field's own system/required flags
   for fields outside the catalogue, so a required custom field is readable and editable with the object, as
   standard required fields already were.
+- **Formula syntax (T03).** Field references are snake_case API names, case-insensitive; related records are
+  reached through a lookup's relationship name (`account_id` → `account`, `partner__c` → `partner__r`, or the
+  field's own `relationship_name`), up to 5 hops; `owner`, `created_by`, `record_type` and `pipeline` end on a
+  small set of platform fields (name, email, …). `==` and `<>` are accepted as `=` and `!=`; `/* … */` comments;
+  text in single or double quotes with `\n \t \\ \' \"` escapes. Formulas are capped at 5,000 characters and
+  100 levels of nesting.
+- **Formula types (T03).** Beyond §5.5's list, `Time` and `MultiPicklist` exist so every §5.3 field has a type.
+  Picklists are compared only through `ISPICKVAL`, `TEXT`, `ISBLANK` and `CASE` (Salesforce's rule); money stays
+  Currency through `+ - * /` with plain numbers, and Currency ÷ Currency is a Number. `CASE` needs an else value.
+  `DATEDIFF(start, end)` (not in Salesforce) counts whole days; `BUSINESSDAYS(start, end)` counts Monday–Friday
+  days until business hours exist (P03). Errors are codes with parameters and a span; the editor translates
+  `formula.errors.<code>` (keys land with the editor, T25).

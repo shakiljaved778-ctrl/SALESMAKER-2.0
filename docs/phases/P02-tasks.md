@@ -4,7 +4,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 
 - [x] **T01** `feat(db): metadata schema` — migration 0015 (object and field definitions, picklist values, record types and their values, page layouts and assignments, compact layouts, path settings, validation rules, auto-number formats, list views; `metadata_version` triggers; `auto_number_next`); catalogue defaults in `@sm/metadata`; idempotent `syncStandardMetadata` at signup and in the seeds.
 - [x] **T02** `feat(metadata): metadata service` — `loadTenantMetadata` (@sm/db), `MetadataCache` (LRU + Valkey by `metadataVersion`) and `MetadataIndex`, `normaliseValue` per field type (decimal.js), `MetadataService.forTenant` (syncs lagging tenants) and `describe` (FLS-filtered, localised labels, editable flags).
-- [ ] **T03** `feat(formula): parser and type checker`
+- [x] **T03** `feat(formula): parser and type checker` — new `@sm/formula`: lexer, Pratt parser with spans, type checker producing a typed AST (43 functions, cross-object paths through metadata, prior-value functions only where allowed), metadata environment; 217 tests, 99% lines.
 - [ ] **T04** `feat(formula): evaluator and SQL compiler`
 - [ ] **T05** `feat(db): core CRM schema`
 - [ ] **T06** `feat(db): record support tables`

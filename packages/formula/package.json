@@ -1,0 +1,27 @@
+{
+  "name": "@sm/formula",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The SalesMaker expression language (\u00a75.5): parser, type checker, evaluator and the SQL compiler for filters. One safe language for formula fields, validation rules and automation conditions.",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@sm/metadata": "workspace:*"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@types/node": "26.6.2",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}
