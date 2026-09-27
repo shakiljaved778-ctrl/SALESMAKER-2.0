@@ -1,4 +1,4 @@
-import { audit, outbox, withTenant, type CellPrisma, type ChainResult } from '@sm/db';
+import { audit, fieldHistory, outbox, withTenant, type CellPrisma, type ChainResult } from '@sm/db';
 import type { ControlPlane } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
@@ -102,8 +102,17 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
       case OUTBOX_PARTITIONS_TOPIC: {
         const result = await outbox.maintainPartitions(prisma);
         const auditMade = await audit.maintainPartitions(prisma);
-        if (result.created.length || result.dropped.length || auditMade.length)
-          logger.info({ ...result, auditCreated: auditMade }, 'partitions maintained');
+        const historyMade = await fieldHistory.maintainPartitions(prisma);
+        if (
+          result.created.length ||
+          result.dropped.length ||
+          auditMade.length ||
+          historyMade.length
+        )
+          logger.info(
+            { ...result, auditCreated: auditMade, fieldHistoryCreated: historyMade },
+            'partitions maintained',
+          );
         return;
       }
       case AUDIT_CHAIN_TOPIC: {

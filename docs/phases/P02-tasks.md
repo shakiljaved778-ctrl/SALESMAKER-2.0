@@ -7,7 +7,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T03** `feat(formula): parser and type checker` — new `@sm/formula`: lexer, Pratt parser with spans, type checker producing a typed AST (43 functions, cross-object paths through metadata, prior-value functions only where allowed), metadata environment; 217 tests, 99% lines.
 - [x] **T04** `feat(formula): evaluator and SQL compiler` — evaluator (Decimal arithmetic, blank semantics, 43 functions, runtime errors with spans) and `compileToSql` for the filterable subset, proven equal to the evaluator on Postgres for 120 formulas plus 300 random ones; parser fuzz; 542 formula tests, 99% lines.
 - [x] **T05** `feat(db): core CRM schema` — migration 0016: lead, account, contact, opportunity, campaign (catalogue columns, §4.1 columns, `custom`, money + corporate columns, search trigger, owner-leading sort indexes), pipeline and stages, account-contact relations, contact roles, append-only stage history, campaign members, lead conversions; default pipeline in the metadata sync.
-- [ ] **T06** `feat(db): record support tables`
+- [x] **T06** `feat(db): record support tables` — migration 0017: monthly-partitioned append-only `field_history` (+ partition upkeep in the worker), `recycle_bin_item`, `recent_item`, `tenant_currency`, `currency_rate`, account and opportunity team members, `custom_field_index`.
 - [ ] **T07** `feat(query-engine): SMQ compiler`
 - [ ] **T08** `feat(records): RecordService writes`
 - [ ] **T09** `feat(records): delete, undelete, recycle bin`

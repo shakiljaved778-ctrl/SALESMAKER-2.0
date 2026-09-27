@@ -61,9 +61,10 @@ enum AuthTokenPurpose {
 
 /// Global reference data (no tenant_id; allow-listed in the RLS audit).
 model Currency {
-  code       String @id @db.Char(3)
-  name       String
-  minorUnits Int    @map("minor_units") @db.SmallInt
+  code             String           @id @db.Char(3)
+  name             String
+  minorUnits       Int              @map("minor_units") @db.SmallInt
+  tenantCurrencies TenantCurrency[]
 
   @@map("currency")
 }
@@ -1798,4 +1799,156 @@ model LeadConversion {
   @@id([tenantId, id])
   @@index([tenantId, leadId])
   @@map("lead_conversion")
+}
+
+// ── Record support (P02 T06) ───────────────────────────────────────────────────────────────
+
+/// Old and new value of tracked fields (§7.17), partitioned monthly by `changed_at` (Q12).
+/// Append-only for the runtime role; viewers mask fields the reader cannot see (§6.5).
+model FieldHistory {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  id        String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  changedAt DateTime @default(now()) @map("changed_at") @db.Timestamptz(6)
+  object    String
+  recordId  String   @map("record_id") @db.Uuid
+  field     String
+  oldValue  Json?    @map("old_value")
+  newValue  Json?    @map("new_value")
+  changedBy String?  @map("changed_by") @db.Uuid
+  requestId String?  @map("request_id")
+
+  @@id([tenantId, changedAt, id])
+  @@index([tenantId, object, recordId, changedAt])
+  @@map("field_history")
+}
+
+/// A deleted record awaiting restore or purge (§7.5: 30 days). Children deleted with their
+/// parent point at the parent's item and are restored with it.
+model RecycleBinItem {
+  tenantId   String   @map("tenant_id") @db.Uuid
+  id         String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object     String
+  recordId   String   @map("record_id") @db.Uuid
+  /// The record's display name when it was deleted.
+  name       String
+  deletedAt  DateTime @default(now()) @map("deleted_at") @db.Timestamptz(6)
+  deletedBy  String?  @map("deleted_by") @db.Uuid
+  /// The item whose delete cascaded to this record; null for what a user deleted.
+  cascadeOf  String?  @map("cascade_of") @db.Uuid
+  purgeAfter DateTime @map("purge_after") @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, recordId])
+  @@index([tenantId, deletedBy, deletedAt])
+  @@index([tenantId, purgeAfter])
+  @@index([tenantId, cascadeOf])
+  @@map("recycle_bin_item")
+}
+
+/// Records a user opened recently (§7.5, ⌘K); the service keeps the latest 100 per user.
+model RecentItem {
+  tenantId String   @map("tenant_id") @db.Uuid
+  userId   String   @map("user_id") @db.Uuid
+  object   String
+  recordId String   @map("record_id") @db.Uuid
+  viewedAt DateTime @default(now()) @map("viewed_at") @db.Timestamptz(6)
+
+  @@id([tenantId, userId, object, recordId])
+  @@index([tenantId, userId, viewedAt])
+  @@map("recent_item")
+}
+
+/// Currencies an organisation uses besides its corporate currency (§4.1).
+model TenantCurrency {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  code      String   @db.Char(3)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+
+  currency Currency @relation(fields: [code], references: [code], onDelete: Restrict)
+
+  @@id([tenantId, code])
+  @@map("tenant_currency")
+}
+
+/// Dated exchange rates (Q13, ADR-0031): `rate` units of `code` per one unit of the corporate
+/// currency, from `effective_date` until the next rate. Admin-maintained; no feed in v1.
+model CurrencyRate {
+  tenantId      String   @map("tenant_id") @db.Uuid
+  id            String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  code          String   @db.Char(3)
+  effectiveDate DateTime @map("effective_date") @db.Date
+  rate          Decimal  @db.Decimal(18, 8)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?  @map("created_by") @db.Uuid
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy     String?  @map("updated_by") @db.Uuid
+  version       Int      @default(1)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, code, effectiveDate])
+  @@map("currency_rate")
+}
+
+/// People working an account with its owner (§6.4 TEAM shares). `access`: 1 read, 2 edit.
+model AccountTeamMember {
+  tenantId          String   @map("tenant_id") @db.Uuid
+  id                String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  accountId         String   @map("account_id") @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  role              String?
+  access            Int      @default(1) @db.SmallInt
+  /// Access the member gets to the account's opportunities (0 none, 1 read, 2 edit).
+  opportunityAccess Int      @default(0) @map("opportunity_access") @db.SmallInt
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy         String?  @map("created_by") @db.Uuid
+
+  @@id([tenantId, id])
+  @@unique([tenantId, accountId, userId])
+  @@index([tenantId, userId])
+  @@map("account_team_member")
+}
+
+/// People working an opportunity with its owner (§6.4 TEAM shares). `access`: 1 read, 2 edit.
+model OpportunityTeamMember {
+  tenantId      String   @map("tenant_id") @db.Uuid
+  id            String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  opportunityId String   @map("opportunity_id") @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  role          String?
+  access        Int      @default(1) @db.SmallInt
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?  @map("created_by") @db.Uuid
+
+  @@id([tenantId, id])
+  @@unique([tenantId, opportunityId, userId])
+  @@index([tenantId, userId])
+  @@map("opportunity_team_member")
+}
+
+enum CustomFieldIndexStatus {
+  PENDING
+  BUILDING
+  READY
+  FAILED
+  DROPPING
+
+  @@map("custom_field_index_status")
+}
+
+/// A requested per-tenant expression index on an indexed custom field (Q11, ADR-0030), built
+/// CONCURRENTLY by a worker job.
+model CustomFieldIndex {
+  tenantId    String                 @map("tenant_id") @db.Uuid
+  fieldId     String                 @map("field_id") @db.Uuid
+  status      CustomFieldIndexStatus @default(PENDING)
+  indexName   String                 @map("index_name")
+  error       String?
+  requestedAt DateTime               @default(now()) @map("requested_at") @db.Timestamptz(6)
+  readyAt     DateTime?              @map("ready_at") @db.Timestamptz(6)
+
+  @@id([tenantId, fieldId])
+  @@unique([tenantId, indexName])
+  @@map("custom_field_index")
 }

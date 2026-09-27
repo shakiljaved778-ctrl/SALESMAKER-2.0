@@ -85,3 +85,10 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Default pipeline (T05).** Every organisation gets a "Sales pipeline" (qualification → needs analysis →
   proposal → negotiation → closed won / closed lost, with default probabilities and forecast categories) that the
   opportunity Master record type uses; `CATALOGUE_VERSION` 2 brings existing organisations up to date.
+- **Record support tables (T06).** `field_history` is partitioned monthly on `changed_at` (PK
+  `(tenant_id, changed_at, id)`, Q12), append-only for the runtime role, with partitions kept three months ahead by
+  the worker's hourly maintenance job alongside the outbox and audit partitions; retention drops arrive with P12.
+  `recycle_bin_item` holds one row per deleted record with its display name, who deleted it, the item it
+  cascaded from and when it may be purged. `recent_item` keeps a user's latest view per record. Exchange rates are
+  stored as units of the currency per one unit of the corporate currency, one rate per currency per day.
+  Account team members carry their own access and the access they get to the account's opportunities.
