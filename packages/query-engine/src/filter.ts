@@ -3,6 +3,10 @@ import { z } from 'zod';
 
 /** A column of the record's table: snake_case API names (§5.1). */
 const FieldName = z.string().regex(/^[a-z][a-z0-9_]{0,62}$/, 'Must be a field API name');
+/** SMQ filters may also follow lookups: `account.owner.name` (at most 3 relationships, §3.8). */
+export const FieldPath = z
+  .string()
+  .regex(/^[a-z][a-z0-9_]{0,62}(\.[a-z][a-z0-9_]{0,62}){0,3}$/, 'Must be a field API name or path');
 const Scalar = z.union([z.string().max(1000), z.number(), z.boolean()]);
 
 export const COMPARISON_OPS = ['eq', 'ne', 'lt', 'lte', 'gt', 'gte'] as const;
@@ -19,33 +23,43 @@ export type FilterNode =
 
 const Text = z.string().min(1).max(255);
 const List = z.array(Scalar).min(1).max(500);
-const Condition = z.discriminatedUnion('op', [
-  z.object({ field: FieldName, op: z.literal('eq'), value: Scalar }),
-  z.object({ field: FieldName, op: z.literal('ne'), value: Scalar }),
-  z.object({ field: FieldName, op: z.literal('lt'), value: Scalar }),
-  z.object({ field: FieldName, op: z.literal('lte'), value: Scalar }),
-  z.object({ field: FieldName, op: z.literal('gt'), value: Scalar }),
-  z.object({ field: FieldName, op: z.literal('gte'), value: Scalar }),
-  z.object({ field: FieldName, op: z.literal('contains'), value: Text }),
-  z.object({ field: FieldName, op: z.literal('starts_with'), value: Text }),
-  z.object({ field: FieldName, op: z.literal('in'), value: List }),
-  z.object({ field: FieldName, op: z.literal('not_in'), value: List }),
-  z.object({ field: FieldName, op: z.literal('is_null') }),
-  z.object({ field: FieldName, op: z.literal('is_not_null') }),
-]);
+function conditionSchema(field: z.ZodString) {
+  return z.discriminatedUnion('op', [
+    z.object({ field, op: z.literal('eq'), value: Scalar }),
+    z.object({ field, op: z.literal('ne'), value: Scalar }),
+    z.object({ field, op: z.literal('lt'), value: Scalar }),
+    z.object({ field, op: z.literal('lte'), value: Scalar }),
+    z.object({ field, op: z.literal('gt'), value: Scalar }),
+    z.object({ field, op: z.literal('gte'), value: Scalar }),
+    z.object({ field, op: z.literal('contains'), value: Text }),
+    z.object({ field, op: z.literal('starts_with'), value: Text }),
+    z.object({ field, op: z.literal('in'), value: List }),
+    z.object({ field, op: z.literal('not_in'), value: List }),
+    z.object({ field, op: z.literal('is_null') }),
+    z.object({ field, op: z.literal('is_not_null') }),
+  ]);
+}
+
+function treeSchema(field: z.ZodString): z.ZodType<FilterNode> {
+  const condition = conditionSchema(field);
+  const tree: z.ZodType<FilterNode> = z.lazy(() =>
+    z.union([
+      condition,
+      z.object({ and: z.array(tree).min(1).max(50) }).strict(),
+      z.object({ or: z.array(tree).min(1).max(50) }).strict(),
+      z.object({ not: tree }).strict(),
+    ]),
+  );
+  return tree;
+}
 
 /**
  * The filter tree (sharing-rule criteria now; list views and SMQ where-clauses in P02). Depth is
  * capped at 8 and size at 100 conditions, so a stored filter can never become an expensive query.
  */
-export const FilterNodeSchema: z.ZodType<FilterNode> = z.lazy(() =>
-  z.union([
-    Condition,
-    z.object({ and: z.array(FilterNodeSchema).min(1).max(50) }).strict(),
-    z.object({ or: z.array(FilterNodeSchema).min(1).max(50) }).strict(),
-    z.object({ not: FilterNodeSchema }).strict(),
-  ]),
-);
+export const FilterNodeSchema: z.ZodType<FilterNode> = treeSchema(FieldName);
+/** The same tree over field paths, for SMQ and list views (§3.8). */
+export const PathFilterSchema: z.ZodType<FilterNode> = treeSchema(FieldPath);
 
 function measure(node: FilterNode, depth = 1): { depth: number; conditions: number } {
   if ('and' in node || 'or' in node) {
@@ -63,8 +77,8 @@ function measure(node: FilterNode, depth = 1): { depth: number; conditions: numb
 }
 
 /** Validate an untrusted filter (e.g. from the API or the database). */
-export function parseFilter(input: unknown): FilterNode {
-  const node = FilterNodeSchema.parse(input);
+export function parseFilter(input: unknown, options: { paths?: boolean } = {}): FilterNode {
+  const node = (options.paths ? PathFilterSchema : FilterNodeSchema).parse(input);
   const { depth, conditions } = measure(node);
   if (depth > 8) throw new Error('Filters may nest at most 8 levels');
   if (conditions > 100) throw new Error('Filters may have at most 100 conditions');
@@ -156,27 +170,39 @@ const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
  * are always bound parameters; field names are validated identifiers.
  */
 export function filterSql(alias: string, node: FilterNode): Expression<SqlBool> {
-  if ('and' in node)
-    return sql<SqlBool>`(${sql.join(
-      node.and.map((n) => filterSql(alias, n)),
-      sql` AND `,
-    )})`;
-  if ('or' in node)
-    return sql<SqlBool>`(${sql.join(
-      node.or.map((n) => filterSql(alias, n)),
-      sql` OR `,
-    )})`;
-  if ('not' in node) return sql<SqlBool>`(NOT ${filterSql(alias, node.not)})`;
-  const column = sql.ref(`${alias}.${node.field}`);
+  return filterSqlWith((field) => sql.ref(`${alias}.${field}`), node);
+}
+
+/**
+ * `filterSql` over resolved expressions: `column(field)` gives the SQL for a field (a column, a
+ * cast out of `custom`, a joined column) and `value` may rewrite a condition's value (`$me`).
+ */
+export function filterSqlWith(
+  column: (field: string) => Expression<unknown>,
+  node: FilterNode,
+  value: (field: string, v: string | number | boolean) => unknown = (_f, v) => v,
+): Expression<SqlBool> {
+  const recurse = (n: FilterNode) => filterSqlWith(column, n, value);
+  if ('and' in node) return sql<SqlBool>`(${sql.join(node.and.map(recurse), sql` AND `)})`;
+  if ('or' in node) return sql<SqlBool>`(${sql.join(node.or.map(recurse), sql` OR `)})`;
+  if ('not' in node) return sql<SqlBool>`(NOT ${recurse(node.not)})`;
+  return conditionSql(column(node.field), node, (v) => value(node.field, v));
+}
+
+function conditionSql(
+  column: Expression<unknown>,
+  node: FilterCondition,
+  value: (v: string | number | boolean) => unknown,
+): Expression<SqlBool> {
   switch (node.op) {
     case 'is_null':
       return sql<SqlBool>`${column} IS NULL`;
     case 'is_not_null':
       return sql<SqlBool>`${column} IS NOT NULL`;
     case 'in':
-      return sql<SqlBool>`${column} IN (${sql.join(node.value.map((v) => sql.val(v)))})`;
+      return sql<SqlBool>`${column} IN (${sql.join(node.value.map((v) => sql.val(value(v))))})`;
     case 'not_in':
-      return sql<SqlBool>`${column} NOT IN (${sql.join(node.value.map((v) => sql.val(v)))})`;
+      return sql<SqlBool>`${column} NOT IN (${sql.join(node.value.map((v) => sql.val(value(v))))})`;
     case 'contains':
       return sql<SqlBool>`${column}::text ILIKE ${`%${escapeLike(node.value)}%`}`;
     case 'starts_with':
@@ -188,7 +214,7 @@ export function filterSql(alias: string, node: FilterNode): Expression<SqlBool> 
     case 'gt':
     case 'gte': {
       const operator = { eq: '=', ne: '<>', lt: '<', lte: '<=', gt: '>', gte: '>=' }[node.op];
-      return sql<SqlBool>`${column} ${sql.raw(operator)} ${node.value}`;
+      return sql<SqlBool>`${column} ${sql.raw(operator)} ${value(node.value)}`;
     }
   }
 }

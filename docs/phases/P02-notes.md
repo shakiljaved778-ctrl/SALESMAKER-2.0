@@ -92,3 +92,16 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   cascaded from and when it may be purged. `recent_item` keeps a user's latest view per record. Exchange rates are
   stored as units of the currency per one unit of the corporate currency, one rate per currency per day.
   Account team members carry their own access and the access they get to the account's opportunities.
+- **SMQ (T07).** `compileQuery()` validates the JSON query (object, ≤ 100 fields or lookup paths, filter tree,
+  ≤ 3 sort keys, limit ≤ the caller's max, cursor, `scope: 'recent'`) and resolves every reference through
+  metadata as the caller: standard fields are columns, custom fields are casts out of `custom`, lookup paths
+  (≤ 3 relationships) are LEFT JOINs whose target carries its own sharing predicate and `deleted_at IS NULL`.
+  Hidden fields are dropped from the projection; in a filter or sort they are a `field_not_readable` error.
+  Lookup fields come back as `{ id, name, object }`, with `name` null when the caller cannot see the target.
+  Numbers, dates and timestamps are projected as text (exact decimals, `YYYY-MM-DD`, microsecond ISO), so cursors
+  round-trip exactly. Keyset pagination orders `ASC NULLS LAST` / `DESC NULLS FIRST` (Postgres's defaults, so one
+  index serves both directions) with the id last in the same direction; the cursor condition is an OR-chain that
+  handles nulls. Counts stop at 100,001 ("100k+"). `$me` in a filter value means the caller.
+- **Gaps left for later tasks (T07).** A queue-owned record's owner comes back without a name (the owner lookup
+  joins users only; T19 shows queues). Statement timeouts are the caller's (`withTenant` options, 5 s interactive,
+  60 s async per §3.8); EXPLAIN sampling of slow queries lands with the API in T12.
