@@ -41,6 +41,8 @@ export interface Harness {
   user(name: string, unit?: string | null): Promise<string>;
   unit(name: string, parent?: string | null): Promise<string>;
   context(tx: TenantTransaction, userId: string, grants?: Partial<Grants>): Promise<RecordContext>;
+  /** Store a profile with these grants (defaults: full CRM access) for the user, in the database. */
+  grant(userId: string, grants?: Partial<Grants>): Promise<void>;
   dispose(): Promise<void>;
 }
 
@@ -190,13 +192,7 @@ export async function startHarness(tenantId: string): Promise<Harness> {
       const metadata = new MetadataIndex(await loadTenantMetadata(tx, settings.metadataVersion));
       const full: Grants = {
         system: grants.system ?? [],
-        objects: grants.objects ?? {
-          lead: FULL,
-          account: FULL,
-          contact: FULL,
-          opportunity: FULL,
-          campaign: FULL,
-        },
+        objects: grants.objects ?? crmObjects(),
         fields: grants.fields ?? allFields(),
       };
       const sharing: Record<string, ObjectSharing> = Object.fromEntries(
@@ -225,12 +221,68 @@ export async function startHarness(tenantId: string): Promise<Harness> {
         now: () => new Date('2026-09-27T10:00:00Z'),
       };
     },
+    async grant(userId, grants = {}) {
+      await inTenant(async ({ prisma: p }) => {
+        const set = await p.permissionSet.create({
+          data: { tenantId, kind: 'PROFILE', name: `profile-${userId}` },
+        });
+        const permissionSetId = set.id;
+        const system = grants.system ?? [];
+        if (system.length)
+          await p.systemPermission.createMany({
+            data: system.map((name) => ({ tenantId, permissionSetId, name })),
+          });
+        await p.objectPermission.createMany({
+          data: Object.entries(grants.objects ?? crmObjects()).flatMap(([object, a]) =>
+            a
+              ? [
+                  {
+                    tenantId,
+                    permissionSetId,
+                    object,
+                    canRead: a.read,
+                    canCreate: a.create,
+                    canEdit: a.edit,
+                    canDelete: a.delete,
+                    viewAll: a.viewAll,
+                    modifyAll: a.modifyAll,
+                  },
+                ]
+              : [],
+          ),
+        });
+        await p.fieldPermission.createMany({
+          data: Object.entries(grants.fields ?? allFields()).flatMap(([object, byField]) =>
+            Object.entries(byField ?? {}).flatMap(([field, a]) =>
+              a
+                ? [{ tenantId, permissionSetId, object, field, canRead: a.read, canEdit: a.edit }]
+                : [],
+            ),
+          ),
+        });
+        const profile = await p.profile.create({
+          data: { tenantId, name: `profile-${userId}`, permissionSetId },
+        });
+        await p.user.update({
+          where: { tenantId_id: { tenantId, id: userId } },
+          data: { profileId: profile.id },
+        });
+      });
+    },
     async dispose() {
       await disposeCellPrisma(prisma);
       await db.drop();
     },
   };
 }
+
+const crmObjects = (): Grants['objects'] => ({
+  lead: FULL,
+  account: FULL,
+  contact: FULL,
+  opportunity: FULL,
+  campaign: FULL,
+});
 
 /** Read and edit on every non-system standard field (tests hide some explicitly). */
 export function allFields(hidden: Record<string, string[]> = {}): Grants['fields'] {

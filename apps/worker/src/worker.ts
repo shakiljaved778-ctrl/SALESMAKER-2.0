@@ -14,6 +14,7 @@ import { startConsumers } from './consumers.js';
 import { FairScheduler } from './fairness.js';
 import type { Handlers } from './jobs.js';
 import { createMaintenanceHandler, scheduleMaintenance } from './maintenance.js';
+import { importHandler } from './mass-actions.js';
 import { createQueues, type QueueSet } from './queues.js';
 import { OutboxRelay } from './relay.js';
 import { sharingHandler } from './sharing.js';
@@ -75,6 +76,7 @@ export async function createWorker(
     maintenance: createMaintenanceHandler({ auditPrisma, redis, controlPlane }),
     sharing: sharingHandler,
     automation: automationHandler,
+    import: importHandler,
   };
 
   return {

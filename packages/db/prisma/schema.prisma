@@ -792,6 +792,10 @@ model JobRun {
   status     JobRunStatus @default(QUEUED)
   done       Int          @default(0)
   total      Int?
+  /// Rows that failed (mass actions: per-row errors are in `result`).
+  failed     Int          @default(0)
+  /// Job-specific outcome, e.g. the first failed rows of a mass action with their error codes.
+  result     Json?
   error      String?
   createdAt  DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   createdBy  String?      @map("created_by") @db.Uuid

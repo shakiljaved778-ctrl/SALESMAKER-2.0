@@ -17,3 +17,34 @@ export {
   RECYCLE_DAYS,
   undeleteRecord,
 } from './delete.js';
+export { tenantCurrencyConverter } from './currency.js';
+export {
+  loadObjectSharing,
+  loadPermissionSource,
+  loadRecordContext,
+  sharingContextOf,
+  toGrants,
+} from './load-context.js';
+export {
+  BULK_BATCH,
+  bulkCreate,
+  bulkDelete,
+  bulkUpdate,
+  massDelete,
+  massTransfer,
+  massUpdate,
+  MASS_JOB_LIMIT,
+  selectMatching,
+  type BulkUpdate,
+  type RowResult,
+  type TransferOptions,
+} from './bulk.js';
+export {
+  MASS_ACTION_TOPIC,
+  MASS_FAILURES_KEPT,
+  MassActionSchema,
+  previewMassAction,
+  runMassAction,
+  startMassAction,
+  type MassAction,
+} from './mass-job.js';

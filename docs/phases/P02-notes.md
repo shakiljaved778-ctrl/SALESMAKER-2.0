@@ -141,3 +141,24 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
     be transferred first.
   - A standalone bin page (list, restore, purge now) is left for the records API and UI (T12/T17). Deleted
     records' field history stays until its partition is dropped.
+- **Bulk and mass actions (T10).**
+  - **Bulk writes.** `bulkCreate`, `bulkUpdate` and `bulkDelete` take up to 200 rows. Each row runs in a savepoint
+    through the full pipeline and gets its own result: `{index, ok, id, status, errors}`. A failing row rolls back
+    alone; an error that is not a record error aborts the batch.
+  - **Mass update** needs `mass_update`, and each row still needs edit access and field-level edit permission.
+  - **Mass transfer** needs `transfer_records` plus Full access on each record, exactly what a single transfer
+    needs. The permission unlocks the mass action; it grants no access beyond that (a conservative reading of
+    §6.2). An account takes its contacts along, and, per `opportunities: none|open|all` (default `open`), the
+    opportunities its previous owner held. Teams stay unless `keepTeams: false`.
+  - **Mass delete** needs Modify All on the object and sends records to the recycle bin.
+  - **Deferred.** "Transfer tasks" waits for activities in P03.
+  - **Select all matching.** Selections of up to 10,000 records run as a job. `startMassAction` checks the
+    permission, counts the matching records (the preview) and creates a `job_run` with kind `mass_<action>`. It
+    then emits `import.mass_action`. The worker's `import` queue runs the job as the user who started it: rows
+    are selected when the job runs, one transaction per batch of 200. Progress goes to `job_run.done`/`failed`,
+    and the first 100 failures go to `job_run.result` (migration 0018, additive). A retried job starts over. Rows
+    already done are no-ops or no longer match. A finished job is not run again.
+  - **Shared context.** `loadRecordContext` in `@sm/records` builds a RecordContext from the database:
+    permission source, org-wide defaults, principals, `$User`/`$Org` globals and the tenant's dated-rate currency
+    converter. The worker uses it, and the records API will too (T12). `toGrants`/`loadPermissionSource` moved
+    there from the API.
