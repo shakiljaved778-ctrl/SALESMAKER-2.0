@@ -32,7 +32,12 @@ function need<T>(value: T | undefined, what: string): T {
  * first marks the tenant dirty, then tries the lock. The holder clears the mark after releasing
  * the lock and runs again if it was set; a caller that marked it later finds the lock free.
  */
-async function chainTenant(deps: MaintenanceDeps, tenantId: string) {
+/**
+ * `wait`: when another run holds the lock, wait for it (up to the lock's lifetime) and chain
+ * afterwards, instead of leaving the work to it. Verification needs this: it must see every row
+ * that was committed before it started as chained.
+ */
+async function chainTenant(deps: MaintenanceDeps, tenantId: string, wait = false) {
   const redis = need(deps.redis, 'Valkey');
   const auditPrisma = need(deps.auditPrisma, 'the sm_audit connection');
   const lock = `audit-chain:${tenantId}`;
@@ -40,8 +45,13 @@ async function chainTenant(deps: MaintenanceDeps, tenantId: string) {
   const token = `${String(process.pid)}:${String(Math.random())}`;
   const total: ChainResult = { rows: 0, batches: 0, gaps: [], headSeq: null };
   await redis.set(dirty, '1', 'PX', 3_600_000);
+  const giveUpAt = Date.now() + (deps.lockMs ?? 60_000);
   for (;;) {
-    if ((await redis.set(lock, token, 'PX', deps.lockMs ?? 60_000, 'NX')) !== 'OK') return total;
+    if ((await redis.set(lock, token, 'PX', deps.lockMs ?? 60_000, 'NX')) !== 'OK') {
+      if (!wait || Date.now() > giveUpAt) return total;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      continue;
+    }
     try {
       await redis.del(dirty);
       const result = await audit.chain((fn) =>
@@ -72,7 +82,7 @@ async function verifyTenant(
   tenantId: string,
 ): Promise<void> {
   const startedAt = new Date();
-  await chainTenant(deps, tenantId);
+  await chainTenant(deps, tenantId, true);
   const result = await withTenant(prisma, { tenantId }, (tx) => audit.verify(tx), {
     timeoutMs: 120_000,
     statementTimeoutMs: 60_000,

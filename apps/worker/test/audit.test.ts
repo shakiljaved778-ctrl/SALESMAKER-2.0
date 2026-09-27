@@ -112,6 +112,23 @@ describe('audit chaining in the worker (ADR-0008 addendum)', () => {
     expect(await w.inTenant(alpha, (tx) => tx.prisma.auditVerification.count())).toBe(1);
   });
 
+  it('waits for a chain run in progress before verifying', async () => {
+    const handler = createMaintenanceHandler({ auditPrisma: w.auditPrisma, redis: w.redis });
+    await w.inTenant(beta, (tx) => audit.record(tx, { action: 'x.w' }));
+    // Another run holds the lock (and will not chain the new row); it lets go shortly.
+    await w.redis.set(`audit-chain:${beta}`, 'someone-else', 'PX', 60_000);
+    setTimeout(() => void w.redis.del(`audit-chain:${beta}`), 300);
+    await handler(envelope(AUDIT_VERIFY_TOPIC, beta), {
+      prisma: w.prisma,
+      logger: w.logger,
+      job: undefined as never,
+    });
+    const latest = await w.inTenant(beta, (tx) =>
+      tx.prisma.auditVerification.findFirstOrThrow({ orderBy: { startedAt: 'desc' } }),
+    );
+    expect(latest).toMatchObject({ status: 'OK', pending: 0, problem: null });
+  });
+
   it('records a broken chain', async () => {
     const handler = createMaintenanceHandler({
       auditPrisma: w.auditPrisma,
