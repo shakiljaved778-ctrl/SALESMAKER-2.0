@@ -6,7 +6,8 @@ import { sql } from 'kysely';
 
 import type { RecordContext } from './context.js';
 import { RecordError } from './errors.js';
-import { ident } from './storage.js';
+import { syncAfterWrite } from './shares.js';
+import { ident, readStored } from './storage.js';
 
 /** Days a deleted record stays restorable (§7.5). */
 export const RECYCLE_DAYS = 30;
@@ -34,6 +35,12 @@ const LINKS: Readonly<Record<string, readonly string[]>> = {
   opportunity_team_member: ['opportunity_id'],
   recent_item: ['record_id'],
 };
+
+/** What derived shares depend on: the owner and the parent account. */
+const derivedOf = (values: Record<string, unknown>) => ({
+  owner: values['owner_id'],
+  account: values['account_id'],
+});
 
 function objectOf(ctx: RecordContext, name: string): ObjectMeta {
   const object = ctx.metadata.object(name);
@@ -115,7 +122,11 @@ export async function deleteRecord(
     !(await visible(tx, ctx, object, id, 'full'))
   )
     throw new RecordError('forbidden');
+  const before = await readStored(tx, object, id);
   const itemId = await softDelete(tx, ctx, object, id, null);
+  const gone: [string, Record<string, unknown>, string][] = [
+    [objectName, before?.values ?? {}, id],
+  ];
   let cascaded = 0;
   for (const [childName, field] of CASCADES[objectName] ?? []) {
     const child = ctx.metadata.object(childName);
@@ -125,10 +136,14 @@ export async function deleteRecord(
       WHERE tenant_id = ${tx.context.tenantId}::uuid AND ${sql.ref(ident(field))} = ${id}::uuid AND deleted_at IS NULL
       FOR UPDATE`.execute(tx.kysely);
     for (const row of rows.rows) {
+      const values = (await readStored(tx, child, row.id))?.values ?? {};
       await softDelete(tx, ctx, child, row.id, itemId);
+      gone.push([childName, values, row.id]);
       cascaded += 1;
     }
   }
+  for (const [name, values, recordId] of gone)
+    await syncAfterWrite(tx, name, recordId, derivedOf(values), null);
   await audit.record(tx, {
     action: 'record.deleted',
     object: objectName,
@@ -175,6 +190,11 @@ export async function undeleteRecord(
       WHERE tenant_id = ${tx.context.tenantId}::uuid AND id = ${entry.recordId}::uuid`.execute(
       tx.kysely,
     );
+  }
+  for (const entry of [item, ...children]) {
+    const meta = ctx.metadata.object(entry.object);
+    const values = meta ? (await readStored(tx, meta, entry.recordId))?.values : undefined;
+    if (values) await syncAfterWrite(tx, entry.object, entry.recordId, null, derivedOf(values));
   }
   await tx.prisma.recycleBinItem.deleteMany({
     where: { id: { in: [item.id, ...children.map((c) => c.id)] } },

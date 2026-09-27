@@ -48,3 +48,12 @@ export {
   startMassAction,
   type MassAction,
 } from './mass-job.js';
+export { syncAccountShares, syncAfterWrite, syncOpportunityShares } from './shares.js';
+export {
+  listTeam,
+  removeTeamMember,
+  setTeamMember,
+  type TeamMember,
+  type TeamMemberInput,
+  type TeamObject,
+} from './teams.js';

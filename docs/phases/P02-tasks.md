@@ -12,7 +12,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T08** `feat(records): RecordService writes` — new `@sm/records`: create/update in §3.7 order (access, FLS, types, defaults, opportunity stage rules, required fields, references, currency, hooks, validation rules with cross-object values, corporate amounts, optimistic lock, stage and field history, sharing rules, audit, events); worker acknowledges `automation` record events; 14 tests, 95% lines.
 - [x] **T09** `feat(records): delete, undelete, recycle bin`
 - [x] **T10** `feat(records): bulk, mass update and transfer`
-- [ ] **T11** `feat(sharing): sharing on CRM tables`
+- [x] **T11** `feat(sharing): sharing on CRM tables`
 - [ ] **T12** `feat(api): records API`
 - [ ] **T13** `feat(leads): lead conversion`
 - [ ] **T14** `feat(search): search v1`

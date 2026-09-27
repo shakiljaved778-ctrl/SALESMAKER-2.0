@@ -113,7 +113,8 @@ export function sharingPredicate(
     const p = `p${String(depth + 1)}_${ident(field)}`;
     return sql<SqlBool>`(${sql.ref(`${alias}.${ident(field)}`)} IS NOT NULL AND EXISTS (
       SELECT 1 FROM ${sql.table(ident(parent.table))} AS ${sql.raw(p)}
-      WHERE ${sql.ref(`${p}.id`)} = ${sql.ref(`${alias}.${field}`)}
+      WHERE ${sql.ref(`${p}.tenant_id`)} = ${ctx.tenantId}::uuid
+        AND ${sql.ref(`${p}.id`)} = ${sql.ref(`${alias}.${field}`)}
         AND ${sharingPredicate(ctx, parentObject, p, level, depth + 1)}))`;
   });
   const orphan = sql<SqlBool>`(${sql.join(

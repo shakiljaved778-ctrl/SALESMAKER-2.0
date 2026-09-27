@@ -162,3 +162,34 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
     permission source, org-wide defaults, principals, `$User`/`$Org` globals and the tenant's dated-rate currency
     converter. The worker uses it, and the records API will too (T12). `toGrants`/`loadPermissionSource` moved
     there from the API.
+- **Sharing on CRM tables (T11).** `@sm/records/src/shares.ts` derives TEAM, IMPLICIT_PARENT and IMPLICIT_CHILD
+  shares from the source rows. On each sync it deletes the shares it owns for the affected records and
+  re-inserts what the sources say now, so these shares cannot drift. Rule, manual and territory shares are never
+  touched here.
+  - **Account team members** get their membership's access on the account. They also get their
+    `opportunity_access` (0 none, 1 read, 2 edit) on the account's opportunities.
+  - **Opportunity team members** get their membership's access on the opportunity.
+  - **IMPLICIT_PARENT.** Owners (users or queues) of an account's live contacts and opportunities get Read on the
+    account.
+  - **IMPLICIT_CHILD.** The account owner gets Read on the account's opportunities. Contacts are CONTROLLED_BY_PARENT
+    and follow the account already.
+  - **When shares resync.** RecordService resyncs on create, and on owner or account changes. Delete and undelete
+    resync too, so deleted records drop their derived shares. An account owner change also resyncs the account's
+    opportunities.
+  - **Teams.** `setTeamMember`, `removeTeamMember` and `listTeam` manage teams. Changing a team shares the record,
+    so it needs Full access (§6.2); a record the user cannot read is 404. Every change is audited
+    (`record.team_member_set` / `record.team_member_removed`, no values beyond the user id and access levels).
+  - **Predicate.** The CONTROLLED_BY_PARENT lookup now filters the parent on `tenant_id` so it probes the
+    `(tenant_id, id)` primary key.
+  - **perf:sharing** now loads real `account` rows and a fifth as many `contact` rows (CONTROLLED_BY_PARENT) into
+    the bank tenant. It measures list pages on both objects; results are below.
+  - **Two decisions to confirm at the gate.** (1) Manual shares survive an owner change; Salesforce removes them.
+    (2) Under CONTROLLED_BY_PARENT, a contact's own owner gets no access beyond what they have on the account,
+    and implicit Read on the account is not enough to edit their own contact. §6.3 says contact access is
+    "controlled by its primary account", and I have kept that literally. Salesforce gives record owners full
+    access regardless.
+  - **perf:sharing results (T11)**, bank tenant: 930 users, org depth 3, 500k accounts, 100k contacts and 25k shares.
+    - Closure: 5,408 rows; a full rebuild takes 137 ms p50.
+    - Principals: 7 ms computed, 0.3 ms from cache.
+    - List pages of 50: the worst p95 is 108 ms (contacts, CONTROLLED_BY_PARENT, for a telesales agent who reaches
+      2 owners). Accounts are at 48 ms or less. The §11.1 budget is 400 ms, so this passes.

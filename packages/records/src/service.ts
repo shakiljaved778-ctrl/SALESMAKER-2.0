@@ -12,6 +12,7 @@ import { sql } from 'kysely';
 
 import type { RecordContext } from './context.js';
 import { RecordError, type FieldError } from './errors.js';
+import { syncAfterWrite } from './shares.js';
 import { hasMoney, ident, readStored, toColumns, type StoredRecord } from './storage.js';
 import { runValidationRules } from './validation.js';
 
@@ -453,6 +454,14 @@ async function write(
         })),
       });
   }
+
+  await syncAfterWrite(
+    tx,
+    object.apiName,
+    id,
+    current ? { owner: current.values['owner_id'], account: current.values['account_id'] } : null,
+    { owner: values['owner_id'], account: values['account_id'] },
+  );
 
   const rules = await activeRules(tx, object.apiName);
   if (rules.length)
