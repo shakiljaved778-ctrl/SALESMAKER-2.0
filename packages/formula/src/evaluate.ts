@@ -305,7 +305,9 @@ class Evaluator {
         const n = num(1);
         return n === null
           ? null
-          : Array.from(str(arg(0))).slice(0, Math.max(0, n.floor().toNumber())).join('');
+          : Array.from(str(arg(0)))
+              .slice(0, Math.max(0, n.floor().toNumber()))
+              .join('');
       }
       case 'RIGHT': {
         const n = num(1);
@@ -319,7 +321,9 @@ class Evaluator {
         const count = num(2);
         if (start === null || count === null) return null;
         const from = Math.max(1, start.floor().toNumber()) - 1;
-        return Array.from(str(arg(0))).slice(from, from + Math.max(0, count.floor().toNumber())).join('');
+        return Array.from(str(arg(0)))
+          .slice(from, from + Math.max(0, count.floor().toNumber()))
+          .join('');
       }
       case 'CONTAINS':
         return str(arg(0)).includes(str(arg(1)));
