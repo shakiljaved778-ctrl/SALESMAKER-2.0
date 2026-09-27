@@ -1,6 +1,6 @@
 # P02 — Metadata engine and core CRM: plan
 
-Status: **DRAFT — awaiting owner approval** · Weeks 3–5 · Spec: §3.7, §3.8, §4 (Core CRM, Metadata, Governance), §5,
+Status: **APPROVED 2026-09-27** (with the §0 assumed answers) · Weeks 3–5 · Spec: §3.7, §3.8, §4 (Core CRM, Metadata, Governance), §5,
 §6.5, §7.5, §7.17 (mass update/transfer, field history), §7.19, §9.8 (T1, T2), §9.10 (data grid, record components),
 §9.15 (Leads, Accounts/Contacts, Opportunities, Setup → Object manager), §10.1, §11.1 · ADRs: 0001, 0004, 0007,
 0008, 0020, 0022 · Previous: [P01-handoff.md](P01-handoff.md)
