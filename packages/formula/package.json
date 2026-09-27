@@ -16,12 +16,16 @@
   },
   "dependencies": {
     "@sm/metadata": "workspace:*",
-    "decimal.js": "10.6.0"
+    "decimal.js": "10.6.0",
+    "kysely": "0.29.6"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
+    "@sm/db": "workspace:*",
     "@types/node": "26.6.2",
+    "@types/pg": "8.23.1",
     "eslint": "10.11.0",
+    "pg": "8.23.0",
     "typescript": "6.0.3",
     "vitest": "5.0.2"
   }

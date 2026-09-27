@@ -32,3 +32,4 @@ export {
   type EvalResult,
   type FormulaValue,
 } from './evaluate.js';
+export { compileToSql, type SqlEnvironment, type SqlResult } from './sql.js';
