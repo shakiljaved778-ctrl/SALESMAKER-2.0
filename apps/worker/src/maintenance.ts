@@ -1,4 +1,14 @@
-import { audit, fieldHistory, outbox, withTenant, type CellPrisma, type ChainResult } from '@sm/db';
+import {
+  audit,
+  fieldHistory,
+  loadTenantMetadata,
+  outbox,
+  withTenant,
+  type CellPrisma,
+  type ChainResult,
+} from '@sm/db';
+import { MetadataIndex } from '@sm/metadata';
+import { purgeRecycleBin } from '@sm/records';
 import type { ControlPlane } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
@@ -11,6 +21,8 @@ export const OUTBOX_PARTITIONS_TOPIC = 'maintenance.outbox_partitions';
 export const AUDIT_CHAIN_TOPIC = 'maintenance.audit_chain';
 /** Chain and verify every tenant's audit log (daily, cell-wide). */
 export const AUDIT_VERIFY_TOPIC = 'maintenance.audit_verify';
+/** Hard-delete recycle-bin items past their purge date (daily, cell-wide; §7.5). */
+export const RECYCLE_PURGE_TOPIC = 'maintenance.recycle_purge';
 
 export interface MaintenanceDeps {
   /** Connected as sm_audit: the only role that may set an audit row's hash. */
@@ -105,6 +117,45 @@ async function verifyTenant(
   if (!result.ok) logger.error({ tenantId, problem: result.problem }, 'audit chain broken');
 }
 
+const PURGE_BATCH = 500;
+
+/** Purge one tenant's expired recycle-bin items, in batches so no transaction runs long. */
+async function purgeTenant(prisma: CellPrisma, tenantId: string, now: Date): Promise<number> {
+  let total = 0;
+  for (;;) {
+    const purged = await withTenant(
+      prisma,
+      { tenantId },
+      async (tx) => {
+        const settings = await tx.prisma.tenantSettings.findUnique({
+          where: { tenantId },
+          select: { metadataVersion: true },
+        });
+        if (!settings) return 0;
+        const metadata = new MetadataIndex(await loadTenantMetadata(tx, settings.metadataVersion));
+        return purgeRecycleBin(tx, metadata, { now, limit: PURGE_BATCH });
+      },
+      { timeoutMs: 120_000 },
+    );
+    total += purged;
+    if (purged < PURGE_BATCH) return total;
+  }
+}
+
+/** Pages through the cell's tenants. */
+async function eachTenant(
+  deps: MaintenanceDeps,
+  fn: (tenantId: string) => Promise<void>,
+): Promise<void> {
+  const controlPlane = need(deps.controlPlane, 'the control plane');
+  let after: string | undefined;
+  do {
+    const page = await controlPlane.listCellTenants(after ? { after } : {});
+    for (const tenantId of page.tenantIds) await fn(tenantId);
+    after = page.next ?? undefined;
+  } while (after);
+}
+
 /** Cell-wide housekeeping and audit chaining on the `maintenance` queue. */
 export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler {
   return async (envelope, { prisma, logger }) => {
@@ -138,13 +189,17 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
           await verifyTenant(deps, prisma, logger, envelope.tenantId);
           return;
         }
-        const controlPlane = need(deps.controlPlane, 'the control plane');
-        let after: string | undefined;
-        do {
-          const page = await controlPlane.listCellTenants(after ? { after } : {});
-          for (const tenantId of page.tenantIds) await verifyTenant(deps, prisma, logger, tenantId);
-          after = page.next ?? undefined;
-        } while (after);
+        await eachTenant(deps, (tenantId) => verifyTenant(deps, prisma, logger, tenantId));
+        return;
+      }
+      case RECYCLE_PURGE_TOPIC: {
+        const now = new Date();
+        const purge = async (tenantId: string) => {
+          const purged = await purgeTenant(prisma, tenantId, now);
+          if (purged) logger.info({ tenantId, purged }, 'recycle bin purged');
+        };
+        if (envelope.tenantId) await purge(envelope.tenantId);
+        else await eachTenant(deps, purge);
         return;
       }
       default:
@@ -181,5 +236,10 @@ export async function scheduleMaintenance(queues: QueueSet): Promise<void> {
     AUDIT_VERIFY_TOPIC,
     { pattern: '17 3 * * *' },
     system(AUDIT_VERIFY_TOPIC),
+  );
+  await q.upsertJobScheduler(
+    RECYCLE_PURGE_TOPIC,
+    { pattern: '41 2 * * *' },
+    system(RECYCLE_PURGE_TOPIC),
   );
 }

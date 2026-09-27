@@ -242,6 +242,19 @@ describe('/v1/queues (§6.3)', () => {
     );
   });
 
+  it('keeps a queue that still owns records', async () => {
+    const lead = await f.inTenant(async (tx) => {
+      const rows = await tx.prisma.$queryRaw<{ id: string }[]>`
+        INSERT INTO lead (tenant_id, currency_code, record_number, last_name, company, status, owner_id, created_by, updated_by)
+        VALUES (${tx.context.tenantId}::uuid, 'USD', 'L-Q1', 'Queued', 'Queued', 'new', ${f.id('queue')}::uuid,
+          ${f.id('admin')}::uuid, ${f.id('admin')}::uuid)
+        RETURNING id`;
+      return rows[0]?.id ?? '';
+    });
+    expect((await f.call('admin', 'DELETE', `/v1/queues/${f.id('queue')}`)).statusCode).toBe(409);
+    await f.inTenant((tx) => tx.prisma.$executeRaw`DELETE FROM lead WHERE id = ${lead}::uuid`);
+  });
+
   it('deletes a queue and its members lose sight of it', async () => {
     expect((await f.call('admin', 'DELETE', `/v1/queues/${f.id('queue')}`)).statusCode).toBe(204);
     expect(await sees('peer')).not.toContain(f.id('queue'));

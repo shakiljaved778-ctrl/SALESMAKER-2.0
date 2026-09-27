@@ -60,6 +60,9 @@ importers:
       '@sm/query-engine':
         specifier: workspace:*
         version: link:../../packages/query-engine
+      '@sm/records':
+        specifier: workspace:*
+        version: link:../../packages/records
       '@sm/server-kit':
         specifier: workspace:*
         version: link:../../packages/server-kit
@@ -331,9 +334,15 @@ importers:
       '@sm/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@sm/metadata':
+        specifier: workspace:*
+        version: link:../../packages/metadata
       '@sm/query-engine':
         specifier: workspace:*
         version: link:../../packages/query-engine
+      '@sm/records':
+        specifier: workspace:*
+        version: link:../../packages/records
       '@sm/server-kit':
         specifier: workspace:*
         version: link:../../packages/server-kit

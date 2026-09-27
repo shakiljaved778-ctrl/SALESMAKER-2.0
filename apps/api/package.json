@@ -26,6 +26,7 @@
     "@sm/metadata": "workspace:*",
     "@sm/permissions": "workspace:*",
     "@sm/query-engine": "workspace:*",
+    "@sm/records": "workspace:*",
     "@sm/server-kit": "workspace:*",
     "argon2": "0.45.1",
     "fastify": "5.12.5",

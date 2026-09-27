@@ -9,3 +9,11 @@ export {
 } from './service.js';
 export { readStored, type StoredRecord } from './storage.js';
 export { runValidationRules } from './validation.js';
+export {
+  CASCADES,
+  deleteRecord,
+  ownedRecordCount,
+  purgeRecycleBin,
+  RECYCLE_DAYS,
+  undeleteRecord,
+} from './delete.js';

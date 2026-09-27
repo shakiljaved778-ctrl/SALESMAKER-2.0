@@ -10,9 +10,11 @@ import type {
 } from '@sm/contracts';
 import { audit, membership, visibility, type TenantTransaction } from '@sm/db';
 import { isStandardObject } from '@sm/metadata';
+import { ownedRecordCount } from '@sm/records';
 import { errors } from '@sm/server-kit';
 import type { z } from 'zod';
 
+import { MetadataService } from '../metadata/metadata.service.js';
 import {
   assertVersion,
   invalid,
@@ -106,6 +108,8 @@ function assertObjects(objects: readonly string[]): string[] {
  */
 @Injectable()
 export class GroupsService {
+  constructor(private readonly metadata: MetadataService) {}
+
   // ── Public groups ──────────────────────────────────────────────────────────────────────────
   async listGroups(tx: TenantTransaction): Promise<{ items: PublicGroup[] }> {
     const rows = await tx.prisma.publicGroup.findMany({
@@ -401,6 +405,9 @@ export class GroupsService {
   async removeQueue(tx: TenantTransaction, id: string): Promise<void> {
     const queue = await tx.prisma.queue.findFirst({ where: { id, deletedAt: null } });
     if (!queue) throw errors.notFound('Queue');
+    // Records a queue owns (the recycle bin's included) would be left without an owner.
+    if ((await ownedRecordCount(tx, await this.metadata.forTenant(tx), id)) > 0)
+      throw errors.conflict('The queue still owns records; transfer them first');
     const users = await membership.queueUsers(tx, id);
     await tx.prisma.recordShare.deleteMany({ where: { principalType: 'QUEUE', principalId: id } });
     await tx.prisma.queue.delete({ where: { tenantId_id: { tenantId: tx.context.tenantId, id } } });

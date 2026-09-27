@@ -127,3 +127,17 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   (P07/P08). Payloads hold the record id and changed field names, never values.
 - **Leads (T08).** The converted status is set only by conversion; a converted lead is read-only (409
   `record_locked`) except to the conversion itself (T13).
+- **Recycle bin (T09).** Delete needs the object's Delete permission and Full access to the record. A record the
+  user cannot read is 404; one they can read but not fully control is 403. Deleting an account also deletes its
+  contacts and opportunities (Salesforce semantics). Those child bin items point at the parent's item
+  (`cascade_of`). Restoring a child alone is 409 `restore_parent`, and restoring the parent restores the children.
+  Link rows (contact roles, relations, campaign members, teams) stay in place while their records are in the bin.
+  They are removed when the records are purged.
+  - Only the person who deleted a record, or someone with `modify_all_data`, can restore it. Everyone else gets 404.
+  - Items are purged after 30 days by the daily `maintenance.recycle_purge` job, per tenant and in batches of 500.
+    Purging deletes the rows and their shares, removes the link rows, and nulls lookups that pointed at the purged
+    records.
+  - A queue that still owns records, including records in the bin, cannot be deleted (409). Its records have to
+    be transferred first.
+  - A standalone bin page (list, restore, purge now) is left for the records API and UI (T12/T17). Deleted
+    records' field history stays until its partition is dropped.
