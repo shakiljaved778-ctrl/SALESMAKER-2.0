@@ -48,3 +48,11 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   `DATEDIFF(start, end)` (not in Salesforce) counts whole days; `BUSINESSDAYS(start, end)` counts Monday–Friday
   days until business hours exist (P03). Errors are codes with parameters and a span; the editor translates
   `formula.errors.<code>` (keys land with the editor, T25).
+- **Formula evaluation (T04a).** Numbers are Decimals with 34 significant digits, rounding half away from zero;
+  results are rounded to the field's scale only when stored. Blanks follow "treat blanks as blanks": arithmetic
+  with a blank is blank, `x = null` asks "is x blank" (`''` counts), ordering comparisons with a blank are false,
+  `&` treats a blank as `''`, and a blank checkbox is false. `IF`, `AND`, `OR`, `&&` and `||` short-circuit.
+  Division or `MOD` by zero, impossible `DATE`s, non-numeric `VALUE` text and huge powers are runtime errors
+  (codes with spans). `TODAY()` is taken in a given time zone (the user's, else the organisation's); date
+  arithmetic counts days; `ADDMONTHS` keeps month-end dates at month end; `REGEX` must match the whole text and
+  runs on at most 10,000 characters. Text lengths count code points, as Postgres `char_length` does.

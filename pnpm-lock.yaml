@@ -535,6 +535,9 @@ importers:
       '@sm/metadata':
         specifier: workspace:*
         version: link:../metadata
+      decimal.js:
+        specifier: 10.6.0
+        version: 10.6.0
     devDependencies:
       '@sm/config':
         specifier: workspace:*

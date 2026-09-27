@@ -19,3 +19,16 @@ export {
   type FormulaType,
   type TypedNode,
 } from './types.js';
+export {
+  addMonths,
+  businessDays,
+  dateIn,
+  Decimal,
+  evaluateFormula,
+  FormulaRuntimeError,
+  fromStored,
+  toStored,
+  type EvalContext,
+  type EvalResult,
+  type FormulaValue,
+} from './evaluate.js';
