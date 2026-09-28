@@ -45,6 +45,9 @@ importers:
       '@sm/emails':
         specifier: workspace:*
         version: link:../../packages/emails
+      '@sm/formula':
+        specifier: workspace:*
+        version: link:../../packages/formula
       '@sm/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

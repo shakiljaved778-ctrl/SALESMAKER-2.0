@@ -21,6 +21,8 @@ import { PasswordService } from './auth/password.service.js';
 import { SessionService } from './auth/session.service.js';
 import { TokenService } from './auth/token.service.js';
 import type { ApiConfig } from './config.js';
+import { CurrencyController } from './currency/currency.controller.js';
+import { CurrencyService } from './currency/currency.service.js';
 import { HealthController } from './health/health.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
 import { SignupController } from './signup/signup.controller.js';
@@ -96,6 +98,7 @@ export class AppModule {
         InvitationsController,
         PeopleSetupController,
         SharingSetupController,
+        CurrencyController,
         RecordShareController,
       ],
       providers: [
@@ -131,6 +134,7 @@ export class AppModule {
         UsersService,
         AccessService,
         MetadataService,
+        CurrencyService,
         SystemPermissionGuard,
       ],
       exports: [

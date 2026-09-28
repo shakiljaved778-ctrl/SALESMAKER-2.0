@@ -8,7 +8,7 @@ import {
   type ChainResult,
 } from '@sm/db';
 import { MetadataIndex } from '@sm/metadata';
-import { purgeRecycleBin } from '@sm/records';
+import { CURRENCY_RECALC_TOPIC, purgeRecycleBin, recalculateCorporateAmounts } from '@sm/records';
 import type { ControlPlane } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
@@ -190,6 +190,16 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
           return;
         }
         await eachTenant(deps, (tenantId) => verifyTenant(deps, prisma, logger, tenantId));
+        return;
+      }
+      case CURRENCY_RECALC_TOPIC: {
+        const { tenantId } = envelope;
+        if (!tenantId) throw new Error(`${envelope.topic} needs a tenant`);
+        const updated = await recalculateCorporateAmounts(
+          (fn) => withTenant(prisma, { tenantId }, fn, { timeoutMs: 120_000 }),
+          envelope.payload,
+        );
+        logger.info({ tenantId, updated }, 'corporate amounts recalculated');
         return;
       }
       case RECYCLE_PURGE_TOPIC: {

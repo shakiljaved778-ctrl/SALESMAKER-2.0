@@ -21,6 +21,7 @@
     "@sm/contracts": "workspace:*",
     "@sm/db": "workspace:*",
     "@sm/emails": "workspace:*",
+    "@sm/formula": "workspace:*",
     "@sm/i18n": "workspace:*",
     "@sm/integrations": "workspace:*",
     "@sm/metadata": "workspace:*",

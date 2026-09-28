@@ -17,7 +17,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [ ] **T13** `feat(leads): lead conversion`
 - [ ] **T14** `feat(search): search v1`
 - [ ] **T15** `feat(metadata): Setup metadata API`
-- [ ] **T16** `feat(currency): currencies and rates`
+- [x] **T16** `feat(currency): currencies and rates`
 - [ ] **T17** `feat(ui): data grid`
 - [ ] **T18** `feat(ui): record components`
 - [ ] **T19** `feat(web): object lists (T1)`

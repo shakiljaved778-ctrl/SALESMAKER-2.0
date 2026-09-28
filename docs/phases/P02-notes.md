@@ -193,3 +193,23 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
     - Principals: 7 ms computed, 0.3 ms from cache.
     - List pages of 50: the worst p95 is 108 ms (contacts, CONTROLLED_BY_PARENT, for a telesales agent who reaches
       2 owners). Accounts are at 48 ms or less. The §11.1 budget is 400 ms, so this passes.
+- **Currencies and rates (T16).**
+  - **API.** Setup → Currencies & rates lives under `/v1/currencies`. It lists currencies, adds and
+    activates/deactivates them, and gets, puts and deletes dated rates. Reading needs `view_setup`; changes need
+    `customize_application`. Every change goes to the setup audit.
+  - **Corporate currency.** It is always active, cannot be deactivated (409) and never has rates (409).
+  - **Rates.** A rate is a positive decimal string with up to 8 places, in units per one corporate unit. Rates
+    are keyed by effective date. `PUT` creates a rate or corrects one, optimistically locked when a `version` is
+    given.
+  - **Deactivating a currency** keeps it on existing records; new writes are refused (`inactive_currency`, T08).
+  - **RecordService** converts with the tenant's dated rates through `tenantCurrencyConverter` (T10). Rounding is
+    half-up to 2 places; the same rule applies in SQL.
+  - **Recalculation.** Changing or deleting a rate queues `maintenance.currency_recalc` with a `job_run`. The job
+    recomputes only the amounts that rate governs, in batches of 1,000:
+    - Opportunity amounts closing on or after the rate date and before the next rate date.
+    - Other money converted with exactly that rate date, re-rated with the rate now in force on that date.
+  - **Recalculation limits.** A rate added between two existing dates cannot move non-opportunity money: the day
+    that money was set is not stored, only the rate date it used. Derived columns are rewritten without a version
+    bump, history or per-record audit. The rate change itself is audited.
+  - **Known gap.** Campaign money uses one `corporate_rate_date` for its three fields. If they are set on different
+    days, only the last conversion's rate date is kept.
