@@ -1,0 +1,67 @@
+name: scale
+
+# The P02 scale check (T28/T29): seed the bank demo at load scale (500k leads) through
+# RecordService, check the §11.1 API budgets, then run the scale journey. Too slow for every push:
+# nightly on main and on demand.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 2 * * *'
+
+concurrency:
+  group: scale-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  scale:
+    name: 500k leads · §11.1 budgets · scale journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.pw-browsers
+      SEED_CONCURRENCY: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Start Postgres (project image), Valkey and Mailpit
+        run: docker compose up -d --wait postgres valkey mailpit
+      - run: pnpm setup:dev
+      - run: pnpm db:setup
+      - run: pnpm turbo run build
+      - name: Start fakes, control-api, api and web
+        run: |
+          (cd apps/fakes && nohup node --env-file=../../.env dist/main.js > ../../fakes.log 2>&1 &)
+          (cd apps/control-api && nohup node --env-file=../../.env dist/main.js > ../../control-api.log 2>&1 &)
+          (cd apps/api && nohup node --env-file=../../.env dist/main.js > ../../api.log 2>&1 &)
+          (cd apps/web && CONTROL_API_BASE_URL=http://localhost:4100 WEB_BASE_DOMAIN=localhost:3000 \
+            WEB_URL_SCHEME=http nohup pnpm start > ../../web.log 2>&1 &)
+          for url in localhost:4200/health localhost:4100/health localhost:4000/health localhost:3000/api/health; do
+            for i in $(seq 1 60); do curl -sf "http://$url" > /dev/null && break; sleep 1; done
+            curl -sf "http://$url" > /dev/null || { echo "$url did not come up"; exit 1; }
+          done
+      - name: Seed the bank demo at load scale (resumable)
+        run: pnpm db:seed --scenario=bank --scale=load
+      - name: Refresh planner statistics after the bulk load
+        run: docker compose exec -T postgres psql -U postgres -d salesmaker_cell -c 'VACUUM ANALYZE'
+      - name: §11.1 API budgets
+        run: pnpm --filter @sm/api perf:records | tee perf-records.log
+      - run: pnpm --filter @sm/web exec playwright install --with-deps chromium
+      - name: Scale journey
+        run: E2E_SCALE=1 E2E_SKIP_VISUAL=1 pnpm --filter @sm/web test:e2e scale
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scale-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            *.log
+          retention-days: 14
