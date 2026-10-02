@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type {
+  CheckFormulaRequest,
+  CheckFormulaResult,
   CompactLayoutDto,
   CreateCompactLayoutRequest,
   CreateLayoutRequest,
@@ -750,6 +752,32 @@ export class LayoutSetupService {
       active: r.active,
       version: r.version,
     };
+  }
+
+  /** Type-check a formula without saving (the rule editor's inline errors, §5.5). */
+  async checkFormula(
+    tx: TenantTransaction,
+    objectName: string,
+    body: In<typeof CheckFormulaRequest>,
+  ): Promise<In<typeof CheckFormulaResult>> {
+    const { meta, object } = await this.object(tx, objectName);
+    const checked = checkFormula(
+      body.formula,
+      metadataEnvironment(meta, object.apiName, { allowPriorValues: true }),
+      body.expected,
+    );
+    return checked.ok
+      ? { ok: true, type: checked.type, error: null }
+      : {
+          ok: false,
+          type: null,
+          error: {
+            code: checked.error.code,
+            params: checked.error.params,
+            start: checked.error.span.start,
+            end: checked.error.span.end,
+          },
+        };
   }
 
   async listRules(tx: TenantTransaction, object: string) {

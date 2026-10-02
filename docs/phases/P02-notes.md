@@ -500,3 +500,18 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   removed.
 - Reading needs view_setup; the controls appear only with customize_application (the API enforces both). All
   pages axe-clean.
+
+### T25 — Object manager: layouts and rules
+
+- Object page tabs: **Page layouts**, **Compact layouts**, **Path**, **Validation rules**, **Field history**.
+- **Layout editor** (`/setup/objects/{object}/layouts/{id}`): rename; per section heading (standard headings
+  translated), one or two columns, move up/down, remove when empty, add section; per field required / read-only,
+  remove, move up/down and **move to another section with a picker** (the keyboard alternative to dragging, which
+  also works between sections); add any unplaced field. Saved with the layout's version; unsaved changes guarded.
+- **Compact layouts**: ordered pick of 1–7 fields. **Path**: per record type × picklist, active toggle, and per value
+  up to 5 ordered key fields and guidance; remove path.
+- **Validation rules**: list; create/edit dialog with a **formula editor that type-checks as you type** through the
+  new `POST /v1/setup/objects/{object}/formula/check` (view_setup; nothing saved), showing the first error by code
+  in words with its character position, and "valid" when the formula is Boolean; error message; where the error
+  shows (top or a field); active.
+- **Field history**: toggle history tracking for every trackable field at once.

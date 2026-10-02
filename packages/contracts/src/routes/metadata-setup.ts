@@ -411,6 +411,29 @@ export const UpdateValidationRuleRequest = z
   .strict()
   .meta({ id: 'UpdateValidationRule' });
 
+/** Check a formula as the editor types (§5.5): its type, or the first error with where it is. */
+export const CheckFormulaRequest = z
+  .object({
+    formula: z.string().max(5000),
+    /** The type the formula must produce (validation rules: Boolean). */
+    expected: z.enum(['Boolean', 'Number', 'Text', 'Date', 'DateTime']).optional(),
+  })
+  .strict();
+export const CheckFormulaResult = z
+  .object({
+    ok: z.boolean(),
+    type: z.string().nullable(),
+    error: z
+      .object({
+        code: z.string(),
+        params: z.record(z.string(), z.union([z.string(), z.number()])),
+        start: z.number().int(),
+        end: z.number().int(),
+      })
+      .nullable(),
+  })
+  .meta({ id: 'FormulaCheck' });
+
 const crudOf = (
   segment: string,
   noun: string,
@@ -477,6 +500,18 @@ const crudOf = (
 });
 
 export const layoutSetupRoutes = {
+  checkFormula: route({
+    method: 'post',
+    path: '/v1/setup/objects/{object}/formula/check',
+    operationId: 'checkFormula',
+    summary: 'Type-check a formula against the object without saving anything',
+    request: { params: SetupObjectParam, body: CheckFormulaRequest },
+    responses: {
+      200: { description: 'The result type, or the first error', body: CheckFormulaResult },
+      ...forbidden,
+      ...notFound,
+    },
+  }),
   ...crudOf(
     'record-types',
     'record type',

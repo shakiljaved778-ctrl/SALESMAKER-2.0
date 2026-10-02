@@ -23,7 +23,9 @@ import type { DescribedObject } from '../../records/fields';
 import { BackLink, ResourceState, useResource } from '../common';
 import { SetupHeader, useHasPermission } from '../setup-shell';
 import { useSetupProblem } from '../use-problem';
+import { LayoutsTab } from './layouts';
 import { NewFieldWizard } from './new-field-wizard';
+import { CompactLayoutsTab, FieldHistoryTab, PathsTab, ValidationRulesTab } from './rules';
 import { TYPE_LABEL, fieldLabel, toApiName } from './types';
 
 type ObjectSummary = z.infer<typeof ObjectSummaryDto>;
@@ -350,6 +352,27 @@ export function ObjectDetailPage({ object }: { object: string }) {
               value: 'recordTypes',
               label: t('recordTypes'),
               content: <RecordTypesTab object={object} />,
+            },
+            { value: 'layouts', label: t('layouts'), content: <LayoutsTab object={object} /> },
+            {
+              value: 'compact',
+              label: t('compactLayouts'),
+              content: tab === 'compact' ? <CompactLayoutsTab object={object} /> : null,
+            },
+            {
+              value: 'paths',
+              label: t('paths'),
+              content: tab === 'paths' ? <PathsTab object={object} /> : null,
+            },
+            {
+              value: 'rules',
+              label: t('rules'),
+              content: tab === 'rules' ? <ValidationRulesTab object={object} /> : null,
+            },
+            {
+              value: 'history',
+              label: t('history'),
+              content: tab === 'history' ? <FieldHistoryTab object={object} /> : null,
             },
           ]}
         />

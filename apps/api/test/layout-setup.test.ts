@@ -310,3 +310,29 @@ describe('guards', () => {
     expect(items(await f.call('outsider', 'GET', obj('lead', 'validation-rules')))).toEqual([]);
   });
 });
+
+describe('formula check (§5.5)', () => {
+  const check = (user: string, body: Record<string, unknown>, object = 'lead') =>
+    f.call(user, 'POST', obj(object, 'formula/check'), body);
+
+  it('returns the type of a valid formula, or the first error with where it is', async () => {
+    const ok = await check('viewer', { formula: 'ISBLANK(company)', expected: 'Boolean' });
+    expect(ok.statusCode).toBe(200);
+    expect(json(ok)).toEqual({ ok: true, type: 'Boolean', error: null });
+
+    const unknown = json(await check('viewer', { formula: 'ISBLANK(no_such_field)' }));
+    expect(unknown).toMatchObject({ ok: false, type: null, error: { code: 'unknown_field' } });
+    const error = unknown['error'] as Record<string, number>;
+    expect(error['start']).toBe(8);
+    expect(error['end']).toBeGreaterThan(8);
+
+    const wrong = json(await check('viewer', { formula: 'company', expected: 'Boolean' }));
+    expect(wrong).toMatchObject({ error: { code: 'wrong_result_type' } });
+  });
+
+  it('needs view_setup and an object in this workspace', async () => {
+    expect((await check('rep', { formula: 'TRUE' })).statusCode).toBe(403);
+    expect((await check('admin', { formula: 'TRUE' }, 'widget')).statusCode).toBe(404);
+    expect((await check('admin', { formula: 'x'.repeat(5001) })).statusCode).toBe(400);
+  });
+});

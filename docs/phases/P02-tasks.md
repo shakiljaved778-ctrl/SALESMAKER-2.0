@@ -26,7 +26,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T22** `feat(web): convert and account hierarchy`
 - [x] **T23** `feat(web): global search`
 - [x] **T24** `feat(web): object manager — fields`
-- [ ] **T25** `feat(web): object manager — layouts and rules`
+- [x] **T25** `feat(web): object manager — layouts and rules`
 - [ ] **T26** `feat(web): currencies and recycle bin`
 - [ ] **T27** `feat(seed): CRM demo data`
 - [ ] **T28** `perf(records): scale check at 500k`

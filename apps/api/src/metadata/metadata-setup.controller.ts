@@ -12,6 +12,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  CheckFormulaRequest,
   CreateCompactLayoutRequest,
   CreateFieldRequest,
   CreateLayoutRequest,
@@ -245,6 +246,17 @@ export class MetadataSetupController {
   @change()
   async deletePath(@CurrentTenant() t: TenantContext, @Param(new ZodPipe(PathParam)) p: Path) {
     await this.run(t, (tx) => this.layouts.deletePath(tx, p.object, p.recordTypeId, p.field));
+  }
+
+  // ── Formulas ──
+  @Post('formula/check')
+  @HttpCode(200)
+  checkFormula(
+    @CurrentTenant() t: TenantContext,
+    @Param(new ZodPipe(SetupObjectParam)) p: Obj,
+    @Body(new ZodPipe(CheckFormulaRequest)) body: z.infer<typeof CheckFormulaRequest>,
+  ) {
+    return this.run(t, (tx) => this.layouts.checkFormula(tx, p.object, body));
   }
 
   // ── Validation rules ──
