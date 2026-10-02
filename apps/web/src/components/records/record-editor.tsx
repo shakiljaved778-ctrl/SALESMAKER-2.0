@@ -191,6 +191,10 @@ export function RecordEditor({
   // One key per form: a retried create (double click, flaky network) makes one record.
   const idempotencyKey = useRef(globalThis.crypto.randomUUID());
   const prefillKey = JSON.stringify(prefill);
+  // The record type and prefill the new-record form was built for. Loading the default layout
+  // fills in its record type, which must not trigger a second load that would wipe what the
+  // user has typed since.
+  const loadedFor = useRef<string | null>(null);
 
   const fields = useMemo(
     () => new Map((describe?.fields ?? []).map((f) => [f.name, f])),
@@ -236,12 +240,14 @@ export function RecordEditor({
       setInitial(start);
       return;
     }
+    if (loadedFor.current === `${recordType ?? ''}|${prefillKey}`) return;
     const q = recordType ? `?recordTypeId=${recordType}` : '';
     const r = await cellApi<Layout>('GET', `/v1/objects/${object}/layout${q}`);
     if (!r.ok) {
       setFailed(true);
       return;
     }
+    loadedFor.current = `${r.data.recordTypeId}|${prefillKey}`;
     const start: Values = {};
     const given = JSON.parse(prefillKey) as Record<string, string>;
     for (const [name, raw] of Object.entries(given)) {

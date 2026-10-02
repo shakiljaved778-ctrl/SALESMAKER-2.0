@@ -43,6 +43,9 @@ async function inviteRep(admin: Page, rep: Page, slug: string, name: string) {
 
 /** What the API answers this user for a path, outside the UI (same origin, fresh access token). */
 async function apiGet(page: Page, path: string): Promise<{ status: number; body: unknown }> {
+  // Refreshing rotates the single-use refresh cookie: never alongside the page's own refresh, or
+  // reuse detection signs the user out (the P01 grace-window question).
+  await page.waitForLoadState('networkidle');
   return page.evaluate(async (p) => {
     const refreshed = await fetch('/api/auth/refresh', {
       method: 'POST',
@@ -85,7 +88,7 @@ test('create → edit → convert → search, accessible in light and dark', asy
   await quick.getByLabel('Company').fill('Qamar Logistics');
   await expectAccessible(page);
   await quick.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByText('Saleh created')).toBeVisible();
+  await expect(page.getByText('Saleh created', { exact: true })).toBeVisible();
   await expect(quick).toBeHidden();
   await page.getByRole('main').getByRole('link', { name: 'Saleh', exact: true }).click();
   await page.waitForURL(/\/leads\/[0-9a-f-]{36}$/);
@@ -117,7 +120,7 @@ test('create → edit → convert → search, accessible in light and dark', asy
   await expect(dialog).toBeVisible();
   await expectAccessible(page);
   await dialog.getByRole('button', { name: 'Convert', exact: true }).click();
-  await expect(page.getByText('Omar Saleh converted')).toBeVisible();
+  await expect(page.getByText('Omar Saleh converted', { exact: true })).toBeVisible();
 
   // Search finds what the conversion created.
   await page.goto(workspaceUrl(slug, `/search?q=${encodeURIComponent('Qamar')}`));
