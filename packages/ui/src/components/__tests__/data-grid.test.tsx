@@ -210,6 +210,38 @@ describe('DataGrid (§9.10)', () => {
     expect(onCellEdit).toHaveBeenCalledTimes(1);
   });
 
+  it('uses object-list keys: J/K move, X selects, E edits, Enter opens', async () => {
+    const user = userEvent.setup();
+    const onRowOpen = vi.fn();
+    const onActiveRowChange = vi.fn();
+    const onSelectedChange = vi.fn();
+    grid({
+      listKeys: true,
+      onRowOpen,
+      onActiveRowChange,
+      selected: new Set(),
+      onSelectedChange,
+      renderEditor: () => <input aria-label="Amount editor" autoFocus />,
+    });
+    screen.getAllByRole('columnheader')[0]?.focus();
+    const focusedRow = () => document.activeElement?.closest('[role="row"]');
+    await user.keyboard('jj');
+    expect(focusedRow()).toHaveTextContent('Omar Haddad');
+    expect(onActiveRowChange).toHaveBeenLastCalledWith(rows[1]);
+    await user.keyboard('k');
+    expect(focusedRow()).toHaveTextContent('Maya Chen');
+    await user.keyboard('x');
+    expect(onSelectedChange).toHaveBeenLastCalledWith(new Set(['1']));
+    await user.keyboard('{Enter}');
+    expect(onRowOpen).toHaveBeenCalledWith(rows[0]);
+    // Enter opens even on an editable cell; E edits it.
+    await user.keyboard('{End}{Enter}');
+    expect(onRowOpen).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole('textbox')).toBeNull();
+    await user.keyboard('e');
+    expect(screen.getByRole('textbox', { name: 'Amount editor' })).toBeTruthy();
+  });
+
   it('groups rows under collapsible headers with aggregates', async () => {
     const user = userEvent.setup();
     grid({ groupBy: (r) => r.stage, groupLabel: (k) => (k === 'open' ? 'Open' : 'Won') });

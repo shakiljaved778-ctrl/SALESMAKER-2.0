@@ -62,6 +62,23 @@ describe('cellApi', () => {
     ).toBe(true);
   });
 
+  it('sends extra headers (If-Match) with the call and its retry', async () => {
+    const seen: (string | undefined)[] = [];
+    install((url, init) => {
+      if (url === '/api/auth/refresh') return refreshed();
+      const headers = init.headers as Record<string, string>;
+      seen.push(headers['if-match']);
+      return headers['authorization'] === 'Bearer t1' ? { status: 200, body: {} } : { status: 401 };
+    });
+    const { cellApi, rememberToken } = await load().then(async (m) => ({
+      ...m,
+      rememberToken: (await import('../src/lib/session')).rememberSession,
+    }));
+    rememberToken({ accessToken: 't0', accessTokenExpiresAt: '2099-01-01T00:00:00Z' });
+    await cellApi('PATCH', '/v1/records/lead/x', { fields: {} }, { 'if-match': '4' });
+    expect(seen).toEqual(['4', '4']);
+  });
+
   it('refreshes an expired token once and retries with the new one', async () => {
     install((url, init) => {
       if (url === '/api/auth/refresh') return refreshed();

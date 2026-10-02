@@ -67,7 +67,7 @@ export interface FieldValueProps extends FieldFormat {
   /** Picklist values with their labels and chip tones; unknown values render as raw text. */
   options?: PicklistValue[] | undefined;
   /** Where a lookup chip links to. */
-  lookupHref?: ((value: LookupValue) => string) | undefined;
+  lookupHref?: ((value: LookupValue) => string | undefined) | undefined;
   /** Optional hover card body for a lookup chip (the compact layout of the target). */
   lookupCard?: ((value: LookupValue) => ReactNode) | undefined;
   /** Optional icon for a lookup chip by object API name. */

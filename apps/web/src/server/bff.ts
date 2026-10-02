@@ -354,6 +354,9 @@ export async function relayToCell(
   const headers: Record<string, string> = { authorization };
   const idempotencyKey = request.headers.get('idempotency-key');
   if (idempotencyKey) headers['idempotency-key'] = idempotencyKey;
+  // Optimistic locks on record and list-view writes (§10.1).
+  const ifMatch = request.headers.get('if-match');
+  if (ifMatch) headers['if-match'] = ifMatch;
   const result = await cellRequest(deps, resolved.tenant.cell.apiBaseUrl, `${path}${url.search}`, {
     method,
     ...(body === undefined ? {} : { body }),

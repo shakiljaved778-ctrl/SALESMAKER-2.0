@@ -280,7 +280,9 @@ export class ListViewsService {
       );
     };
     const columns = (body.columns ?? row.columns).filter(readable);
-    const fields = [...new Set([object.nameField, ...columns])].filter(readable);
+    // Every name field (first and last name for people), so the list can show the full name.
+    const names = ctx.metadata.nameFields(object.apiName);
+    const fields = [...new Set([...names, ...columns])].filter(readable);
     if (fields.length === 0) fields.push('id');
     const conditions: FilterNode[] = [];
     if (row.filter) conditions.push(row.filter as FilterNode);

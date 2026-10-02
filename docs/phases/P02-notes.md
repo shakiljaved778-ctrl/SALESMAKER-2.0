@@ -394,3 +394,25 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   `scope: 'recent'`.
 - Pinned default per user: migration `0021_list_view_pin` (additive, RLS forced). Deleting a view drops pins.
 - System views cannot be deleted (409) or made non-public (400). Other tenants' views are 404.
+
+### T19b — object lists (T1)
+
+- `/leads`, `/accounts`, `/contacts`, `/opportunities` (and `/campaigns`) render `ObjectList` from the
+  `[section]` route; other sections keep their "on its way" page.
+- **View picker** (pinned default marked; `?view=` in the URL), **more actions**: make default, save view
+  (when the viewer may change it and has re-sorted or re-columned), save as new view (private, or public groups /
+  everyone with customize_application), density, delete view.
+- **Quick filters:** search (name field, debounced 250 ms), "My records" (`owner_id = $me`), and the first picklist
+  column of the view (status, stage…). **Column chooser** (≤ 30, the name always shows), server-side sort from the
+  headers (≤ 3, shift for multi), count ("12 items" / "100000+ items"), load more by keyset.
+- **Inline edit** with E (Enter opens the record): text, numbers, money, dates, picklists, checkboxes; saved with
+  `If-Match` (the BFF relay now forwards it); a 409 reloads the list with a toast. Lookups are not edited inline yet.
+- **Bulk selection** with "select all N matching" (sends the combined filter as `where`), **mass update** of one
+  field (needs mass_update) and **mass delete** (the server requires Modify All), previewed, run as a job and
+  followed to the end.
+- **Split view** shows the focused record's list columns beside the list; J/K move it.
+- `@sm/ui` DataGrid gained `listKeys` (J/K/X/E, Enter opens) and `onActiveRowChange`.
+- Fixed in passing: Radix Select's viewport `<style>` was refused by the CSP on every page with a Select; it now
+  carries the request nonce (`get-nonce`, MIT, already in the tree).
+- **Deferred:** mass transfer (change owner) needs a user picker for non-admins; it lands with the record page's
+  owner change (T20). Record and create pages are T20/T21 (links point there).

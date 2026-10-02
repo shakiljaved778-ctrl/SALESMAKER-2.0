@@ -113,6 +113,13 @@ export interface DataGridProps<T> {
   rowActions?: (row: T) => ReactNode;
   /** Enter on a row's first cell (or a double-click) opens the record. */
   onRowOpen?: (row: T) => void;
+  /**
+   * Object-list keys (§9.11 T1): J/K move down/up, X selects, E edits the focused cell, and Enter
+   * always opens the record (instead of editing).
+   */
+  listKeys?: boolean;
+  /** The row that has keyboard focus or was last clicked (e.g. for a split view). */
+  onActiveRowChange?: (row: T | null) => void;
   /** Inline editing: render an editor; call `done(value)` to save or `done()` to cancel. */
   renderEditor?: (row: T, column: DataGridColumn<T>, done: (value?: unknown) => void) => ReactNode;
   onCellEdit?: (row: T, column: DataGridColumn<T>, value: unknown) => void;
@@ -168,6 +175,8 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     groupLabel,
     rowActions,
     onRowOpen,
+    listKeys = false,
+    onActiveRowChange,
     renderEditor,
     onCellEdit,
   } = props;
@@ -384,6 +393,16 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     keyboardMove.current = false;
     focusCell(active.row, active.col);
   }, [active, editing, focusCell]);
+  // Report the active row only when it changes to another record.
+  const reportedRow = useRef<string | null>(null);
+  useEffect(() => {
+    if (!onActiveRowChange) return;
+    const item = active.row > 0 ? items[active.row - 1] : undefined;
+    const id = item?.kind === 'row' ? item.id : null;
+    if (id === reportedRow.current) return;
+    reportedRow.current = id;
+    onActiveRowChange(item?.kind === 'row' ? item.row : null);
+  }, [active.row, items, onActiveRowChange]);
   const activate = (row: number, col: number) => {
     setActive((prev) => (prev.row === row && prev.col === col ? prev : { row, col }));
   };
@@ -434,7 +453,9 @@ export function DataGrid<T>(props: DataGridProps<T>) {
         move(row - 10, col);
       },
     };
-    const action = keys[e.key];
+    const listKey = listKeys && !e.ctrlKey && !e.metaKey && !e.altKey;
+    const alias = listKey ? { j: 'ArrowDown', k: 'ArrowUp' }[e.key] : undefined;
+    const action = keys[alias ?? e.key];
     if (action) {
       e.preventDefault();
       action();
@@ -442,9 +463,21 @@ export function DataGrid<T>(props: DataGridProps<T>) {
     }
     const item = row > 0 ? items[row - 1] : undefined;
     const column = ordered[col];
-    if (e.key === ' ' && item?.kind === 'row' && selectable) {
+    if ((e.key === ' ' || (listKey && e.key === 'x')) && item?.kind === 'row' && selectable) {
       e.preventDefault();
       toggle(item.id, e.shiftKey);
+      return;
+    }
+    if (listKey && e.key === 'e' && item?.kind === 'row' && column) {
+      const def = columnById.get(column.id);
+      const editable =
+        def &&
+        renderEditor &&
+        (typeof def.editable === 'function' ? def.editable(item.row) : def.editable);
+      if (editable) {
+        e.preventDefault();
+        setEditing({ row, col });
+      }
       return;
     }
     if (e.key === 'Enter') {
@@ -465,7 +498,7 @@ export function DataGrid<T>(props: DataGridProps<T>) {
         renderEditor &&
         (typeof def.editable === 'function' ? def.editable(item.row) : def.editable);
       e.preventDefault();
-      if (editable) setEditing({ row, col });
+      if (editable && !listKeys) setEditing({ row, col });
       else if (onRowOpen) onRowOpen(item.row);
     }
   };

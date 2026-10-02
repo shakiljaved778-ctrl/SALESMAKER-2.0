@@ -17,6 +17,7 @@ interface Seen {
   method: string;
   authorization: string | null;
   idempotencyKey: string | null;
+  ifMatch: string | null;
   tenantHeader: string | null;
   body: unknown;
 }
@@ -31,6 +32,7 @@ function setup(cell: (url: URL) => Response = () => Response.json({ ok: true }))
       method: init?.method ?? 'GET',
       authorization: headers.get('authorization'),
       idempotencyKey: headers.get('idempotency-key'),
+      ifMatch: headers.get('if-match'),
       tenantHeader: headers.get('x-sm-tenant-id'),
       body: typeof init?.body === 'string' ? JSON.parse(init.body) : undefined,
     });
@@ -81,6 +83,7 @@ describe('BFF relay /api/v1/* → cell /v1/*', () => {
         method: 'GET',
         authorization: 'Bearer access.jwt',
         idempotencyKey: null,
+        ifMatch: null,
         tenantHeader: null,
         body: undefined,
       },
@@ -98,6 +101,14 @@ describe('BFF relay /api/v1/* → cell /v1/*', () => {
       body: { email: 'a@b.test' },
       idempotencyKey: 'k-1',
     });
+  });
+
+  it('relays the If-Match version of an optimistic-locked write', async () => {
+    const { deps, seen } = setup();
+    const req = request('PATCH', '/api/v1/records/lead/x', { body: '{"fields":{}}' });
+    req.headers.set('if-match', '3');
+    await relayToCell(req, deps, 'PATCH');
+    expect(seen[0]).toMatchObject({ method: 'PATCH', ifMatch: '3' });
   });
 
   it('passes 204s through empty and relays problems as they are', async () => {

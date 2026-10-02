@@ -10,8 +10,9 @@ async function send<T>(
   path: string,
   body: unknown,
   token: string | undefined,
+  extra: Record<string, string>,
 ): Promise<ApiResult<T>> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = { ...extra };
   if (token) headers['authorization'] = `Bearer ${token}`;
   if (body !== undefined) headers['content-type'] = 'application/json';
   let response: Response;
@@ -57,17 +58,18 @@ export async function cellApi<T>(
   method: Method,
   path: string,
   body?: unknown,
+  headers: Record<string, string> = {},
 ): Promise<ApiResult<T>> {
   if (!accessToken()) await refreshSession();
   const token = accessToken();
-  const first = await send<T>(method, path, body, token);
+  const first = await send<T>(method, path, body, token, headers);
   if (first.ok || first.status !== 401) return first;
   if (accessToken() === token) {
     const refreshed = await refreshSession();
     if (!refreshed.ok) return first;
     rememberSession(refreshed.data);
   }
-  return send<T>(method, path, body, accessToken());
+  return send<T>(method, path, body, accessToken(), headers);
 }
 
 /** Query string from a filter object, dropping empty values. */

@@ -1,5 +1,6 @@
 'use client';
 
+import { getNonce } from 'get-nonce';
 import { Check, ChevronDown } from 'lucide-react';
 import { Select as SelectPrimitive } from 'radix-ui';
 import type { ReactNode } from 'react';
@@ -7,6 +8,11 @@ import type { ReactNode } from 'react';
 import { cn } from '../lib/cn.js';
 import { usePopoverLayerClass } from '../lib/layer.js';
 import { useFormField } from './form-field.js';
+
+const nonceProps = () => {
+  const nonce = getNonce();
+  return nonce ? { nonce } : {};
+};
 
 export interface SelectOption {
   value: string;
@@ -58,7 +64,8 @@ export function Select({ options, placeholder, className, disabled, ...props }: 
             'max-h-72 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border border-line bg-surface-raised p-1 shadow-e2',
           )}
         >
-          <SelectPrimitive.Viewport>
+          {/* The viewport injects a <style>; the request's CSP nonce lets it through (see CspNonce). */}
+          <SelectPrimitive.Viewport {...nonceProps()}>
             {options.map((o) => (
               <SelectItem key={o.value} value={o.value} disabled={o.disabled}>
                 {o.label}
