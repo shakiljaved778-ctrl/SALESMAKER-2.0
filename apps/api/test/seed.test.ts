@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { ARGON2_OPTIONS } from '../src/auth/password.service.js';
 import { PermissionService } from '../src/permissions/permission.service.js';
+import { seedCrm } from '../src/seed/crm.js';
 import { DEFAULT_SEED_PASSWORD, parseSeedArgs } from '../src/seed/main.js';
 import { BANK_SHAPE, seedPlan, type SeedPlan } from '../src/seed/scenarios.js';
 import { applySeedPlan } from '../src/seed/seed.js';
@@ -208,5 +209,84 @@ describe('applying the bank', () => {
     expect(hasSystemPermission(director, 'export_reports')).toBe(true);
     const hub = await perms(emailOf(plan, 'hub-manager'));
     expect(hasSystemPermission(hub, 'bypass_calling_window')).toBe(true);
+  });
+});
+
+describe('CRM demo data (§15, P02 T27)', () => {
+  const small = { accounts: 12, contacts: 15, leads: 30, opportunities: 12 };
+  const rows = (tenant: string, table: string) =>
+    inTenant(tenant, async (tx) => {
+      const r = await tx.prisma.$queryRawUnsafe<{ n: bigint }[]>(
+        `SELECT count(*) AS n FROM "${table}"`,
+      );
+      return Number(r[0]?.n ?? 0);
+    });
+
+  it('writes records through RecordService, spread over the sales team, and resumes', async () => {
+    const plan = seedPlan('agency');
+    const tenantId = tenants['agency'] ?? '';
+    const lines: string[] = [];
+    const first = await seedCrm(prisma, plan, {
+      tenantId,
+      scale: 'demo',
+      volumes: small,
+      log: (l) => lines.push(l),
+    });
+    expect(first).toEqual({ created: small, skipped: false });
+    expect(await rows('agency', 'lead')).toBe(30);
+    // Owners are the people who sell, not the administrator who ran the seed.
+    const owners = await inTenant('agency', (tx) =>
+      tx.prisma.$queryRawUnsafe<{ owner_id: string }[]>('SELECT DISTINCT owner_id FROM lead'),
+    );
+    const owner = await userId('agency', emailOf(plan, plan.owner));
+    expect(owners.length).toBeGreaterThan(1);
+    expect(owners.map((o) => o.owner_id)).not.toContain(owner);
+    // Lookups point at seeded accounts; lost deals carry a reason.
+    const orphans = await inTenant('agency', (tx) =>
+      tx.prisma.$queryRawUnsafe<{ n: bigint }[]>(
+        'SELECT count(*) AS n FROM contact c WHERE NOT EXISTS (SELECT 1 FROM account a WHERE a.id = c.account_id)',
+      ),
+    );
+    expect(Number(orphans[0]?.n)).toBe(0);
+    // A second run tops up to the target and writes nothing more.
+    const again = await seedCrm(prisma, plan, {
+      tenantId,
+      scale: 'demo',
+      volumes: small,
+      log: () => undefined,
+    });
+    expect(again.skipped).toBe(true);
+    expect(await rows('agency', 'lead')).toBe(30);
+  });
+
+  it('gives the bank three opportunity record types with their own pipelines', async () => {
+    const tenantId = tenants['bank'] ?? '';
+    await seedCrm(prisma, seedPlan('bank'), {
+      tenantId,
+      scale: 'demo',
+      volumes: small,
+      concurrency: 3,
+      log: () => undefined,
+    });
+    const types = await inTenant('bank', (tx) =>
+      tx.prisma.recordType.findMany({
+        where: { object: { apiName: 'opportunity' }, pipelineId: { not: null } },
+        select: { apiName: true },
+      }),
+    );
+    expect(types.map((t) => t.apiName)).toEqual(
+      expect.arrayContaining([
+        'retail_banking',
+        'corporate_banking',
+        'wealth_management',
+      ]) as unknown,
+    );
+    const byType = await inTenant('bank', (tx) =>
+      tx.prisma.$queryRawUnsafe<{ n: bigint }[]>(
+        'SELECT count(DISTINCT record_type_id) AS n FROM opportunity',
+      ),
+    );
+    expect(Number(byType[0]?.n)).toBe(3);
+    expect(await rows('bank', 'opportunity')).toBe(12);
   });
 });

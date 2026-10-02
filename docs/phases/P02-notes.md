@@ -526,3 +526,19 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Recycle bin** (`/recycle-bin`, also a ⌘K command): the caller's deleted records (everything for Modify All Data
   users, as the API decides) with object, deleted and purge dates; Restore brings back the record and what was
   deleted with it (a child deleted with its parent says to restore the parent). Axe-clean.
+
+### T27 — CRM demo data
+
+- `pnpm db:seed --scenario=agency|bank --scale=demo|load` now fills the CRM after the workspace is activated
+  (`apps/api/src/seed/crm.ts`). Volumes: agency 400 accounts / 900 contacts / 2,000 leads / 150 opportunities
+  (both scales); bank demo 600 / 900 / 5,000 / 400; **bank load 60k / 90k / 500k leads / 40k** (the §11.1 scale).
+- Everything is written through `RecordService.bulkCreate` (batches of 200) as a non-admin owner — no direct inserts,
+  so validation, sharing rows, history and outbox behave exactly as for users. Generation is **deterministic**
+  (mulberry32 seeded per scenario × object × index), so a re-run produces the same data and **resumes** from the
+  rows already present; more than 1% rejected rows fails the seed.
+- The bank scenario adds three opportunity record types (Retail banking, Corporate banking, Wealth management), each
+  with its own stage pipeline. Closed-lost opportunities carry a loss reason; every opportunity has a type.
+- Re-running against an existing workspace is idempotent: a 409 on reserve finds the tenant by slug, and a 409 on
+  activation is accepted. `SEED_CONCURRENCY` (load scale defaults to 4) runs batches in parallel waves.
+- Timing (local, one connection): bank demo ≈ 6,900 records in 1 min 45 s (≈ 65 rows/s); the load scale relies on
+  concurrency and is measured in T28.
