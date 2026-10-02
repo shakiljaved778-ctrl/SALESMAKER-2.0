@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { defineRoute } from '../openapi.js';
 import { Uuid } from '../primitives.js';
-import { RecordDto, RecordParam } from './records.js';
+import { ObjectParam, RecordDto, RecordParam } from './records.js';
 
 /*
  * The record page (§9.11 T2) in one read: the record with every field its page layout, compact
@@ -73,11 +73,29 @@ export const FieldHistoryQuery = z
   })
   .strict();
 
+export const CreateLayoutDto = z
+  .object({
+    recordTypeId: Uuid.nullable(),
+    layoutId: Uuid.nullable(),
+    sections: z.array(RecordPageSectionDto),
+  })
+  .meta({ id: 'CreateLayout' });
+
+export const CreateLayoutQuery = z.object({ recordTypeId: Uuid.optional() }).strict();
+
 const errorsOf = { 404: { description: 'No such object or record visible to the caller' } };
 const route = (spec: Omit<Parameters<typeof defineRoute>[0], 'tags' | 'auth' | 'visibility'>) =>
   defineRoute({ ...spec, tags: ['records'], auth: 'session', visibility: 'internal' });
 
 export const recordPageRoutes = {
+  getCreateLayout: route({
+    method: 'get',
+    path: '/v1/objects/{object}/layout',
+    operationId: 'getCreateLayout',
+    summary: 'The page layout a new record of a record type is created with, as the caller sees it',
+    request: { params: ObjectParam, query: CreateLayoutQuery },
+    responses: { 200: { description: 'The layout', body: CreateLayoutDto }, ...errorsOf },
+  }),
   getRecordPage: route({
     method: 'get',
     path: '/v1/records/{object}/{id}/page',

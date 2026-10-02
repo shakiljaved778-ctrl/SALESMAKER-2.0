@@ -1304,6 +1304,31 @@
       "historyBy": "Changed by",
       "historyWhen": "When",
       "loadMore": "Load more"
+    },
+    "editor": {
+      "newTitle": "New {object}",
+      "editTitle": "Edit {object}",
+      "recordType": "Choose a record type",
+      "saving": "Saving…",
+      "created": "{name} created",
+      "saved": "{name} saved",
+      "view": "View",
+      "fixErrors": "Some fields need attention. Check the highlighted fields.",
+      "loadFailed": "Couldn't load this form",
+      "openFullForm": "Open the full form",
+      "conflictTitle": "Someone else changed this record",
+      "conflictBody": "Your changes weren't saved. Reload to see their version, then make your changes again, or keep editing to copy what you entered first.",
+      "keepEditing": "Keep editing",
+      "reload": "Reload their version",
+      "errors": {
+        "required": "{field} is required.",
+        "notInPicklist": "Choose one of the {field} options.",
+        "tooLong": "{field} is too long.",
+        "invalidType": "{field} isn't in the right format.",
+        "invalidReference": "Choose a record you can see for {field}.",
+        "readOnly": "{field} can't be changed.",
+        "invalid": "Check {field}."
+      }
     }
   }
 }

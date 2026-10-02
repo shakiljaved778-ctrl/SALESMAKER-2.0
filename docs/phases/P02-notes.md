@@ -441,3 +441,22 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - Opening a record posts `…/viewed` (recent items) and registers a **workspace tab**: the shell's tab bar now lists
   open records for the browser session (≤ 10, sessionStorage, each closable).
 - `@sm/ui` Path now follows `current` when it changes.
+
+### T21 — create and edit
+
+- `GET /v1/objects/{object}/layout?recordTypeId=` gives the caller's page layout for a new record (same
+  profile × record type resolution and FLS cut as the record page; unknown record type → 404).
+- `RecordEditor` serves three entry points: the list's **New** opens a **quick-create dialog** with the layout's
+  required fields (and a link to the full form); `/{section}/new` is the **full-page create** (a record-type
+  picker first when the object has several; `?field=value` prefills, e.g. a related list's New prefills the
+  lookup with its name resolved); `/{section}/{id}/edit` is the **full-page edit** (read-only layout fields shown
+  as values).
+- Required fields are checked before sending; server errors are **field-keyed** (known codes have their own
+  wording, validation rules show the admin's message, anything else "Check {field}"). Errors on fields not in the
+  form go to the banner.
+- Create sends one `Idempotency-Key` per form, so a retry never makes two records. Edit sends only changed
+  fields with `If-Match`; a 409 opens a **conflict dialog** (reload their version, or keep editing to copy what
+  was typed).
+- **Unsaved changes**: Cancel asks to discard, and leaving the page triggers the browser's prompt.
+- Lookups are edited with async search over the referenced objects; lookups to users (owner) and record types are
+  not edited in the form (owner change and the record-type picker cover them). Picklist defaults start selected.

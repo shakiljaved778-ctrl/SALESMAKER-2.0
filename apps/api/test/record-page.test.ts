@@ -167,6 +167,26 @@ describe('record page (§9.11 T2)', () => {
     );
   });
 
+  it('returns the create layout for a record type, without a record', async () => {
+    const res = await f.call('rep', 'GET', '/v1/objects/lead/layout');
+    expect(res.statusCode).toBe(200);
+    const body = json(res);
+    expect(body['recordTypeId']).toEqual(expect.any(String) as unknown);
+    const sections = body['sections'] as Json[];
+    const fields = sections.flatMap((s) => s['fields'] as Json[]);
+    expect(fields.find((x) => x['field'] === 'last_name')).toMatchObject({ required: true });
+    expect(fields.map((x) => x['field'])).not.toContain('secret__c');
+    const rt = String(body['recordTypeId']);
+    expect(
+      (await f.call('rep', 'GET', `/v1/objects/lead/layout?recordTypeId=${rt}`)).statusCode,
+    ).toBe(200);
+    const other = '00000000-0000-7000-8000-000000000000';
+    expect(
+      (await f.call('rep', 'GET', `/v1/objects/lead/layout?recordTypeId=${other}`)).statusCode,
+    ).toBe(404);
+    expect((await f.call('rep', 'GET', '/v1/objects/widget/layout')).statusCode).toBe(404);
+  });
+
   it('validates the request', async () => {
     expect((await f.call('rep', 'GET', '/v1/records/lead/not-a-uuid/page')).statusCode).toBe(400);
     expect(

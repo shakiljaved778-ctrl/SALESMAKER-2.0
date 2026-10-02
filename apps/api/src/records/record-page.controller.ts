@@ -1,5 +1,5 @@
 import { Controller, Get, Inject, Param, Query, Req, UseGuards } from '@nestjs/common';
-import { FieldHistoryQuery, RecordParam } from '@sm/contracts';
+import { CreateLayoutQuery, FieldHistoryQuery, ObjectParam, RecordParam } from '@sm/contracts';
 import { withTenant, type CellPrisma, type TenantContext, type TenantTransaction } from '@sm/db';
 import type { RecordContext } from '@sm/records';
 import { ZodPipe } from '@sm/server-kit';
@@ -14,8 +14,13 @@ import { RecordPageService } from './record-page.service.js';
 
 type Rec = z.infer<typeof RecordParam>;
 
+const localeOf = (ctx: RecordContext): string => {
+  const locale = ctx.globals('User', 'locale');
+  return typeof locale === 'string' ? locale : 'en';
+};
+
 /** The record page (§9.11 T2) and field history; access is decided per record and field. */
-@Controller('v1/records/:object/:id')
+@Controller('v1')
 @UseGuards(AuthGuard, TenantContextGuard)
 export class RecordPageController {
   constructor(
@@ -34,19 +39,28 @@ export class RecordPageController {
     );
   }
 
-  @Get('page')
+  @Get('objects/:object/layout')
+  layout(
+    @CurrentTenant() t: TenantContext,
+    @Req() req: FastifyRequest,
+    @Param(new ZodPipe(ObjectParam)) p: z.infer<typeof ObjectParam>,
+    @Query(new ZodPipe(CreateLayoutQuery)) q: z.infer<typeof CreateLayoutQuery>,
+  ) {
+    return this.run(t, req, (tx, ctx) =>
+      this.pages.layout(tx, ctx, p.object, q.recordTypeId, localeOf(ctx)),
+    );
+  }
+
+  @Get('records/:object/:id/page')
   page(
     @CurrentTenant() t: TenantContext,
     @Req() req: FastifyRequest,
     @Param(new ZodPipe(RecordParam)) p: Rec,
   ) {
-    return this.run(t, req, (tx, ctx) => {
-      const locale = ctx.globals('User', 'locale');
-      return this.pages.page(tx, ctx, p.object, p.id, typeof locale === 'string' ? locale : 'en');
-    });
+    return this.run(t, req, (tx, ctx) => this.pages.page(tx, ctx, p.object, p.id, localeOf(ctx)));
   }
 
-  @Get('history')
+  @Get('records/:object/:id/history')
   history(
     @CurrentTenant() t: TenantContext,
     @Req() req: FastifyRequest,

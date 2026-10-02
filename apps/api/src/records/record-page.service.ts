@@ -120,6 +120,64 @@ export class RecordPageService {
     });
   }
 
+  /** The caller's page layout for a record type (profile × record type, else the default). */
+  private async layoutSections(
+    tx: TenantTransaction,
+    ctx: RecordContext,
+    object: ObjectMeta,
+    recordTypeId: string | null,
+    t: Translate,
+  ) {
+    const field = (name: string) => object.fields.find((f) => f.apiName === name);
+    const canRead = (name: string) => this.readable(ctx, object.apiName, field(name));
+    const user = await tx.prisma.user.findUnique({
+      where: { tenantId_id: { tenantId: tx.context.tenantId, id: ctx.userId } },
+      select: { profileId: true },
+    });
+    const layout = ctx.metadata.layoutFor(object.apiName, user?.profileId ?? null, recordTypeId);
+    const sections = ((layout?.sections ?? []) as SectionInput[])
+      .map((s) => ({
+        key: s.key,
+        label: s.label ?? (s.labelKey ? t(s.labelKey) : null),
+        columns: s.columns,
+        fields: s.fields
+          .filter((f) => canRead(f.field))
+          .map((f) => ({
+            field: f.field,
+            required: Boolean(f.required) || Boolean(field(f.field)?.required),
+            readOnly: Boolean(f.readOnly),
+          })),
+      }))
+      .filter((s) => s.fields.length > 0);
+    return {
+      id: layout?.id ?? null,
+      sections,
+      relatedLists: (layout?.relatedLists ?? []) as RelatedInput[],
+    };
+  }
+
+  /** The layout a new record of a record type is created with (§9.11 create forms). */
+  async layout(
+    tx: TenantTransaction,
+    ctx: RecordContext,
+    objectName: string,
+    recordTypeId: string | undefined,
+    locale: string,
+  ): Promise<{
+    recordTypeId: string | null;
+    layoutId: string | null;
+    sections: Page['layout']['sections'];
+  }> {
+    const object = this.object(ctx, objectName);
+    const t = serverTranslator(locale) as unknown as Translate;
+    const types = object.recordTypes.filter((r) => r.active);
+    if (recordTypeId && !types.some((r) => r.id === recordTypeId))
+      throw errors.notFound('Record type');
+    const rt = recordTypeId ?? ctx.metadata.defaultRecordType(object.apiName)?.id ?? null;
+    const { id, sections } = await this.layoutSections(tx, ctx, object, rt, t);
+    return { recordTypeId: rt, layoutId: id, sections };
+  }
+
   async page(
     tx: TenantTransaction,
     ctx: RecordContext,
@@ -150,25 +208,11 @@ export class RecordPageService {
       ctx.metadata.defaultRecordType(object.apiName)?.id ??
       null;
 
-    const user = await tx.prisma.user.findUnique({
-      where: { tenantId_id: { tenantId: tx.context.tenantId, id: ctx.userId } },
-      select: { profileId: true },
-    });
-    const layout = ctx.metadata.layoutFor(object.apiName, user?.profileId ?? null, recordTypeId);
-    const sections = ((layout?.sections ?? []) as SectionInput[])
-      .map((s) => ({
-        key: s.key,
-        label: s.label ?? (s.labelKey ? t(s.labelKey) : null),
-        columns: s.columns,
-        fields: s.fields
-          .filter((f) => canRead(f.field))
-          .map((f) => ({
-            field: f.field,
-            required: Boolean(f.required) || Boolean(field(f.field)?.required),
-            readOnly: Boolean(f.readOnly),
-          })),
-      }))
-      .filter((s) => s.fields.length > 0);
+    const {
+      id: layoutId,
+      sections,
+      relatedLists,
+    } = await this.layoutSections(tx, ctx, object, recordTypeId, t);
     const compactFields = object.compactFields.filter(canRead);
 
     // The path: the record type's active path setting, its picklist values in order.
@@ -206,14 +250,9 @@ export class RecordPageService {
       record,
       recordTypeId,
       layout: {
-        id: layout?.id ?? null,
+        id: layoutId,
         sections,
-        relatedLists: this.relatedLists(
-          ctx,
-          object,
-          (layout?.relatedLists ?? []) as RelatedInput[],
-          t,
-        ),
+        relatedLists: this.relatedLists(ctx, object, relatedLists, t),
       },
       compactFields,
       path,

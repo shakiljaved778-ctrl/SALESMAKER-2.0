@@ -5,6 +5,7 @@ import {
   Banner,
   Button,
   DataGrid,
+  Dialog,
   DropdownMenu,
   EmptyState,
   FieldEditor,
@@ -53,6 +54,7 @@ import {
   type RecordRow,
 } from './fields';
 import { ColumnChooser, MassActionDialog, SaveViewDialog, type MassKind } from './list-dialogs';
+import { RecordEditor } from './record-editor';
 import { RecordPreview } from './record-preview';
 import { useRecordLabels } from './use-record-labels';
 
@@ -140,6 +142,7 @@ export function ObjectList({ object, section }: { object: string; section: strin
   const tv = useTranslations('records.views');
   const tm = useTranslations('records.mass');
   const tc = useTranslations('common.actions');
+  const te = useTranslations('records.editor');
   const labels = useRecordLabels();
   const toast = useToast();
   const router = useRouter();
@@ -172,6 +175,7 @@ export function ObjectList({ object, section }: { object: string; section: strin
   const [split, setSplit] = useState(false);
   const [preview, setPreview] = useState<RecordRow | null>(null);
   const [dialog, setDialog] = useState<'save' | 'saveAs' | MassKind | null>(null);
+  const [quickCreate, setQuickCreate] = useState(false);
   const [density, setDensity] = useState<Density>(user?.density ?? 'default');
 
   const view = views.find((v) => v.id === viewId) ?? null;
@@ -532,10 +536,13 @@ export function ObjectList({ object, section }: { object: string; section: strin
           {...(describe?.access.create
             ? {
                 action: (
-                  <Button variant="primary" asChild>
-                    <Link href={`/${section}/new`} prefetch={false}>
-                      {t('new')}
-                    </Link>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setQuickCreate(true);
+                    }}
+                  >
+                    {t('new')}
                   </Button>
                 ),
               }
@@ -614,10 +621,14 @@ export function ObjectList({ object, section }: { object: string; section: strin
         />
         <div className="ms-auto flex items-center gap-2">
           {describe?.access.create ? (
-            <Button variant="primary" icon={<Plus />} asChild>
-              <Link href={`/${section}/new`} prefetch={false}>
-                {t('new')}
-              </Link>
+            <Button
+              variant="primary"
+              icon={<Plus />}
+              onClick={() => {
+                setQuickCreate(true);
+              }}
+            >
+              {t('new')}
             </Button>
           ) : null}
         </div>
@@ -780,6 +791,33 @@ export function ObjectList({ object, section }: { object: string; section: strin
           }}
         />
       ) : null}
+      <Dialog
+        open={quickCreate}
+        onOpenChange={setQuickCreate}
+        title={te('newTitle', { object: describe?.label ?? '' })}
+        closeLabel={tc('close')}
+      >
+        {quickCreate ? (
+          <div className="grid gap-3">
+            <RecordEditor
+              object={object}
+              section={section}
+              quick
+              onDone={(saved) => {
+                setQuickCreate(false);
+                if (saved) void run(null);
+              }}
+            />
+            <Link
+              href={`/${section}/new`}
+              prefetch={false}
+              className="justify-self-start text-body-sm text-link underline-offset-4 hover:underline"
+            >
+              {te('openFullForm')}
+            </Link>
+          </div>
+        ) : null}
+      </Dialog>
       {dialog === 'update' || dialog === 'delete' ? (
         <MassActionDialog
           kind={dialog}
