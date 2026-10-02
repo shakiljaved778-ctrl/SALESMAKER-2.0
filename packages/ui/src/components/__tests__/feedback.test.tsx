@@ -133,6 +133,23 @@ describe('CommandPalette', () => {
     expect(screen.getAllByRole('option')).toHaveLength(4);
   });
 
+  it('keeps sections the caller already matched (remote, typo-tolerant search)', async () => {
+    const { input } = setup({
+      sections: [
+        {
+          id: 'records',
+          heading: 'Leads',
+          filtered: true,
+          items: [{ id: 'l1', label: 'Amira Chen', description: 'Northwind', onSelect: vi.fn() }],
+        },
+      ],
+    });
+    // "amria" is a typo the server tolerates; the palette must not drop the hit.
+    await userEvent.type(input, 'amria');
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('option')).toHaveTextContent('Amira Chen');
+  });
+
   it('filters fuzzily, highlights the match, and runs the command on Enter', async () => {
     const { createLead, input } = setup();
     await userEvent.type(input, 'crl');

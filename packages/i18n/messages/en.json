@@ -230,7 +230,10 @@
         "scope": "Scope",
         "close": "Close"
       },
-      "showShortcuts": "Show keyboard shortcuts"
+      "showShortcuts": "Show keyboard shortcuts",
+      "records": "Search",
+      "recent": "Recent",
+      "allResults": "See all results for “{query}”"
     },
     "tabs": {
       "empty": "Records you open appear here as tabs.",
@@ -1357,6 +1360,32 @@
       "expand": "Show accounts under {name}",
       "collapse": "Hide accounts under {name}",
       "failed": "Couldn't load the hierarchy."
+    },
+    "search": {
+      "title": "Search",
+      "titleFor": "Results for “{query}”",
+      "query": "Search records",
+      "filters": "Filters",
+      "results": "Results",
+      "object": "Object",
+      "allObjects": "All objects",
+      "owner": "Owner",
+      "anyone": "Anyone",
+      "me": "Me",
+      "updated": "Last updated",
+      "updatedOptions": {
+        "any": "Any time",
+        "week": "Past 7 days",
+        "month": "Past 30 days",
+        "year": "Past year"
+      },
+      "emptyTitle": "Search your records",
+      "emptyBody": "Type a name, company, email or phone number. Small typos are fine.",
+      "noResults": "Nothing matches",
+      "noResultsBody": "Check the spelling, or clear a filter.",
+      "failed": "Search isn't available",
+      "failedBody": "Check your connection, then try again.",
+      "showAll": "Show all {objects}"
     }
   }
 }

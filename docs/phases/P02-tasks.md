@@ -24,7 +24,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T20** `feat(web): record pages (T2)`
 - [x] **T21** `feat(web): create and edit`
 - [x] **T22** `feat(web): convert and account hierarchy`
-- [ ] **T23** `feat(web): global search`
+- [x] **T23** `feat(web): global search`
 - [ ] **T24** `feat(web): object manager — fields`
 - [ ] **T25** `feat(web): object manager — layouts and rules`
 - [ ] **T26** `feat(web): currencies and recycle bin`

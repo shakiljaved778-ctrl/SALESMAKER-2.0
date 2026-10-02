@@ -26,6 +26,11 @@ export interface CommandSection {
   heading: string;
   /** Scope this section belongs to (e.g. an object), for Tab scoping. */
   scope?: string;
+  /**
+   * The caller already matched these items (e.g. a typo-tolerant record search): they keep their
+   * order and are never dropped; matched characters are still highlighted where they line up.
+   */
+  filtered?: boolean;
   items: CommandItem[];
 }
 
@@ -65,7 +70,13 @@ interface Ranked {
   positions: number[];
 }
 
-function rank(items: CommandItem[], query: string, limit: number): Ranked[] {
+function rank(items: CommandItem[], query: string, limit: number, filtered = false): Ranked[] {
+  if (filtered)
+    return items.slice(0, limit).map((item) => ({
+      item,
+      score: 0,
+      positions: query.trim() ? (fuzzyMatch(query, item.label)?.positions ?? []) : [],
+    }));
   if (!query.trim()) return items.map((item) => ({ item, score: 0, positions: [] }));
   const ranked: Ranked[] = [];
   for (const item of items) {
@@ -143,7 +154,7 @@ export function CommandPalette({
     () =>
       sections
         .filter((s) => !scope || s.scope === scope.id)
-        .map((s) => ({ section: s, ranked: rank(s.items, query, limitPerSection) }))
+        .map((s) => ({ section: s, ranked: rank(s.items, query, limitPerSection, s.filtered) }))
         .filter((s) => s.ranked.length > 0),
     [sections, scope, query, limitPerSection],
   );

@@ -1,3 +1,4 @@
+import { Building2, Contact, Handshake, Megaphone, UserPlus, type LucideIcon } from 'lucide-react';
 import type { DescribedFieldDto, DescribedObjectDto } from '@sm/contracts';
 import type { FieldEditorValue, FieldType, LookupValue, PicklistValue } from '@sm/ui';
 import type { z } from 'zod';
@@ -6,6 +7,15 @@ export type DescribedField = z.infer<typeof DescribedFieldDto>;
 export type DescribedObject = z.infer<typeof DescribedObjectDto>;
 /** A record as the records API returns it. */
 export type RecordRow = Record<string, unknown> & { id: string; version: number };
+
+/** The icon of each object home (object chip, search results). */
+export const OBJECT_ICONS: Record<string, LucideIcon> = {
+  lead: UserPlus,
+  account: Building2,
+  contact: Contact,
+  opportunity: Handshake,
+  campaign: Megaphone,
+};
 
 /** Sidebar sections that are object homes (§9.11 T1), by URL segment. */
 export const OBJECT_SECTIONS = {

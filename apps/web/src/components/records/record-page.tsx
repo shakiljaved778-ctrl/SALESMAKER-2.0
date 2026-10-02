@@ -18,21 +18,7 @@ import {
   useToast,
   type FieldEditorValue,
 } from '@sm/ui';
-import {
-  ArrowRightLeft,
-  Building2,
-  Check,
-  Contact,
-  FileQuestion,
-  Handshake,
-  History,
-  Megaphone,
-  Pencil,
-  Trash2,
-  UserPlus,
-  X,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRightLeft, Check, FileQuestion, History, Pencil, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
@@ -48,6 +34,7 @@ import {
   cellValue,
   editorValue,
   inlineEditable,
+  OBJECT_ICONS,
   picklistOptions,
   recordName,
   sectionForObject,
@@ -63,13 +50,6 @@ type PageData = z.infer<typeof RecordPageDto>;
 type Change = z.infer<typeof FieldHistoryDto>;
 type Related = PageData['layout']['relatedLists'][number];
 
-export const OBJECT_ICONS: Record<string, LucideIcon> = {
-  lead: UserPlus,
-  account: Building2,
-  contact: Contact,
-  opportunity: Handshake,
-  campaign: Megaphone,
-};
 const RELATED_PREVIEW = 5;
 const RELATED_FETCH = 50;
 

@@ -1,17 +1,36 @@
 'use client';
 
+import type { RecentItemDto } from '@sm/contracts';
 import { CommandPalette, type CommandSection } from '@sm/ui';
-import { Keyboard, LogOut, Monitor, Moon, Rows3, Sun } from 'lucide-react';
+import { Clock, FileText, Keyboard, LogOut, Monitor, Moon, Rows3, Search, Sun } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useEffect, useRef, useState } from 'react';
+import type { z } from 'zod';
 
+import { cellApi } from '../../lib/cell-api';
 import { applyDisplay } from '../../lib/display';
+import { OBJECT_ICONS, sectionForObject, type DescribedObject } from '../records/fields';
+import {
+  describesFor,
+  hitDescription,
+  readableObjects,
+  searchRecords,
+  SEARCH_DEBOUNCE_MS,
+  type ObjectSummary,
+  type SearchResult,
+} from '../records/search-client';
 import { useShell } from './app-shell';
 import { ALL_NAV, visibleNav } from './nav';
 
+type Recent = z.infer<typeof RecentItemDto>;
+
+/** Records per object while typing (§7.19: top 5 per object). */
+const PER_OBJECT = 5;
+
 /**
- * ⌘K in P00 (§7.19): navigation and display commands. Record search joins in P02, and the
- * "Ask AI" section in P07.
+ * ⌘K (§7.19): records (top 5 per object, typo-tolerant, Tab scopes by object), recent items when
+ * the query is empty, navigation and display commands. The "Ask AI" section joins in P07.
  */
 export function ShellCommandMenu({
   open,
@@ -24,8 +43,113 @@ export function ShellCommandMenu({
   const tc = useTranslations('common');
   const router = useRouter();
   const { openShortcuts, signOut, user } = useShell();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResult | null>(null);
+  const [recent, setRecent] = useState<Recent[]>([]);
+  const [objects, setObjects] = useState<ObjectSummary[]>([]);
+  const [describes, setDescribes] = useState<Map<string, DescribedObject>>(new Map());
+  const latest = useRef('');
+
+  useEffect(() => {
+    if (!open) return;
+    void readableObjects().then(setObjects);
+    void cellApi<{ items: Recent[] }>('GET', `/v1/recent-items?limit=${String(PER_OBJECT)}`).then(
+      (r) => {
+        if (r.ok) setRecent(r.data.items);
+      },
+    );
+  }, [open]);
+
+  useEffect(() => {
+    const q = query.trim();
+    latest.current = q;
+    if (!q) {
+      setResults(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void searchRecords({ q, limit: PER_OBJECT }).then((r) => {
+        // An answer to a query the user has moved past is dropped.
+        if (latest.current !== q) return;
+        void describesFor(r).then((d) => {
+          if (latest.current !== q) return;
+          setDescribes(d);
+          setResults(r);
+        });
+      });
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const labelOf = (object: string) => objects.find((o) => o.name === object)?.labelPlural ?? object;
+  const open_ = (object: string, id: string) => {
+    const section = sectionForObject(object);
+    if (section) router.push(`/${section}/${id}`);
+  };
+  const iconOf = (object: string) => {
+    const Icon = OBJECT_ICONS[object] ?? FileText;
+    return <Icon aria-hidden="true" />;
+  };
+
+  const recordSections: CommandSection[] = query.trim()
+    ? [
+        ...(results?.groups ?? [])
+          .filter((g) => g.hits.length > 0 && sectionForObject(g.object))
+          .map((g) => ({
+            id: `records-${g.object}`,
+            heading: labelOf(g.object),
+            scope: g.object,
+            filtered: true,
+            items: g.hits.map((h) => ({
+              id: `${g.object}-${h.id}`,
+              label: h.name ?? h.id,
+              description: hitDescription(h, describes.get(g.object)),
+              icon: iconOf(g.object),
+              onSelect: () => {
+                open_(g.object, h.id);
+              },
+            })),
+          })),
+        {
+          id: 'all-results',
+          heading: t('palette.records'),
+          filtered: true,
+          items: [
+            {
+              id: 'see-all',
+              label: t('palette.allResults', { query: query.trim() }),
+              icon: <Search aria-hidden="true" />,
+              onSelect: () => {
+                router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+              },
+            },
+          ],
+        },
+      ]
+    : recent.length
+      ? [
+          {
+            id: 'recent',
+            heading: t('palette.recent'),
+            items: recent
+              .filter((r) => sectionForObject(r.object))
+              .map((r) => ({
+                id: `recent-${r.id}`,
+                label: r.name ?? r.id,
+                description: labelOf(r.object),
+                icon: <Clock aria-hidden="true" />,
+                onSelect: () => {
+                  open_(r.object, r.id);
+                },
+              })),
+          },
+        ]
+      : [];
 
   const sections: CommandSection[] = [
+    ...recordSections,
     {
       id: 'go',
       heading: t('palette.navigation'),
@@ -106,6 +230,10 @@ export function ShellCommandMenu({
         close: t('palette.hints.close'),
       }}
       limitPerSection={8}
+      scopes={(results?.groups ?? [])
+        .filter((g) => g.hits.length > 0 && sectionForObject(g.object))
+        .map((g) => ({ id: g.object, label: labelOf(g.object) }))}
+      onQueryChange={setQuery}
     />
   );
 }

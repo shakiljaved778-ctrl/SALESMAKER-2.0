@@ -471,3 +471,15 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Hierarchy** tab on accounts: parents up to the root (≤ 10) and descendants (≤ 5 levels, 200 per level) via
   the Query Engine, as nested lists with disclosure buttons (axe-clean); the current account is marked
   `aria-current`. Accounts the viewer cannot see are absent, as everywhere.
+
+### T23 — global search
+
+- **⌘K Records**: typing searches `/v1/search` (debounced 150 ms; stale answers dropped) and shows the top 5 per
+  object as sections, typo-tolerant ("aurelai" finds Aurelia), with icons and a secondary line (compact fields,
+  picklists by label). Tab scopes to one object. "See all results" opens the results page. With an empty query,
+  **Recent** records come first.
+- `@sm/ui` CommandPalette sections can be `filtered`: items the caller already matched (remote search) keep their
+  order and are never dropped by the client-side fuzzy filter; matching characters are still highlighted.
+- **/search** page: query in the URL, facets for **object** (with totals from `totals=true`), **owner** (anyone /
+  me) and **last updated** (any, 7 days, 30 days, year); 10 hits per object on "all", 50 for one object, with "Show
+  all {objects}" links. Axe-clean.
