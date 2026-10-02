@@ -36,6 +36,8 @@ and are marked `Superseded by ADR-xxxx`.
 | [ADR-0027](0027-separate-from-wealthengine.md)      | SalesMaker is fully separate from WealthEngine                             | — (relationship row) |
 | [ADR-0028](0028-naming-namespace.md)                | Name and code namespace                                                    | #1                   |
 | [ADR-0029](0029-global-first.md)                    | Global from day one: currency, timezone, locale                            | #2                   |
+| [ADR-0030](0030-custom-field-indexes.md)            | Indexes on custom fields of standard objects                               | — (Q11; Q30 open)    |
+| [ADR-0031](0031-currency-conversion.md)             | Corporate-currency conversion with dated rates                             | — (Q13)              |
 
 Every §1.4 row is covered: #1→0028 · #2→0029/0005 · #3→0001/0009 · #4→0009 · #5→0020 · #6→0001 · #7→0007 ·
 #8→0022 · #9→0021 · #10→0020 · #11→0012 · #12→0013 · #13→0010 · #14→0010 · #15→0011 · #16–18→0015 ·

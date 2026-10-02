@@ -419,6 +419,322 @@ erDiagram
     }
 ```
 
+### Metadata (P02)
+
+Every CRM object is described by metadata, synced from the standard catalogue (`syncStandardMetadata`, insert-only,
+`tenant_settings.catalogue_version`) and extended by admins in Setup. Standard fields point at typed columns of the
+object tables; custom fields at keys of their `custom jsonb`. Every change bumps `tenant_settings.metadata_version`,
+which retires cached metadata. See [metadata](../modules/metadata.md).
+
+```mermaid
+erDiagram
+    object_definition ||--o{ field_definition : "has"
+    field_definition ||--o{ picklist_value : "offers"
+    object_definition ||--o{ record_type : "has"
+    record_type ||--o{ record_type_picklist : "limits"
+    record_type_picklist }o--|| picklist_value : "value"
+    record_type }o--o| pipeline : "uses (opportunity)"
+    object_definition ||--o{ page_layout : "has"
+    page_layout ||--o{ layout_assignment : "assigned"
+    layout_assignment }o--|| profile : "for profile"
+    layout_assignment }o--|| record_type : "and record type"
+    object_definition ||--o{ compact_layout : "has"
+    record_type ||--o{ path_setting : "has"
+    path_setting }o--|| field_definition : "on picklist"
+    object_definition ||--o{ validation_rule : "has"
+    field_definition ||--o| auto_number_sequence : "numbers"
+    field_definition ||--o| custom_field_index : "indexed by (ADR-0030)"
+    object_definition ||--o{ list_view : "has"
+    list_view ||--o{ list_view_pin : "pinned by user"
+
+    object_definition {
+        uuid tenant_id PK
+        uuid id PK
+        text api_name "lead, account, …"
+        boolean is_standard
+        text label_singular
+        text label_plural
+        text record_number_prefix
+        text name_field
+        jsonb features
+    }
+    field_definition {
+        uuid tenant_id PK
+        uuid id PK
+        uuid object_id FK
+        text api_name "x or x__c, never changes"
+        field_type type
+        text label "null = translated standard label"
+        boolean required
+        boolean track_history "≤ 60 per object"
+        boolean indexed
+        int length
+        int precision
+        int scale
+        text_array reference_to "lookups"
+        jsonb default_value
+        text formula
+    }
+    picklist_value {
+        uuid tenant_id PK
+        uuid id PK
+        uuid field_id FK
+        text api_value "lower snake_case"
+        text label
+        text category "lead status, forecast"
+        boolean is_default
+        boolean active "values are never removed"
+    }
+    record_type {
+        uuid tenant_id PK
+        uuid id PK
+        uuid object_id FK
+        text api_name
+        text name
+        boolean is_default
+        boolean active
+        uuid pipeline_id FK
+    }
+    page_layout {
+        uuid tenant_id PK
+        uuid id PK
+        uuid object_id FK
+        text name
+        boolean is_default
+        jsonb sections
+        jsonb related_lists
+    }
+    layout_assignment {
+        uuid tenant_id PK
+        uuid profile_id PK
+        uuid record_type_id PK
+        uuid page_layout_id FK
+    }
+    path_setting {
+        uuid tenant_id PK
+        uuid id PK
+        uuid record_type_id FK
+        uuid field_id FK
+        boolean active
+        jsonb steps "key fields, guidance"
+    }
+    validation_rule {
+        uuid tenant_id PK
+        uuid id PK
+        uuid object_id FK
+        text api_name
+        text formula "Boolean, @sm/formula"
+        text error_message
+        text error_field
+        boolean active
+    }
+    list_view {
+        uuid tenant_id PK
+        uuid id PK
+        uuid object_id FK
+        text system_key "all, mine, recent"
+        uuid owner_id FK
+        list_view_visibility visibility "PRIVATE, GROUPS, ALL"
+        jsonb filter "SMQ where"
+        text_array columns
+        jsonb sort
+    }
+    custom_field_index {
+        uuid tenant_id PK
+        uuid field_id PK
+        custom_field_index_status status "PENDING, READY, FAILED"
+        text index_name
+        text error
+    }
+```
+
+### Core CRM objects (P02)
+
+Lead, account, contact, opportunity and campaign share the §4.1 columns (`tenant_id`, `id`, `record_number`,
+`owner_id`, `record_type_id`, `external_id` unique per tenant, created/updated by and at, `version`,
+`deleted_at`), a `custom jsonb` for custom fields and a trigger-maintained `search_vector`. Money objects add
+`currency_code`, one `<field>_corporate` per standard currency field and `corporate_rate_date` (ADR-0031). CRM
+lookups are logical references (no foreign keys; RecordService checks them, the purge clears them). Shares live in
+`record_share` (P01), including the TEAM and IMPLICIT shares RecordService derives. See [records](../modules/records.md).
+
+```mermaid
+erDiagram
+    account ||--o{ account : "parent of"
+    account ||--o{ contact : "employs"
+    account ||--o{ account_contact_relation : "relates"
+    account_contact_relation }o--|| contact : "contact"
+    account ||--o{ opportunity : "has"
+    pipeline ||--o{ pipeline_stage : "stages"
+    pipeline ||--o{ opportunity : "tracks"
+    opportunity ||--o{ opportunity_contact_role : "involves"
+    opportunity_contact_role }o--|| contact : "contact"
+    opportunity ||--o{ opportunity_stage_history : "moves through"
+    campaign ||--o{ campaign_member : "has"
+    campaign_member }o--o| lead : "lead"
+    campaign_member }o--o| contact : "or contact"
+    campaign ||--o{ campaign : "parent of"
+    lead ||--o| lead_conversion : "converted by"
+    lead_conversion }o--|| account : "into"
+    lead_conversion }o--|| contact : "into"
+    lead_conversion }o--o| opportunity : "and maybe"
+    account ||--o{ account_team_member : "team"
+    opportunity ||--o{ opportunity_team_member : "team"
+
+    lead {
+        uuid tenant_id PK
+        uuid id PK
+        text record_number "auto-number"
+        uuid owner_id "user or queue"
+        text first_name
+        text last_name
+        text company
+        text email
+        text phone "E.164, reversed-digit index"
+        text status "picklist with category"
+        numeric annual_revenue "and _corporate"
+        uuid campaign_id
+        timestamptz converted_at "and converted_* ids"
+        jsonb custom
+        tsvector search_vector
+        int version
+        timestamptz deleted_at
+    }
+    account {
+        uuid tenant_id PK
+        uuid id PK
+        text name
+        uuid parent_account_id
+        text type
+        text industry
+        numeric annual_revenue "and _corporate"
+        text billing_city "and address"
+        char currency_code
+        jsonb custom
+        tsvector search_vector
+    }
+    contact {
+        uuid tenant_id PK
+        uuid id PK
+        text first_name
+        text last_name
+        uuid account_id "primary account, CONTROLLED_BY_PARENT"
+        uuid reports_to_id
+        text email
+        date birthdate
+        jsonb custom
+        tsvector search_vector
+    }
+    opportunity {
+        uuid tenant_id PK
+        uuid id PK
+        text name
+        uuid account_id
+        uuid pipeline_id
+        text stage
+        numeric probability
+        text forecast_category
+        numeric amount "numeric(18,2)"
+        numeric amount_corporate "rate on close_date"
+        date close_date
+        char currency_code
+        date corporate_rate_date
+        boolean is_closed
+        boolean is_won
+        text loss_reason
+    }
+    campaign {
+        uuid tenant_id PK
+        uuid id PK
+        text name
+        uuid parent_campaign_id
+        text status
+        date start_date
+        date end_date
+        numeric budgeted_cost "and actual, expected"
+    }
+    pipeline_stage {
+        uuid tenant_id PK
+        uuid id PK
+        uuid pipeline_id FK
+        text api_value
+        text category "OPEN, WON, LOST"
+        numeric probability
+        text forecast_category
+    }
+    lead_conversion {
+        uuid tenant_id PK
+        uuid id PK
+        uuid lead_id
+        uuid account_id
+        uuid contact_id
+        uuid opportunity_id
+        jsonb record_versions "for undo within 24 h"
+        timestamptz converted_at
+        timestamptz undone_at
+    }
+    account_team_member {
+        uuid tenant_id PK
+        uuid id PK
+        uuid account_id
+        uuid user_id
+        smallint access
+        smallint opportunity_access
+    }
+```
+
+### Record support and currencies (P02)
+
+```mermaid
+erDiagram
+    tenant_settings ||--o{ tenant_currency : "uses"
+    tenant_currency ||--o{ currency_rate : "dated rates"
+    user ||--o{ recent_item : "viewed"
+    user ||--o{ recycle_bin_item : "deleted"
+    recycle_bin_item |o--o{ recycle_bin_item : "cascade of"
+
+    field_history {
+        uuid tenant_id PK
+        timestamptz changed_at PK "monthly partitions (Q12)"
+        uuid id PK
+        text object
+        uuid record_id
+        text field
+        jsonb old_value
+        jsonb new_value
+        uuid changed_by
+    }
+    recycle_bin_item {
+        uuid tenant_id PK
+        uuid id PK
+        text object
+        uuid record_id
+        text name
+        uuid deleted_by
+        uuid cascade_of FK
+        timestamptz purge_after "30 days"
+    }
+    recent_item {
+        uuid tenant_id PK
+        uuid user_id PK
+        text object PK
+        uuid record_id PK
+        timestamptz viewed_at "latest 100 kept"
+    }
+    tenant_currency {
+        uuid tenant_id PK
+        char code PK "ISO 4217"
+        boolean active
+    }
+    currency_rate {
+        uuid tenant_id PK
+        uuid id PK
+        char code
+        date effective_date "one per currency per day"
+        numeric rate "units per corporate unit"
+        int version
+    }
+```
+
 ## Control-plane database (global)
 
 No CRM data and no tenant-scoped rows in the RLS sense: it is the directory that routes a host or an email to a cell.
