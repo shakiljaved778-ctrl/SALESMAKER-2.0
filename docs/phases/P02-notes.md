@@ -483,3 +483,20 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **/search** page: query in the URL, facets for **object** (with totals from `totals=true`), **owner** (anyone /
   me) and **last updated** (any, 7 days, 30 days, year); 10 hits per object on "all", 50 for one object, with "Show
   all {objects}" links. Axe-clean.
+
+### T24 — Object manager: fields
+
+- Setup → **Customize → Object manager** (`/setup/objects`): every object (standard/custom). An object's page has
+  **Fields** (label, API name, type, attributes: custom, required, history tracked, index pending) and **Record
+  types** (create with a derived API name; make default; activate/deactivate).
+- **New field wizard**: type → details (label → API name `<name>__c`, length / digits / decimal places, lookup
+  target, picklist values one per line, help text, required, track history) → **field-level security** per profile
+  (read/edit; System Administrator always) → **page layouts** (appended to the first section of each chosen layout,
+  with the layout's version). Profiles now expose their own `permissionSetId` (additive) so FLS can be granted per
+  profile at creation.
+- **Field page** (`/setup/objects/{object}/fields/{field}`): label (standard fields fall back to the translated
+  label), help text, description, required (custom only), history tracking; delete for custom fields (409 while a
+  rule or path uses it). **Picklist values**: relabel, reorder, set default, deactivate, add; values are never
+  removed.
+- Reading needs view_setup; the controls appear only with customize_application (the API enforces both). All
+  pages axe-clean.

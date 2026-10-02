@@ -42,6 +42,8 @@ export const ProfileSummary = z
     description: z.string().nullable(),
     /** Built-in profiles cannot be deleted. */
     systemKey: z.string().nullable(),
+    /** The profile's own permission set: field access for new fields is granted through it. */
+    permissionSetId: Uuid,
     users: z.number().int(),
     version: z.number().int(),
   })

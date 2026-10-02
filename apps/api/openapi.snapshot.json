@@ -18202,6 +18202,9 @@
               "null"
             ]
           },
+          "permissionSetId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
           "users": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -18221,6 +18224,7 @@
           "name",
           "description",
           "systemKey",
+          "permissionSetId",
           "users",
           "version",
           "grants"
@@ -18248,6 +18252,9 @@
               "null"
             ]
           },
+          "permissionSetId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
           "users": {
             "type": "integer",
             "minimum": -9007199254740991,
@@ -18264,6 +18271,7 @@
           "name",
           "description",
           "systemKey",
+          "permissionSetId",
           "users",
           "version"
         ],

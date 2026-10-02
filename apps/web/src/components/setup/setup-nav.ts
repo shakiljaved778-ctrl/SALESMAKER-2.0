@@ -14,8 +14,9 @@ export type SetupItemKey =
   | 'sharing'
   | 'auditLog'
   | 'loginHistory'
-  | 'setupAudit';
-export type SetupGroupKey = 'usersAccess' | 'sharing' | 'security';
+  | 'setupAudit'
+  | 'objects';
+export type SetupGroupKey = 'usersAccess' | 'sharing' | 'customize' | 'security';
 
 export interface SetupItem {
   key: SetupItemKey;
@@ -45,6 +46,10 @@ export const SETUP_TREE: SetupGroup[] = [
       { key: 'queues', href: '/setup/queues' },
       { key: 'sharing', href: '/setup/sharing' },
     ],
+  },
+  {
+    key: 'customize',
+    items: [{ key: 'objects', href: '/setup/objects' }],
   },
   {
     key: 'security',
