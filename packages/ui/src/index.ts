@@ -59,3 +59,12 @@ export {
   type CommandSection,
 } from './components/command-palette.js';
 export { fuzzyMatch, type FuzzyMatch } from './lib/fuzzy.js';
+export {
+  DataGrid,
+  VIRTUALIZE_FROM,
+  type DataGridColumn,
+  type DataGridLabels,
+  type DataGridLayout,
+  type DataGridProps,
+  type DataGridStatus,
+} from './components/data-grid.js';

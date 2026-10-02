@@ -327,3 +327,28 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   - **Validation rules.** The formula must type check as Boolean against the object's metadata (prior values
     allowed); errors come back as `formula.<code>` with the span. RecordService enforces active rules at once,
     through the metadata version bump.
+- **DataGrid (T17).** `@sm/ui` `DataGrid` is built on TanStack Table v8 and TanStack Virtual (MIT). v8 is the
+  mature line; v9 changed its API.
+  - **Columns:** sticky header and first column, plus user-pinned columns with logical (`inset-inline-*`)
+    offsets. Resize by drag or keyboard (arrows on the focused handle). Reorder by dragging a header, or with
+    the column menu (move left/right). Pin and hide from the column menu; required columns cannot be hidden.
+  - **Sorting:** multi-sort with shift, ascending first. Sorting is client-side, or server-side when
+    `onSortingChange` is given (keyset lists).
+  - **Selection:** checkbox selection with shift-click ranges and Space.
+  - **Rows:** row actions at the end edge on hover and focus; grouped rows with collapsible headers and
+    aggregates; "Load more" for keyset paging.
+  - **Keyboard:** ARIA `grid` with row and column indices and roving focus. Arrows, Home/End (Ctrl for corners),
+    PageUp/Down; Enter sorts a header, toggles a group, edits an editable cell (`renderEditor`, Esc cancels) or
+    opens the row; double-click also opens. Arrow keys mirror in RTL.
+  - **States:** loading skeleton (`aria-busy`), empty vs no-results (`filtered`), error and no-permission. Copy
+    comes from props; every label is a prop (`DataGridLabels`, golden rule 5).
+  - **Virtualisation** starts above 100 items. The scroll area falls back to its intended height when it measures
+    0 px.
+  - **Bug found in the stories and fixed.** The grid's height now sits on its outer box. Before, the scroll area's
+    `flex-1` beat its explicit height, so it grew to the full content height and the virtualiser rendered all rows.
+  - **Direction** is inherited from the document unless `dir` is given; the effective direction is read from
+    layout.
+  - **Tests and stories.** 13 component tests. Four stories (default, grouped, 10,000 rows, states) pass axe in
+    5 theme × density × direction variants, with visual baselines.
+  - **Deferred.** Formatting values per field type (currency, relative dates, phone, lookup chips) is T18 (field
+    renderers), which plugs into `column.cell`.
