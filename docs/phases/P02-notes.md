@@ -460,3 +460,14 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Unsaved changes**: Cancel asks to discard, and leaving the page triggers the browser's prompt.
 - Lookups are edited with async search over the referenced objects; lookups to users (owner) and record types are
   not edited in the form (owner change and the record-type picker cover them). Picklist defaults start selected.
+
+### T22 — convert dialog and account hierarchy
+
+- **Convert** (lead record page action, hidden once converted): account = new (name prefilled from company) or an
+  existing match from search (an exact name match starts selected, to avoid duplicates); contact = new or an
+  existing contact with the lead's email (at the chosen account); optional opportunity with name and close date
+  (default +30 days; close date is required on opportunities); converted status when there are several. On
+  success it opens the opportunity (or account) with an **Undo** toast (8 s) calling `…/convert/undo`.
+- **Hierarchy** tab on accounts: parents up to the root (≤ 10) and descendants (≤ 5 levels, 200 per level) via
+  the Query Engine, as nested lists with disclosure buttons (axe-clean); the current account is marked
+  `aria-current`. Accounts the viewer cannot see are absent, as everywhere.

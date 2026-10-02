@@ -1303,7 +1303,9 @@
       "historyNew": "New value",
       "historyBy": "Changed by",
       "historyWhen": "When",
-      "loadMore": "Load more"
+      "loadMore": "Load more",
+      "convert": "Convert",
+      "hierarchy": "Hierarchy"
     },
     "editor": {
       "newTitle": "New {object}",
@@ -1329,6 +1331,32 @@
         "readOnly": "{field} can't be changed.",
         "invalid": "Check {field}."
       }
+    },
+    "convert": {
+      "title": "Convert {name}",
+      "convert": "Convert",
+      "account": "Account",
+      "newAccount": "Create a new account",
+      "accountName": "Account name",
+      "existing": "Use {name}",
+      "contact": "Contact",
+      "newContact": "Create a new contact: {name}",
+      "opportunity": "Opportunity",
+      "createOpportunity": "Create an opportunity",
+      "opportunityName": "Opportunity name",
+      "status": "Converted status",
+      "converted": "{name} converted",
+      "undo": "Undo",
+      "undoFailed": "Couldn't undo the conversion: something changed since, or it's been more than 24 hours.",
+      "failed": "Couldn't convert this lead.",
+      "closeDate": "Close date",
+      "required": "The new record needs a value for {field}. Add it after converting, or set a default in Setup."
+    },
+    "hierarchy": {
+      "label": "Account hierarchy",
+      "expand": "Show accounts under {name}",
+      "collapse": "Hide accounts under {name}",
+      "failed": "Couldn't load the hierarchy."
     }
   }
 }

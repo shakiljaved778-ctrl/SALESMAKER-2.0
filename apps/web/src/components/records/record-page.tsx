@@ -19,6 +19,7 @@ import {
   type FieldEditorValue,
 } from '@sm/ui';
 import {
+  ArrowRightLeft,
   Building2,
   Check,
   Contact,
@@ -41,6 +42,8 @@ import type { z } from 'zod';
 import { cellApi } from '../../lib/cell-api';
 import { useShell } from '../shell/app-shell';
 import { useWorkspaceTab } from '../shell/workspace-tabs';
+import { AccountHierarchy } from './account-hierarchy';
+import { ConvertDialog } from './convert-dialog';
 import {
   cellValue,
   editorValue,
@@ -409,6 +412,7 @@ export function RecordPage({
   const [tab, setTab] = useState('overview');
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   const load = useCallback(async () => {
     const [d, p] = await Promise.all([
@@ -550,12 +554,24 @@ export function RecordPage({
           ? { owner: { name: ownerName, label: fields.get('owner_id')?.label ?? '' } }
           : {})}
         actions={[
+          ...(object === 'lead' && describe.access.edit && !row['converted_at']
+            ? [
+                {
+                  label: t('convert'),
+                  icon: <ArrowRightLeft />,
+                  primary: true,
+                  onSelect: () => {
+                    setConverting(true);
+                  },
+                },
+              ]
+            : []),
           ...(describe.access.edit
             ? [
                 {
                   label: t('edit'),
                   icon: <Pencil />,
-                  primary: true,
+                  primary: object !== 'lead',
                   onSelect: () => {
                     router.push(`/${section}/${id}/edit`);
                   },
@@ -677,6 +693,19 @@ export function RecordPage({
               </div>
             ),
           },
+          ...(object === 'account'
+            ? [
+                {
+                  value: 'hierarchy',
+                  label: t('hierarchy'),
+                  content: (
+                    <div className="rounded-md border border-line bg-surface p-4 shadow-e1">
+                      {tab === 'hierarchy' ? <AccountHierarchy accountId={id} /> : null}
+                    </div>
+                  ),
+                },
+              ]
+            : []),
           {
             value: 'history',
             label: t('history'),
@@ -688,6 +717,14 @@ export function RecordPage({
           },
         ]}
       />
+      {object === 'lead' ? (
+        <ConvertDialog
+          lead={row}
+          describe={describe}
+          open={converting}
+          onOpenChange={setConverting}
+        />
+      ) : null}
       <Dialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
