@@ -2,7 +2,18 @@
 
 import type { RecentItemDto } from '@sm/contracts';
 import { CommandPalette, type CommandSection } from '@sm/ui';
-import { Clock, FileText, Keyboard, LogOut, Monitor, Moon, Rows3, Search, Sun } from 'lucide-react';
+import {
+  Clock,
+  FileText,
+  Keyboard,
+  LogOut,
+  Monitor,
+  Moon,
+  Rows3,
+  Search,
+  Sun,
+  Trash2,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -198,6 +209,14 @@ export function ShellCommandMenu({
             applyDisplay({ density });
           },
         })),
+        {
+          id: 'recycle-bin',
+          label: t('palette.recycleBin'),
+          icon: <Trash2 aria-hidden="true" />,
+          onSelect: () => {
+            router.push('/recycle-bin');
+          },
+        },
         {
           id: 'shortcuts',
           label: t('palette.showShortcuts'),

@@ -515,3 +515,14 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   in words with its character position, and "valid" when the formula is Boolean; error message; where the error
   shows (top or a field); active.
 - **Field history**: toggle history tracking for every trackable field at once.
+
+### T26 — currencies and recycle bin
+
+- **Setup → Customize → Currencies & rates**: the corporate currency (rate 1) and the others in use with today's rate;
+  add a currency from the full ISO-4217 list (names from `Intl.DisplayNames`, searchable), activate/deactivate;
+  per currency, dated rates newest first — add, change (with its version), remove — each answered with "being
+  recalculated" (the API queues the corporate-amount recalculation). Rates are validated as positive decimals with
+  up to 8 places before sending.
+- **Recycle bin** (`/recycle-bin`, also a ⌘K command): the caller's deleted records (everything for Modify All Data
+  users, as the API decides) with object, deleted and purge dates; Restore brings back the record and what was
+  deleted with it (a child deleted with its parent says to restore the parent). Axe-clean.

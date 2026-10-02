@@ -233,7 +233,8 @@
       "showShortcuts": "Show keyboard shortcuts",
       "records": "Search",
       "recent": "Recent",
-      "allResults": "See all results for “{query}”"
+      "allResults": "See all results for “{query}”",
+      "recycleBin": "Open the recycle bin"
     },
     "tabs": {
       "empty": "Records you open appear here as tabs.",
@@ -570,7 +571,8 @@
       "auditLog": "Audit log",
       "loginHistory": "Login history",
       "setupAudit": "Setup audit trail",
-      "objects": "Object manager"
+      "objects": "Object manager",
+      "currencies": "Currencies & rates"
     },
     "forbidden": {
       "title": "Setup is for administrators",
@@ -1126,6 +1128,37 @@
     "history": {
       "label": "Tracked fields",
       "help": "{count, plural, =0 {No fields keep a change history yet.} one {# field keeps a change history.} other {# fields keep a change history.}} Changes show on the record's History tab."
+    },
+    "currencies": {
+      "title": "Currencies & rates",
+      "description": "Amounts are also kept in {corporate}, the corporate currency, using the rate in force on each record's date.",
+      "add": "Add currency",
+      "currency": "Currency",
+      "status": "Status",
+      "currentRate": "Rate today",
+      "actions": "Actions",
+      "corporate": "Corporate",
+      "active": "Active",
+      "inactive": "Inactive",
+      "rates": "Rates",
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "choose": "Choose a currency",
+      "search": "Search currencies…",
+      "noMatch": "No currency matches",
+      "alreadyUsed": "That currency is already in use.",
+      "ratesFor": "{code} rates",
+      "addRate": "Add rate",
+      "changeRate": "Change rate",
+      "rateHelp": "Units of {code} per 1 {corporate}. A rate applies from its date until the next one.",
+      "noRates": "No rates yet. Amounts in this currency can't be converted until one is added.",
+      "effectiveFrom": "Effective from",
+      "rate": "Rate",
+      "editRate": "Change the rate of {date}",
+      "removeRate": "Remove the rate of {date}",
+      "rateInputHelp": "How many {code} make 1 {corporate}, up to 8 decimal places.",
+      "rateInvalid": "Enter a positive number with up to 8 decimal places.",
+      "recalculating": "Saved. Converted amounts are being recalculated."
     }
   },
   "settings": {
@@ -1558,6 +1591,24 @@
       "failed": "Search isn't available",
       "failedBody": "Check your connection, then try again.",
       "showAll": "Show all {objects}"
+    },
+    "recycleBin": {
+      "title": "Recycle bin",
+      "description": "Deleted records stay here for 30 days. Restoring one brings back what was deleted with it.",
+      "name": "Name",
+      "object": "Object",
+      "deleted": "Deleted",
+      "purge": "Removed for good on",
+      "actions": "Actions",
+      "restore": "Restore",
+      "view": "View",
+      "restored": "{name} restored{count, plural, =1 {} other { with # records}}",
+      "restoreParent": "This was deleted with its parent. Restore the parent instead.",
+      "restoreFailed": "Couldn't restore this record.",
+      "loadFailed": "Couldn't load the recycle bin.",
+      "emptyTitle": "Nothing deleted",
+      "emptyBody": "Records you delete show up here for 30 days.",
+      "back": "Back to Home"
     }
   }
 }
