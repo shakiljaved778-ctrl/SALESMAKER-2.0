@@ -123,21 +123,6 @@ export function ShellCommandMenu({
               },
             })),
           })),
-        {
-          id: 'all-results',
-          heading: t('palette.records'),
-          filtered: true,
-          items: [
-            {
-              id: 'see-all',
-              label: t('palette.allResults', { query: query.trim() }),
-              icon: <Search aria-hidden="true" />,
-              onSelect: () => {
-                router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-              },
-            },
-          ],
-        },
       ]
     : recent.length
       ? [
@@ -158,6 +143,27 @@ export function ShellCommandMenu({
           },
         ]
       : [];
+
+  // "See all results" comes last, so Enter on a plain navigation word still navigates.
+  const allResults: CommandSection[] = query.trim()
+    ? [
+        {
+          id: 'all-results',
+          heading: t('palette.records'),
+          filtered: true,
+          items: [
+            {
+              id: 'see-all',
+              label: t('palette.allResults', { query: query.trim() }),
+              icon: <Search aria-hidden="true" />,
+              onSelect: () => {
+                router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+              },
+            },
+          ],
+        },
+      ]
+    : [];
 
   const sections: CommandSection[] = [
     ...recordSections,
@@ -232,6 +238,7 @@ export function ShellCommandMenu({
         },
       ],
     },
+    ...allResults,
   ];
 
   return (
