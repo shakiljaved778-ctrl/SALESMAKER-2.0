@@ -51,16 +51,15 @@ export async function principalsOf(tx: TenantTransaction, userId: string): Promi
     select: { orgUnitId: true },
   });
   const orgUnitId = user?.orgUnitId ?? null;
-  const [groupIds, queueIds, ancestors] = await Promise.all([
-    membership.userGroups(tx, userId),
-    membership.userQueues(tx, userId),
-    orgUnitId
-      ? tx.prisma.orgUnitClosure.findMany({
-          where: { descendantId: orgUnitId },
-          select: { ancestorId: true },
-        })
-      : Promise.resolve([]),
-  ]);
+  // One connection per transaction: its queries run one after another (pg refuses overlapping ones).
+  const groupIds = await membership.userGroups(tx, userId);
+  const queueIds = await membership.userQueues(tx, userId);
+  const ancestors = orgUnitId
+    ? await tx.prisma.orgUnitClosure.findMany({
+        where: { descendantId: orgUnitId },
+        select: { ancestorId: true },
+      })
+    : [];
   return {
     userId,
     groupIds,

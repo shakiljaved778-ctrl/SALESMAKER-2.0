@@ -20,34 +20,23 @@ export async function loadTenantMetadata(
   version: number,
 ): Promise<TenantMetadata> {
   const { prisma } = tx;
-  const [
-    objects,
-    fields,
-    values,
-    recordTypes,
-    rtValues,
-    layouts,
-    assignments,
-    compacts,
-    rules,
-    paths,
-    autos,
-  ] = await Promise.all([
-    prisma.objectDefinition.findMany({ where: { deletedAt: null } }),
-    prisma.fieldDefinition.findMany({
-      where: { deletedAt: null },
-      orderBy: [{ sortOrder: 'asc' }, { apiName: 'asc' }],
-    }),
-    prisma.picklistValue.findMany({ orderBy: [{ sortOrder: 'asc' }, { apiValue: 'asc' }] }),
-    prisma.recordType.findMany({ orderBy: { apiName: 'asc' } }),
-    prisma.recordTypePicklist.findMany({ include: { picklistValue: true } }),
-    prisma.pageLayout.findMany({ orderBy: { name: 'asc' } }),
-    prisma.layoutAssignment.findMany(),
-    prisma.compactLayout.findMany({ where: { isDefault: true } }),
-    prisma.validationRule.findMany({ orderBy: { apiName: 'asc' } }),
-    prisma.pathSetting.findMany(),
-    prisma.autoNumberSequence.findMany(),
-  ]);
+  // One connection per transaction: its queries run one after another (pg refuses overlapping ones).
+  const objects = await prisma.objectDefinition.findMany({ where: { deletedAt: null } });
+  const fields = await prisma.fieldDefinition.findMany({
+    where: { deletedAt: null },
+    orderBy: [{ sortOrder: 'asc' }, { apiName: 'asc' }],
+  });
+  const values = await prisma.picklistValue.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { apiValue: 'asc' }],
+  });
+  const recordTypes = await prisma.recordType.findMany({ orderBy: { apiName: 'asc' } });
+  const rtValues = await prisma.recordTypePicklist.findMany({ include: { picklistValue: true } });
+  const layouts = await prisma.pageLayout.findMany({ orderBy: { name: 'asc' } });
+  const assignments = await prisma.layoutAssignment.findMany();
+  const compacts = await prisma.compactLayout.findMany({ where: { isDefault: true } });
+  const rules = await prisma.validationRule.findMany({ orderBy: { apiName: 'asc' } });
+  const paths = await prisma.pathSetting.findMany();
+  const autos = await prisma.autoNumberSequence.findMany();
 
   const fieldById = new Map(fields.map((f) => [f.id, f]));
   const valuesByField = groupBy(values, (v) => v.fieldId);

@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "test": "vitest run --coverage",
     "openapi:write": "node scripts/write-openapi.js",
+    "perf:records": "node --env-file-if-exists=../../.env scripts/perf-records.js",
     "perf:sharing": "node --env-file-if-exists=../../.env scripts/perf-sharing.js"
   },
   "dependencies": {

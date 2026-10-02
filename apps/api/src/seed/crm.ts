@@ -30,6 +30,22 @@ export const CRM_VOLUMES: Record<ScenarioName, Record<'demo' | 'load', CrmVolume
   },
 };
 
+/**
+ * Concurrent batches that touch the same parents (contacts of one account recompute its implicit
+ * shares) can deadlock; Postgres aborts one transaction, which rolled back whole, so it is retried.
+ */
+async function retryOnConflict<T>(run: () => Promise<T>, attempts = 5): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await run();
+    } catch (err) {
+      const conflict = /40P01|40001|deadlock detected|could not serialize/.test(String(err));
+      if (!conflict || attempt >= attempts) throw err;
+      await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+    }
+  }
+}
+
 /** Rows per transaction: RecordService's bulk limit. */
 const BATCH = 200;
 /** A seed with more failing rows than this is broken: stop and say why. */
@@ -245,11 +261,20 @@ async function write(
         const inputs = Array.from({ length: Math.min(BATCH, total - from) }, (_, k) =>
           make(from + k),
         );
-        return withTenant(c.prisma, { tenantId: c.tenantId, userId: c.ownerId }, async (tx) => {
-          // The context (metadata, permissions) is loaded once and reused across batches.
-          ctx ??= await loadRecordContext(tx, c.ownerId);
-          return bulkCreate(tx, ctx, object, inputs);
-        });
+        // A batch of 200 through the full pipeline can outlast the request default (10 s) when
+        // several run at once on a busy machine; a seed may wait longer.
+        return retryOnConflict(() =>
+          withTenant(
+            c.prisma,
+            { tenantId: c.tenantId, userId: c.ownerId },
+            async (tx) => {
+              // The context (metadata, permissions) is loaded once and reused across batches.
+              ctx ??= await loadRecordContext(tx, c.ownerId);
+              return bulkCreate(tx, ctx, object, inputs);
+            },
+            { timeoutMs: 120_000 },
+          ),
+        );
       }),
     );
     const ids: string[] = [];
@@ -450,7 +475,10 @@ export async function seedCrm(
   });
   const accountIds = await idsOf(c, 'account');
 
-  const contacts = await write(c, 'contact', volumes.contacts, (i) => {
+  // Contacts and opportunities recompute their account's shares: batches that run together would
+  // queue on the same accounts' share rows (random parents), so children go one batch at a time.
+  const children: Ctx = { ...c, concurrency: 1 };
+  const contacts = await write(children, 'contact', volumes.contacts, (i) => {
     const r = rngFor(scenario, 'contact', i);
     const first = pick(r, FIRST);
     const last = pick(r, LAST);
@@ -508,7 +536,7 @@ export async function seedCrm(
     'closed_won',
     'closed_lost',
   ] as const;
-  const opportunities = await write(c, 'opportunity', volumes.opportunities, (i) => {
+  const opportunities = await write(children, 'opportunity', volumes.opportunities, (i) => {
     const r = rngFor(scenario, 'opportunity', i);
     const pipeline = pipelines.length ? pipelines[i % pipelines.length] : undefined;
     const stage = pipeline ? pick(r, pipeline.stages).value : pick(r, defaultStages);

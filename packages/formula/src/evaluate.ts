@@ -94,13 +94,21 @@ const dateMs = (d: string): number => {
 const daysInMonth = (y: number, m: number): number => new Date(Date.UTC(y, m, 0)).getUTCDate();
 
 /** The calendar date of an instant in a time zone. */
+// Building an Intl.DateTimeFormat costs far more than formatting with one: keep one per zone.
+const dayFormats = new Map<string, Intl.DateTimeFormat>();
+
 export function dateIn(instant: Date, timezone: string): string {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(instant);
+  let format = dayFormats.get(timezone);
+  if (!format) {
+    format = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    dayFormats.set(timezone, format);
+  }
+  const parts = format.formatToParts(instant);
   const get = (t: string) => parts.find((p) => p.type === t)?.value ?? '';
   return `${get('year')}-${get('month')}-${get('day')}`;
 }
