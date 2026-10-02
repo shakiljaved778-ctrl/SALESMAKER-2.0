@@ -62,6 +62,7 @@ export function FormField({
     >
       <div className={cn('flex flex-col gap-1', className)}>
         <label
+          id={`${id}-label`}
           htmlFor={id}
           className={cn('text-label text-fg-secondary', disabled && 'text-fg-disabled')}
         >

@@ -352,3 +352,29 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
     5 theme × density × direction variants, with visual baselines.
   - **Deferred.** Formatting values per field type (currency, relative dates, phone, lookup chips) is T18 (field
     renderers), which plugs into `column.cell`.
+
+### T18 — record components (`@sm/ui`)
+
+- **`FieldValue`** renders one value per field type. Money is formatted from its decimal string (`Intl` takes the
+  string, so there is no float round trip). Percent values are the percentage itself (12.5 means 12.5%).
+  Dates within 7 days are relative ("in 3 days", "15 min. ago") inside `<time>` with the absolute form as a
+  tooltip; date-only values never shift with the viewer's zone, and "today" follows the viewer's calendar.
+  Phone → `tel:`, email → `mailto:`, URL → new tab with `noopener noreferrer` and a screen-reader suffix.
+  Lookups render as a `LookupChip` with an optional hover card (compact layout). Picklists are status chips;
+  checkboxes are words plus an icon, never colour alone. Empty values show the `empty` label.
+- **`FieldEditor`** edits one value per type and inherits `FormField` wiring. Number, percent and currency
+  accept only a plain decimal draft (no grouping) and emit strings. Datetimes emit UTC ISO strings (the
+  browser's zone is used for input; the user's profile zone arrives with T20/T21). Picklists have a `--None--`
+  option; multi-picklists are a checkbox group labelled by the field and keep option order; lookups are an
+  async combobox that keeps the current record listed and emits `{id, name, object}`.
+- **`HighlightsPanel`**: object chip, name as `h1` (`title-2`), compact fields, owner avatar, follow slot, at most
+  3 action buttons; the rest and every destructive action go to the overflow menu, destructive last.
+- **`Path`**: chevrons via the `path-chevron` CSS utilities, mirrored under RTL. Completed = primary with a
+  check, current = selected tint with brand text and `aria-current="step"`, future = muted; screen-reader
+  state suffixes. Selecting a stage previews its key fields and guidance in a drawer; the action is "Mark
+  stage as complete" (hidden on the last stage) or "Mark as current stage" for another selected stage.
+- **`RecordForm` / `FormSection` / `FormSpan`**: 1–2 column sections as `fieldset`/`legend`, errors banner slot,
+  sticky footer, submit without reload. `FormField`'s label now has an id (`<id>-label`) so groups can use it.
+- **`RelatedList`**: header with icon, count (with an accessible count label), New; preview rows with up to four
+  fields; View all; empty, loading, error and no-permission states.
+- **Tests and stories.** 24 component tests; five stories pass axe in all 5 variants, with visual baselines.

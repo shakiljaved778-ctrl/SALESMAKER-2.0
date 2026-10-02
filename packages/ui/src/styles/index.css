@@ -236,3 +236,33 @@
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'cv11', 'ss01', 'tnum';
 }
+
+/* Path stage bar (§9.10): chevron segments that point toward the inline end, mirrored under RTL. */
+@utility path-chevron {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 0.625rem) 0,
+    100% 50%,
+    calc(100% - 0.625rem) 100%,
+    0 100%,
+    0.625rem 50%
+  );
+  &:where([dir='rtl'], [dir='rtl'] *) {
+    clip-path: polygon(
+      100% 0,
+      0.625rem 0,
+      0 50%,
+      0.625rem 100%,
+      100% 100%,
+      calc(100% - 0.625rem) 50%
+    );
+  }
+}
+
+/* The first segment has no notch at its start. */
+@utility path-chevron-first {
+  clip-path: polygon(0 0, calc(100% - 0.625rem) 0, 100% 50%, calc(100% - 0.625rem) 100%, 0 100%);
+  &:where([dir='rtl'], [dir='rtl'] *) {
+    clip-path: polygon(100% 0, 0.625rem 0, 0 50%, 0.625rem 100%, 100% 100%);
+  }
+}
