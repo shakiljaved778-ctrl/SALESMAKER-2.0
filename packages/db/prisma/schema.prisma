@@ -137,6 +137,7 @@ model User {
   queueMembers          QueueMember[]
   invitations           Invitation[]
   listViews             ListView[]
+  listViewPins          ListViewPin[]
 
   @@id([tenantId, id])
   @@unique([tenantId, email])
@@ -1039,6 +1040,7 @@ model ObjectDefinition {
   compactLayouts   CompactLayout[]
   validationRules  ValidationRule[]
   listViews        ListView[]
+  listViewPins     ListViewPin[]
   layoutAssignment LayoutAssignment[]
 
   @@id([tenantId, id])
@@ -1321,11 +1323,29 @@ model ListView {
 
   object ObjectDefinition @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
   owner  User?            @relation(fields: [tenantId, ownerId], references: [tenantId, id], onDelete: Cascade)
+  pins   ListViewPin[]
 
   @@id([tenantId, id])
   @@unique([tenantId, objectId, systemKey])
   @@index([tenantId, objectId, ownerId])
   @@map("list_view")
+}
+
+/// A user's default list view per object (§5.6 "pinned default per user").
+model ListViewPin {
+  tenantId   String   @map("tenant_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  objectId   String   @map("object_id") @db.Uuid
+  listViewId String   @map("list_view_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user     User             @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade)
+  object   ObjectDefinition @relation(fields: [tenantId, objectId], references: [tenantId, id], onDelete: Cascade)
+  listView ListView         @relation(fields: [tenantId, listViewId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, userId, objectId])
+  @@index([tenantId, listViewId])
+  @@map("list_view_pin")
 }
 
 // ── Core CRM objects (P02 T05, §4) ──────────────────────────────────────────────────────────

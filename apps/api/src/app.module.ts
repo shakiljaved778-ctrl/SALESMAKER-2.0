@@ -30,6 +30,8 @@ import { MetadataSetupController } from './metadata/metadata-setup.controller.js
 import { OpenApiController } from './openapi/openapi.controller.js';
 import { IdempotencyService } from './records/idempotency.service.js';
 import { LeadMappingController, LeadsController } from './records/leads.controller.js';
+import { ListViewsController } from './records/list-views.controller.js';
+import { ListViewsService } from './records/list-views.service.js';
 import { RecordContextService } from './records/record-context.service.js';
 import { RecordsController } from './records/records.controller.js';
 import { RecordsService } from './records/records.service.js';
@@ -109,6 +111,7 @@ export class AppModule {
         CurrencyController,
         MetadataSetupController,
         RecordsController,
+        ListViewsController,
         LeadMappingController,
         LeadsController,
         RecordShareController,
@@ -152,6 +155,7 @@ export class AppModule {
         IdempotencyService,
         RecordContextService,
         RecordsService,
+        ListViewsService,
         SystemPermissionGuard,
       ],
       exports: [

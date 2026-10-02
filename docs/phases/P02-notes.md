@@ -378,3 +378,19 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **`RelatedList`**: header with icon, count (with an accessible count label), New; preview rows with up to four
   fields; View all; empty, loading, error and no-permission states.
 - **Tests and stories.** 24 component tests; five stories pass axe in all 5 variants, with visual baselines.
+
+### T19a — list views API
+
+- `GET/POST /v1/objects/{object}/list-views`, `PATCH/DELETE …/{id}`, `PUT …/{id}/pin`, `POST …/{id}/results`.
+- **Who may do what (decision).** Anyone who can read an object keeps private views. Sharing a view with
+  public groups or everyone, and changing the views every object starts with (All, Mine, Recent), needs the
+  existing `customize_application` permission. The spec names no list-view permission, so none was added
+  (no permission-model change). Shared-view changes are setup-audited; private views are not.
+- A view is compiled as its author when saved (unknown or unreadable fields, bad filters and sorts are 400s)
+  and run as the viewer. Columns the viewer cannot read are dropped from the run, not refused, so a shared
+  view keeps working for users with narrower FLS; `columns` in the result says what came back.
+- Results: the view filter AND quick filters (`where`) AND a name-field `contains` search; sort and columns
+  can be overridden per run; keyset paging; `count: true` adds the capped count. `recent` runs with SMQ
+  `scope: 'recent'`.
+- Pinned default per user: migration `0021_list_view_pin` (additive, RLS forced). Deleting a view drops pins.
+- System views cannot be deleted (409) or made non-public (400). Other tenants' views are 404.
