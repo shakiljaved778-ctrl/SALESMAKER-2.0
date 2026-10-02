@@ -25,6 +25,10 @@ import { CurrencyController } from './currency/currency.controller.js';
 import { CurrencyService } from './currency/currency.service.js';
 import { HealthController } from './health/health.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
+import { IdempotencyService } from './records/idempotency.service.js';
+import { RecordContextService } from './records/record-context.service.js';
+import { RecordsController } from './records/records.controller.js';
+import { RecordsService } from './records/records.service.js';
 import { SignupController } from './signup/signup.controller.js';
 import { AccessController } from './access/access.controller.js';
 import { AccessService } from './access/access.service.js';
@@ -99,6 +103,7 @@ export class AppModule {
         PeopleSetupController,
         SharingSetupController,
         CurrencyController,
+        RecordsController,
         RecordShareController,
       ],
       providers: [
@@ -135,6 +140,9 @@ export class AppModule {
         AccessService,
         MetadataService,
         CurrencyService,
+        IdempotencyService,
+        RecordContextService,
+        RecordsService,
         SystemPermissionGuard,
       ],
       exports: [

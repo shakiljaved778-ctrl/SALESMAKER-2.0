@@ -213,3 +213,30 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
     bump, history or per-record audit. The rate change itself is audited.
   - **Known gap.** Campaign money uses one `corporate_rate_date` for its three fields. If they are set on different
     days, only the last conversion's rate date is kept.
+- **Records API (T12).** One generic controller, `apps/api/src/records`. Reads go through the Query Engine and
+  writes through RecordService, both as the caller.
+  - **Objects:** `GET /v1/objects` and `/describe`.
+  - **Records:** CRUD on `/v1/records/{object}[/{id}]`, upsert at `PUT …/external/{externalId}` (the standard
+    unique `external_id`), and `POST /v1/query` (SMQ).
+  - **Mass actions:** `POST …/mass/preview` and `…/mass`, which returns a job; `GET /v1/jobs/{id}` shows only the
+    caller's own jobs.
+  - **Teams:** `GET|PUT|DELETE …/{id}/team[/{userId}]`.
+  - **Recycle bin:** `GET /v1/recycle-bin` (your own items; everything with `modify_all_data`) and
+    `POST …/{id}/restore`.
+  - **Lists.** `?fields=a,b.c&sort=-amount,name&limit=50&cursor=…&filter[field][op]=v` maps to SMQ. Lists cap at
+    200 rows; `/v1/query` allows up to 2000.
+  - **Responses.** Every response carries `version`. Money is `{amount, currency}`, and Money is accepted on input
+    (all money fields must share one currency).
+  - **Concurrency.** `If-Match` gives optimistic concurrency (409 `version_conflict`). Without it, the last
+    write wins.
+  - **Idempotency-Key.** Optional on create. It is stored with the response in the same transaction for 24 h,
+    scoped to the caller, and 422 `idempotency_key_reused` if the body differs. The daily purge job drops expired
+    keys.
+  - **Errors.** RecordService and Query Engine errors map to RFC 9457: not found → 404, forbidden → 403, invalid →
+    400, unprocessable → 422, conflict → 409.
+  - **Hidden fields.** A filter or sort on a field the caller cannot read is reported as `unknown_field`, exactly
+    like a field that does not exist. A hidden field requested in `fields` is silently left out.
+  - **Visibility.** These routes are `internal` in OpenAPI until API keys land (P03); then they become the
+    published public API.
+  - **Corporate amounts** (`*_corporate`) are not exposed yet; the record page needs them in T20.
+  - **SMQ** gained an opt-in `recordMeta` that returns `version` and the record's `currencyCode`.

@@ -35,7 +35,7 @@ describe('health probes', () => {
 
 describe('errors', () => {
   it('answers unknown routes with a problem+json 404 and a trace id', async () => {
-    const res = await api.app.inject({ method: 'GET', url: '/v1/records/lead' });
+    const res = await api.app.inject({ method: 'GET', url: '/v1/no-such-route' });
     expect(res.statusCode).toBe(404);
     expect(res.headers['content-type']).toContain('application/problem+json');
     expect(res.json()).toMatchObject({ code: 'not_found', traceId: res.headers['x-request-id'] });

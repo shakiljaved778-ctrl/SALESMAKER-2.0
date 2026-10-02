@@ -60,7 +60,22 @@ describe('recycle-bin purge (§7.5)', () => {
     await item(alpha, '01920000-0000-7000-8000-00000000a001', new Date(Date.now() - day));
     await item(alpha, '01920000-0000-7000-8000-00000000a002', new Date(Date.now() + day));
     const handler = createMaintenanceHandler({ controlPlane: w.controlPlane });
+    await w.inTenant(alpha, (tx) =>
+      tx.prisma.idempotencyKey.createMany({
+        data: ['old', 'fresh'].map((key) => ({
+          tenantId: alpha,
+          key,
+          requestHash: Buffer.from('h'),
+          responseStatus: 201,
+          responseBody: {},
+          expiresAt: new Date(Date.now() + (key === 'old' ? -day : day)),
+        })),
+      }),
+    );
     await handler(envelope(null), { prisma: w.prisma, logger: w.logger, job: undefined as never });
+    expect(
+      (await w.inTenant(alpha, (tx) => tx.prisma.idempotencyKey.findMany())).map((k) => k.key),
+    ).toEqual(['fresh']);
     const left = await w.inTenant(alpha, (tx) => tx.prisma.recycleBinItem.findMany());
     expect(left.map((i) => i.recordId)).toEqual(['01920000-0000-7000-8000-00000000a002']);
     // One tenant on demand; an unprovisioned tenant is a no-op.

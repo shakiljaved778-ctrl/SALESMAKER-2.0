@@ -65,6 +65,11 @@ export interface QueryContext {
   sharing: SharingContext;
   /** 200 for the UI, 2000 for the API (§3.8). */
   maxLimit: number;
+  /**
+   * Also return each record's `version` (for If-Match) and, on objects with money, its
+   * `currencyCode` (the currency of its money fields). Off by default.
+   */
+  recordMeta?: boolean;
 }
 
 /** A lookup value: the related record's id and, when the caller may see it, its name. */
@@ -408,10 +413,16 @@ export function compileQuery(input: unknown, ctx: QueryContext): CompiledQuery {
     (k, i) =>
       sql`${k.field ? projected(k.field, k.expr) : sql`(${k.expr})::text`} AS ${sql.id(`__k${String(i)}`)}`,
   );
+  const money =
+    ctx.recordMeta === true &&
+    (ctx.metadata.object(q.object)?.fields.some((f) => f.isStandard && f.type === 'currency') ??
+      false);
   const columns = [
     sql`r.id`,
     ...select.map((s) => sql`${s.sql} AS ${sql.id(s.key)}`),
     ...cursorCols,
+    ...(ctx.recordMeta ? [sql`r.version AS __version`] : []),
+    ...(money ? [sql`r.currency_code AS __currency`] : []),
   ];
   const query = sql<
     Record<string, unknown>
@@ -440,6 +451,8 @@ export function compileQuery(input: unknown, ctx: QueryContext): CompiledQuery {
             } satisfies LookupValue;
           } else record[s.key] = v ?? null;
         }
+        if (ctx.recordMeta) record['version'] = Number(row['__version']);
+        if (money) record['currencyCode'] = row['__currency'] ?? null;
         return record;
       });
       const last = page.at(-1);

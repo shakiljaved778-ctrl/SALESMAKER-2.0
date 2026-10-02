@@ -21,7 +21,7 @@ export const OUTBOX_PARTITIONS_TOPIC = 'maintenance.outbox_partitions';
 export const AUDIT_CHAIN_TOPIC = 'maintenance.audit_chain';
 /** Chain and verify every tenant's audit log (daily, cell-wide). */
 export const AUDIT_VERIFY_TOPIC = 'maintenance.audit_verify';
-/** Hard-delete recycle-bin items past their purge date (daily, cell-wide; §7.5). */
+/** Hard-delete recycle-bin items past their purge date and expired idempotency keys (daily; §7.5). */
 export const RECYCLE_PURGE_TOPIC = 'maintenance.recycle_purge';
 
 export interface MaintenanceDeps {
@@ -121,6 +121,10 @@ const PURGE_BATCH = 500;
 
 /** Purge one tenant's expired recycle-bin items, in batches so no transaction runs long. */
 async function purgeTenant(prisma: CellPrisma, tenantId: string, now: Date): Promise<number> {
+  // Expired Idempotency-Keys (24 h, §10.1) go with the daily purge.
+  await withTenant(prisma, { tenantId }, (tx) =>
+    tx.prisma.idempotencyKey.deleteMany({ where: { expiresAt: { lt: now } } }),
+  );
   let total = 0;
   for (;;) {
     const purged = await withTenant(

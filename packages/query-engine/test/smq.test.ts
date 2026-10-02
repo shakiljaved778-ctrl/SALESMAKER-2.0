@@ -364,6 +364,28 @@ describe('runQuery: fields, filters and field-level security', () => {
     );
   });
 
+  it('adds version and currency on request (records the API answers with)', async () => {
+    const meta = await f.inTenant(T, async (tx) =>
+      runQuery(
+        tx.kysely,
+        {
+          object: 'lead',
+          fields: ['last_name'],
+          orderBy: [{ field: 'last_name', direction: 'asc' }],
+        },
+        { ...(await context(tx, 'sam')), recordMeta: true },
+      ),
+    );
+    expect(meta.records[0]).toEqual({
+      id: get('Adams'),
+      last_name: 'Adams',
+      version: expect.any(Number) as unknown,
+      currencyCode: expect.any(String) as unknown,
+    });
+    const plain = await query('sam', { object: 'lead', fields: ['last_name'] });
+    expect(Object.keys(plain.records[0] ?? {}).sort()).toEqual(['id', 'last_name']);
+  });
+
   it('filters on standard and custom fields, $me, and in/null conditions', async () => {
     const run = (where: Smq['where'], user = 'cara') =>
       query(user, {

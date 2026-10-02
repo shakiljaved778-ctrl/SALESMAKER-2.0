@@ -185,6 +185,8 @@ export async function loadRecordContext(
   options: {
     permissions?: EffectivePermissions;
     principals?: SharingPrincipals;
+    /** The tenant's metadata, when the caller has it cached at the current version. */
+    metadata?: MetadataIndex;
     requestId?: string;
     now?: () => Date;
   } = {},
@@ -203,7 +205,8 @@ export async function loadRecordContext(
       locale: true,
     },
   });
-  const metadata = new MetadataIndex(await loadTenantMetadata(tx, settings.metadataVersion));
+  const metadata =
+    options.metadata ?? new MetadataIndex(await loadTenantMetadata(tx, settings.metadataVersion));
   const permissions =
     options.permissions ?? effectivePermissions(await loadPermissionSource(tx, userId));
   const principals = options.principals ?? (await principalsOf(tx, userId));
