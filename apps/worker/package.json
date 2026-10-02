@@ -19,7 +19,7 @@
     "@sm/query-engine": "workspace:*",
     "@sm/records": "workspace:*",
     "@sm/server-kit": "workspace:*",
-    "bullmq": "6.3.9",
+    "bullmq": "6.3.10",
     "ioredis": "6.0.0",
     "pg": "8.23.0",
     "pino": "10.3.1",
@@ -28,10 +28,10 @@
   "devDependencies": {
     "@sm/config": "workspace:*",
     "@sm/testing": "workspace:*",
-    "@types/node": "26.6.2",
+    "@types/node": "26.6.3",
     "@types/pg": "8.23.1",
     "eslint": "10.11.0",
-    "testcontainers": "12.1.0",
+    "testcontainers": "12.2.0",
     "typescript": "6.0.3",
     "vitest": "5.0.2"
   }
