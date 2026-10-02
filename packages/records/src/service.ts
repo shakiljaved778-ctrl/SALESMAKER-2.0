@@ -34,6 +34,11 @@ export interface WriteResult {
 export interface WriteOptions {
   /** Lead conversion may write converted leads and set the converted status (T13). */
   conversion?: boolean;
+  /**
+   * Values for system fields, in stored form, written as given: only lead conversion sets these
+   * (`converted_at`, `converted_*_id`) and only together with `conversion`.
+   */
+  system?: Record<string, unknown>;
 }
 
 const LOOKUPS = new Set(['lookup', 'master_detail', 'user']);
@@ -43,7 +48,7 @@ const blank = (v: unknown) =>
   v === null || v === undefined || v === '' || (Array.isArray(v) && v.length === 0);
 
 /** Whether the caller has `level` access to a live record (sharing, §6.4). */
-async function hasAccess(
+export async function hasAccess(
   tx: TenantTransaction,
   ctx: RecordContext,
   object: ObjectMeta,
@@ -271,6 +276,10 @@ async function write(
   const normalised = normaliseInput(ctx, object, input.fields, recordTypeId);
   const given = new Set(Object.keys(normalised));
   const values: Record<string, unknown> = { ...(current?.values ?? {}), ...normalised };
+  if (options.system) {
+    if (!options.conversion) throw new Error('system field values are only for lead conversion');
+    Object.assign(values, options.system);
+  }
   if (isNew) {
     if (!given.has('record_type_id') && recordTypeId) values['record_type_id'] = recordTypeId;
     applyDefaults(ctx, object, values, given);
@@ -366,7 +375,7 @@ async function write(
       toWrite[n] = values[n];
   const { columns, custom } = toColumns(
     object,
-    stripReadOnly(object, toWrite),
+    stripReadOnly(object, toWrite, new Set(Object.keys(options.system ?? {}))),
     current?.custom ?? {},
   );
   const assignments = [...columns, ...extra.map(([c, v]) => [ident(c), sql`${v}`] as const)];
@@ -510,13 +519,14 @@ async function write(
 function stripReadOnly(
   object: ObjectMeta,
   values: Record<string, unknown>,
+  allowed: ReadonlySet<string>,
 ): Record<string, unknown> {
   const computed = new Set(['is_closed', 'is_won']);
   return Object.fromEntries(
     Object.entries(values).filter(([name]) => {
       const f: FieldMeta | undefined = object.fields.find((x) => x.apiName === name);
       if (!f || READ_ONLY_TYPES.has(f.type)) return false;
-      return !f.system || computed.has(name);
+      return !f.system || computed.has(name) || allowed.has(name);
     }),
   );
 }

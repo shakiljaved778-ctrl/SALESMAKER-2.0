@@ -232,21 +232,37 @@ export async function purgeRecycleBin(
     take: options.limit ?? 1000,
   });
   if (items.length === 0) return 0;
-  const tenantId = tx.context.tenantId;
   const byObject = new Map<string, string[]>();
   for (const item of items)
     byObject.set(item.object, [...(byObject.get(item.object) ?? []), item.recordId]);
-  const allIds = items.map((i) => i.recordId);
+  await hardDelete(tx, metadata, byObject, { deletedOnly: true });
+  await tx.prisma.recycleBinItem.deleteMany({ where: { id: { in: items.map((i) => i.id) } } });
+  return items.length;
+}
+
+/**
+ * Remove records for good, with their shares and link rows, and clear lookups that pointed at
+ * them. For the purge (records in the bin) and for undoing a lead conversion (records it created
+ * that nobody touched since). Not a user action: callers decide who may.
+ */
+export async function hardDelete(
+  tx: TenantTransaction,
+  metadata: MetadataIndex,
+  byObject: ReadonlyMap<string, readonly string[]>,
+  options: { deletedOnly?: boolean } = {},
+): Promise<void> {
+  const tenantId = tx.context.tenantId;
+  const allIds = [...byObject.values()].flat();
+  if (allIds.length === 0) return;
   for (const [objectName, ids] of byObject) {
     const meta = metadata.object(objectName);
-    if (!meta) continue;
-    const idList = sql`${sql.val(ids)}::uuid[]`;
+    if (!meta || ids.length === 0) continue;
+    const idList = sql`${sql.val([...ids])}::uuid[]`;
     await sql`DELETE FROM record_share WHERE tenant_id = ${tenantId}::uuid AND object = ${objectName} AND record_id = ANY (${idList})`.execute(
       tx.kysely,
     );
-    await sql`DELETE FROM ${sql.table(ident(meta.table))} WHERE tenant_id = ${tenantId}::uuid AND id = ANY (${idList}) AND deleted_at IS NOT NULL`.execute(
-      tx.kysely,
-    );
+    await sql`DELETE FROM ${sql.table(ident(meta.table))} WHERE tenant_id = ${tenantId}::uuid AND id = ANY (${idList})
+      ${options.deletedOnly ? sql`AND deleted_at IS NOT NULL` : sql``}`.execute(tx.kysely);
     // Lookups elsewhere that pointed at these records now point nowhere.
     for (const other of metadata.metadata.objects)
       for (const f of other.fields)
@@ -262,8 +278,6 @@ export async function purgeRecycleBin(
       columns.map((c) => sql`${sql.ref(c)} = ANY (${ids})`),
       sql` OR `,
     )})`.execute(tx.kysely);
-  await tx.prisma.recycleBinItem.deleteMany({ where: { id: { in: items.map((i) => i.id) } } });
-  return items.length;
 }
 
 /** Records a user (or anyone who owns records) still owns — queues cannot be deleted while > 0. */

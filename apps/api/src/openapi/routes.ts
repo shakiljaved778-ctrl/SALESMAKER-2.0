@@ -5,6 +5,7 @@ import {
   setupRoutes,
   currencyRoutes,
   recordRoutes,
+  leadRoutes,
   meRoutes,
   userRoutes,
   authRoutes,
@@ -36,6 +37,7 @@ export const apiRoutes: readonly RouteContract[] = [
   ...Object.values(setupRoutes),
   ...Object.values(currencyRoutes),
   ...Object.values(recordRoutes),
+  ...Object.values(leadRoutes),
   ...Object.values(meRoutes),
 ];
 

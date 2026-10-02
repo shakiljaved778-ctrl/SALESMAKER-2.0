@@ -26,6 +26,7 @@ import { CurrencyService } from './currency/currency.service.js';
 import { HealthController } from './health/health.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
 import { IdempotencyService } from './records/idempotency.service.js';
+import { LeadMappingController, LeadsController } from './records/leads.controller.js';
 import { RecordContextService } from './records/record-context.service.js';
 import { RecordsController } from './records/records.controller.js';
 import { RecordsService } from './records/records.service.js';
@@ -104,6 +105,8 @@ export class AppModule {
         SharingSetupController,
         CurrencyController,
         RecordsController,
+        LeadMappingController,
+        LeadsController,
         RecordShareController,
       ],
       providers: [

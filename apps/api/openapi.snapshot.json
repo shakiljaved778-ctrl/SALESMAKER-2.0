@@ -3150,6 +3150,384 @@
         ]
       }
     },
+    "/v1/leads/{id}/convert": {
+      "post": {
+        "operationId": "convertLead",
+        "summary": "Convert a lead into an account, a contact and optionally an opportunity",
+        "tags": [
+          "records"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "What the lead became",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadConversion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or field values"
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for this record or field"
+          },
+          "404": {
+            "description": "No such object or record visible to the caller"
+          },
+          "409": {
+            "description": "Already converted"
+          },
+          "422": {
+            "description": "A created record failed its checks"
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConvertLead"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/leads/{id}/convert/undo": {
+      "post": {
+        "operationId": "undoLeadConversion",
+        "summary": "Undo a conversion within 24 hours, if nothing it wrote has changed since",
+        "tags": [
+          "records"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Undone"
+          },
+          "400": {
+            "description": "Invalid request or field values"
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for this record or field"
+          },
+          "404": {
+            "description": "No such object or record visible to the caller"
+          },
+          "409": {
+            "description": "Too late, or something changed since"
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/leads/field-mapping": {
+      "get": {
+        "operationId": "getLeadFieldMapping",
+        "summary": "How lead fields map to the records conversion creates (defaults and admin mappings)",
+        "tags": [
+          "records"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Effective mappings and the admin’s own",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "effective": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeadFieldMapping"
+                      }
+                    },
+                    "custom": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeadFieldMapping"
+                      }
+                    }
+                  },
+                  "required": [
+                    "effective",
+                    "custom"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for this record or field"
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "putLeadFieldMapping",
+        "summary": "Replace the admin’s lead conversion mappings (types are checked)",
+        "tags": [
+          "records"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Effective mappings and the admin’s own",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "effective": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeadFieldMapping"
+                      }
+                    },
+                    "custom": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/LeadFieldMapping"
+                      }
+                    }
+                  },
+                  "required": [
+                    "effective",
+                    "custom"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or field values"
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed for this record or field"
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mappings": {
+                    "maxItems": 500,
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/LeadFieldMapping"
+                    }
+                  }
+                },
+                "required": [
+                  "mappings"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/login-history": {
       "get": {
         "operationId": "listLoginHistory",
@@ -11103,6 +11481,104 @@
         ],
         "additionalProperties": false
       },
+      "ConvertLead": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,62}$"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
+          "contact": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "$ref": "#/components/schemas/Uuid"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,62}$"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
+          "opportunity": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "fields": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,62}$"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ownerId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "convertedStatus": {
+            "type": "string",
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "account",
+          "contact"
+        ],
+        "additionalProperties": false
+      },
       "CurrencyCode": {
         "type": "string",
         "pattern": "^[A-Z]{3}$",
@@ -11707,6 +12183,64 @@
           "error",
           "createdAt",
           "finishedAt"
+        ],
+        "additionalProperties": false
+      },
+      "LeadConversion": {
+        "type": "object",
+        "properties": {
+          "conversionId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "accountId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "contactId": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "opportunityId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "conversionId",
+          "accountId",
+          "contactId",
+          "opportunityId"
+        ],
+        "additionalProperties": false
+      },
+      "LeadFieldMapping": {
+        "type": "object",
+        "properties": {
+          "leadField": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,62}$"
+          },
+          "targetObject": {
+            "type": "string",
+            "enum": [
+              "account",
+              "contact",
+              "opportunity"
+            ]
+          },
+          "targetField": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{0,62}$"
+          }
+        },
+        "required": [
+          "leadField",
+          "targetObject",
+          "targetField"
         ],
         "additionalProperties": false
       },

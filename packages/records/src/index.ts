@@ -62,3 +62,17 @@ export {
   recalculateCorporateAmounts,
   type CurrencyRecalcPayload,
 } from './currency-recalc.js';
+export {
+  checkMappings,
+  compatible,
+  convertLead,
+  DEFAULT_MAPPINGS,
+  effectiveMappings,
+  saveMappings,
+  undoConversion,
+  UNDO_WINDOW_MS,
+  type ConversionTarget,
+  type ConvertInput,
+  type ConvertResult,
+  type FieldMapping,
+} from './convert.js';

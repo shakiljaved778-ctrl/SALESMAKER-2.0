@@ -240,3 +240,31 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
     published public API.
   - **Corporate amounts** (`*_corporate`) are not exposed yet; the record page needs them in T20.
   - **SMQ** gained an opt-in `recordMeta` that returns `version` and the record's `currencyCode`.
+- **Lead conversion (T13).** `convertLead` / `undoConversion` in `@sm/records`; API at
+  `POST /v1/leads/{id}/convert[/undo]` and Setup `GET|PUT /v1/leads/field-mapping`.
+  - **One transaction.** Every record goes through RecordService as the caller, so permissions, FLS, validation
+    rules, history and audit apply. Any failure rolls the whole conversion back.
+  - **Account and contact.** Each is either an existing record the caller can see, or a new one built from the
+    mapping and overridden by fields in the request. An existing contact must belong to that account or to none;
+    one with no account joins it.
+  - **Opportunity.** Optional. Its name defaults to the lead's company (the lead has no "product interest" field
+    yet). Pipeline and stage come from the opportunity's own record type through RecordService; there is no
+    lead-record-type mapping yet. The new contact becomes its primary contact role.
+  - **Field mapping.** Defaults (company → account name, address → billing/mailing, person fields → contact,
+    source/campaign → opportunity) can be overridden per target field by admin mappings (`lead_field_mapping`,
+    migration 0019). Mappings are type-checked when saved:
+    - the same type;
+    - text-like into a long-enough text field;
+    - a lookup to the same object.
+      Saving needs `customize_application` and is audited.
+  - **What gets copied.** Only fields the caller can read on the lead and edit on the target. A picklist value
+    the target does not offer is skipped.
+  - **The lead after conversion.** It takes a CONVERTED status and the `converted_*` system fields, set through a
+    new conversion-only `system` write option. It is read-only from then on.
+  - **Campaign memberships** are copied to the contact; the lead's memberships stay as history.
+  - **Undo.** Possible within 24 h, for whoever converted or `modify_all_data`, if the lead and every record the
+    conversion wrote still have the versions it left (`lead_conversion.record_versions`). It:
+    - removes the created records for good (`hardDelete`, now shared with the purge);
+    - removes the copied memberships;
+    - takes back the account a contact joined;
+    - restores the lead's status.

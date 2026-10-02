@@ -411,3 +411,100 @@ export const recordRoutes = {
     },
   }),
 };
+
+// ── Lead conversion (§7.3) ───────────────────────────────────────────────────────────────────
+const ExistingOrNew = z.union([
+  z.object({ id: Uuid }).strict(),
+  z.object({ fields: z.record(FieldName, z.unknown()).optional() }).strict(),
+]);
+export const ConvertLeadRequest = z
+  .object({
+    account: ExistingOrNew,
+    contact: ExistingOrNew,
+    opportunity: z
+      .object({ fields: z.record(FieldName, z.unknown()).optional() })
+      .strict()
+      .nullable()
+      .optional(),
+    ownerId: Uuid.optional(),
+    convertedStatus: z.string().max(80).optional(),
+  })
+  .strict()
+  .meta({ id: 'ConvertLead' });
+export const ConvertLeadResult = z
+  .object({
+    conversionId: Uuid,
+    accountId: Uuid,
+    contactId: Uuid,
+    opportunityId: Uuid.nullable(),
+  })
+  .meta({ id: 'LeadConversion' });
+export const LeadParam = z.object({ id: Uuid });
+
+export const FieldMappingDto = z
+  .object({
+    leadField: FieldName,
+    targetObject: z.enum(['account', 'contact', 'opportunity']),
+    targetField: FieldName,
+  })
+  .strict()
+  .meta({ id: 'LeadFieldMapping' });
+export const PutFieldMappingRequest = z
+  .object({ mappings: z.array(FieldMappingDto).max(500) })
+  .strict();
+
+export const leadRoutes = {
+  convertLead: route({
+    method: 'post',
+    path: '/v1/leads/{id}/convert',
+    operationId: 'convertLead',
+    summary: 'Convert a lead into an account, a contact and optionally an opportunity',
+    request: { params: LeadParam, body: ConvertLeadRequest },
+    responses: {
+      200: { description: 'What the lead became', body: ConvertLeadResult },
+      409: { description: 'Already converted' },
+      422: { description: 'A created record failed its checks' },
+      ...errorsOf,
+    },
+  }),
+  undoLeadConversion: route({
+    method: 'post',
+    path: '/v1/leads/{id}/convert/undo',
+    operationId: 'undoLeadConversion',
+    summary: 'Undo a conversion within 24 hours, if nothing it wrote has changed since',
+    request: { params: LeadParam },
+    responses: {
+      204: { description: 'Undone' },
+      409: { description: 'Too late, or something changed since' },
+      ...errorsOf,
+    },
+  }),
+  getLeadFieldMapping: route({
+    method: 'get',
+    path: '/v1/leads/field-mapping',
+    operationId: 'getLeadFieldMapping',
+    summary: 'How lead fields map to the records conversion creates (defaults and admin mappings)',
+    responses: {
+      200: {
+        description: 'Effective mappings and the admin’s own',
+        body: z.object({ effective: z.array(FieldMappingDto), custom: z.array(FieldMappingDto) }),
+      },
+      403: errorsOf[403],
+    },
+  }),
+  putLeadFieldMapping: route({
+    method: 'put',
+    path: '/v1/leads/field-mapping',
+    operationId: 'putLeadFieldMapping',
+    summary: 'Replace the admin’s lead conversion mappings (types are checked)',
+    request: { body: PutFieldMappingRequest },
+    responses: {
+      200: {
+        description: 'Effective mappings and the admin’s own',
+        body: z.object({ effective: z.array(FieldMappingDto), custom: z.array(FieldMappingDto) }),
+      },
+      400: errorsOf[400],
+      403: errorsOf[403],
+    },
+  }),
+};
