@@ -15,7 +15,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T11** `feat(sharing): sharing on CRM tables`
 - [x] **T12** `feat(api): records API`
 - [x] **T13** `feat(leads): lead conversion`
-- [ ] **T14** `feat(search): search v1`
+- [x] **T14** `feat(search): search v1`
 - [ ] **T15** `feat(metadata): Setup metadata API`
 - [x] **T16** `feat(currency): currencies and rates`
 - [ ] **T17** `feat(ui): data grid`

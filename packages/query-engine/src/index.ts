@@ -52,3 +52,14 @@ export {
   type QueryRecord,
   type Smq,
 } from './smq.js';
+export {
+  recentItems,
+  recordViewed,
+  search,
+  SEARCH_FIELDS,
+  searchTokens,
+  TOTAL_CAP,
+  type SearchGroup,
+  type SearchHit,
+  type SearchInput,
+} from './search.js';

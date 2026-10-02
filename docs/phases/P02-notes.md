@@ -268,3 +268,18 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
     - removes the copied memberships;
     - takes back the account a contact joined;
     - restores the lead's status.
+- **Search v1 (T14).** Migration 0020 adds the search indexes:
+  - a weighted `search_vector` (A: names, email words, phone digits; B: company or title/department; C: other
+    text), maintained by trigger on every write;
+  - `pg_trgm` word-similarity indexes on name expressions, for typos;
+  - reversed-digit phone indexes (`crm_phone_rev`), for suffix matching from 4 digits.
+  - **Engine.** `search()` in `@sm/query-engine` matches prefix full text, trigram names and phone suffixes.
+    Sharing is applied in SQL, and display values go through SMQ (sharing and FLS again).
+  - **FLS.** A field the caller cannot read is never matched on: the readable part of the vector is rechecked,
+    trigram matching is off if a name field is hidden, and hidden phones are not suffix-matched. Hidden fields are
+    never reported in `matched`.
+  - **`SEARCH_FIELDS`** mirrors the trigger, and a test proves they build identical vectors.
+  - **API.** `GET /v1/search?q=&objects=&limit=&ownerId=&updatedSince=&totals=` returns results grouped by object
+    (totals capped at 100 for facets). Recent items: `POST /v1/records/{object}/{id}/viewed` (keeps the latest 100
+    per user) and `GET /v1/recent-items` (only records still visible).
+  - **Deferred.** The p95 < 200 ms target at scale is measured in T28. The OpenSearch provider is P12.

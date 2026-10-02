@@ -7,6 +7,8 @@ import type {
   PutTeamMemberRequest,
   QueryRequest,
   RecycleBinItemDto,
+  SearchQuery,
+  SearchResultDto,
   TeamMemberDto,
   WriteFieldsRequest,
 } from '@sm/contracts';
@@ -14,7 +16,14 @@ import { Money } from '@sm/contracts';
 import type { TenantTransaction } from '@sm/db';
 import type { ObjectMeta } from '@sm/metadata';
 import { fieldAccess, objectAccess } from '@sm/permissions';
-import { runQuery, type FilterNode, type QueryRecord } from '@sm/query-engine';
+import {
+  recentItems,
+  recordViewed,
+  runQuery,
+  search,
+  type FilterNode,
+  type QueryRecord,
+} from '@sm/query-engine';
 import {
   createRecord,
   deleteRecord,
@@ -432,6 +441,58 @@ export class RecordsService {
     userId: string,
   ) {
     await translating(() => removeTeamMember(tx, ctx, object, id, userId));
+  }
+
+  // ── Search and recent items ─────────────────────────────────────────────────────────────────
+  async search(
+    tx: TenantTransaction,
+    ctx: RecordContext,
+    query: z.infer<typeof SearchQuery>,
+  ): Promise<z.infer<typeof SearchResultDto>> {
+    const objects = query.objects
+      ?.split(',')
+      .map((o) => o.trim())
+      .filter(Boolean);
+    const groups = await search(
+      tx.kysely,
+      { ...ctx, maxLimit: 200 },
+      {
+        q: query.q,
+        ...(objects ? { objects } : {}),
+        ...(query.limit ? { limit: query.limit } : {}),
+        ...(query.ownerId ? { ownerId: query.ownerId } : {}),
+        ...(query.updatedSince ? { updatedSince: new Date(query.updatedSince) } : {}),
+        withTotals: query.totals === 'true',
+      },
+    );
+    return {
+      groups: groups.map((g) => {
+        const object = ctx.metadata.object(g.object);
+        return {
+          object: g.object,
+          hits: g.hits.map((h) => ({
+            ...h,
+            record: object ? this.present(ctx, object, h.record) : (h.record as Out),
+          })),
+          ...(g.total !== undefined ? { total: g.total } : {}),
+        };
+      }),
+    };
+  }
+
+  async recent(tx: TenantTransaction, ctx: RecordContext, limit?: number) {
+    const items = await recentItems(tx.kysely, { ...ctx, maxLimit: 200 }, limit);
+    return {
+      items: items.map((i) => {
+        const object = ctx.metadata.object(i.object);
+        return { ...i, record: object ? this.present(ctx, object, i.record) : (i.record as Out) };
+      }),
+    };
+  }
+
+  async viewed(tx: TenantTransaction, ctx: RecordContext, objectName: string, id: string) {
+    if (!(await recordViewed(tx.kysely, { ...ctx, maxLimit: 200 }, objectName, id)))
+      throw errors.notFound('Record');
   }
 
   // ── Recycle bin ─────────────────────────────────────────────────────────────────────────────

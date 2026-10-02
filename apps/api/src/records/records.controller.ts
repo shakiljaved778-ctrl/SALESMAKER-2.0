@@ -25,7 +25,9 @@ import {
   OptionalIdempotencyHeaders,
   PutTeamMemberRequest,
   QueryRequest,
+  RecentItemsQuery,
   RecordParam,
+  SearchQuery,
   TeamMemberParam,
   TeamObjectParam,
   WriteFieldsRequest,
@@ -252,6 +254,34 @@ export class RecordsController {
     await this.run(t, req, (tx, ctx) =>
       this.records.removeTeamMember(tx, ctx, p.object, p.id, p.userId),
     );
+  }
+
+  @Get('search')
+  search(
+    @CurrentTenant() t: TenantContext,
+    @Req() req: FastifyRequest,
+    @Query(new ZodPipe(SearchQuery)) q: z.infer<typeof SearchQuery>,
+  ) {
+    return this.run(t, req, (tx, ctx) => this.records.search(tx, ctx, q));
+  }
+
+  @Get('recent-items')
+  listRecentItems(
+    @CurrentTenant() t: TenantContext,
+    @Req() req: FastifyRequest,
+    @Query(new ZodPipe(RecentItemsQuery)) q: z.infer<typeof RecentItemsQuery>,
+  ) {
+    return this.run(t, req, (tx, ctx) => this.records.recent(tx, ctx, q.limit));
+  }
+
+  @Post('records/:object/:id/viewed')
+  @HttpCode(204)
+  async recordViewed(
+    @CurrentTenant() t: TenantContext,
+    @Req() req: FastifyRequest,
+    @Param(new ZodPipe(RecordParam)) p: Rec,
+  ) {
+    await this.run(t, req, (tx, ctx) => this.records.viewed(tx, ctx, p.object, p.id));
   }
 
   @Get('recycle-bin')

@@ -69,8 +69,9 @@ describe('core CRM tables (P02 T05)', () => {
         data: { company: 'Aurelia Bank', email: 'maya@aurelia.example' },
       }),
     );
-    // Only fields every reader sees are in the document: the company, not the email.
-    expect(await doc()).toBe("'aurelia':3B 'bank':4B 'chen':2A 'maya':1A");
+    // The document follows every write; email words are in it (weight A), and search rechecks
+    // them against the reader's FLS before matching (T14).
+    expect(await doc()).toBe("'aurelia':4A,6B 'bank':7B 'chen':2A 'example':5A 'maya':1A,3A");
   });
 
   it('keeps record numbers and external ids unique per tenant', async () => {

@@ -508,3 +508,76 @@ export const leadRoutes = {
     },
   }),
 };
+
+// ── Search and recent items (§7.19) ──────────────────────────────────────────────────────────
+export const SearchQuery = z
+  .object({
+    q: z.string().trim().min(1).max(200),
+    /** Comma-separated object API names. */
+    objects: z.string().max(400).optional(),
+    limit: z.coerce.number().int().min(1).max(50).optional(),
+    ownerId: Uuid.optional(),
+    updatedSince: z.iso.datetime().optional(),
+    totals: z.enum(['true', 'false']).optional(),
+  })
+  .strict();
+export const SearchHitDto = z
+  .object({
+    id: Uuid,
+    name: z.string().nullable(),
+    /** Readable fields the query matched in, for highlighting. */
+    matched: z.array(z.string()),
+    record: RecordDto,
+  })
+  .meta({ id: 'SearchHit' });
+export const SearchResultDto = z
+  .object({
+    groups: z.array(
+      z.object({
+        object: z.string(),
+        hits: z.array(SearchHitDto),
+        total: z.number().int().optional(),
+      }),
+    ),
+  })
+  .meta({ id: 'SearchResult' });
+export const RecentItemDto = SearchHitDto.extend({ object: z.string(), viewedAt: z.string() }).meta(
+  {
+    id: 'RecentItem',
+  },
+);
+export const RecentItemsQuery = z
+  .object({ limit: z.coerce.number().int().min(1).max(100).optional() })
+  .strict();
+
+export const searchRoutes = {
+  search: route({
+    method: 'get',
+    path: '/v1/search',
+    operationId: 'search',
+    summary: 'Search records the caller can see, grouped by object (typo-tolerant)',
+    request: { query: SearchQuery },
+    responses: {
+      200: { description: 'Matches by object', body: SearchResultDto },
+      400: errorsOf[400],
+    },
+  }),
+  recentItems: route({
+    method: 'get',
+    path: '/v1/recent-items',
+    operationId: 'listRecentItems',
+    summary: 'Records the caller opened recently and can still see, latest first',
+    request: { query: RecentItemsQuery },
+    responses: {
+      200: { description: 'Recent items', body: z.object({ items: z.array(RecentItemDto) }) },
+    },
+  }),
+  recordViewed: route({
+    method: 'post',
+    path: '/v1/records/{object}/{id}/viewed',
+    operationId: 'recordViewed',
+    summary: 'Note that the caller opened a record (for recent items)',
+    request: { params: RecordParam },
+    responses: { 204: { description: 'Noted' }, 404: errorsOf[404] },
+  }),
+};
