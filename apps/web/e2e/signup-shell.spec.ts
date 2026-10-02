@@ -59,7 +59,9 @@ test('sign up, verify, and reach the shell in every theme and density', async ({
   await page.keyboard.type('leads');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(workspaceUrl(slug, '/leads'));
-  await expect(page.getByRole('heading', { name: 'Leads is on its way' })).toBeVisible();
+  // The object home (T1): a new workspace has no leads yet, and says what to do next.
+  await expect(page.getByRole('heading', { level: 1, name: 'Leads' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No leads yet' })).toBeVisible();
   await page.keyboard.press('?');
   await expect(page.getByRole('dialog', { name: 'Keyboard shortcuts' })).toBeVisible();
   await expectAccessible(page);

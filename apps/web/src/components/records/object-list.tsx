@@ -763,7 +763,7 @@ export function ObjectList({ object, section }: { object: string; section: strin
           />
         ) : null}
       </div>
-      <p className="text-caption text-fg-tertiary">{t('keyboardHint')}</p>
+      <p className="text-caption text-fg-secondary">{t('keyboardHint')}</p>
 
       {dialog === 'saveAs' ? (
         <SaveViewDialog
