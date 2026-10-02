@@ -283,3 +283,31 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
     (totals capped at 100 for facets). Recent items: `POST /v1/records/{object}/{id}/viewed` (keeps the latest 100
     per user) and `GET /v1/recent-items` (only records still visible).
   - **Deferred.** The p95 < 200 ms target at scale is measured in T28. The OpenSearch provider is P12.
+- **Setup metadata API, fields (T15a).** `GET|POST /v1/setup/objects/{object}/fields`, `PATCH|DELETE …/{field}` and
+  `PUT …/{field}/picklist-values`. Reading needs `view_setup`; changes need `customize_application`. Every change
+  is in the setup audit, and the metadata version bump makes caches pick it up.
+  - **Custom fields.** Stored as `<name>__c` in `custom` jsonb. Types: text, textarea, long text, email, phone, URL,
+    number, currency, percent, date, datetime, checkbox, picklist, multi-picklist, lookup. Formula, roll-up and
+    auto-number fields come later.
+  - **Checks.** Per-type length, precision and scale rules (currency is always scale 2); picklists need values;
+    lookups need a target; default values are validated against the saved field. Up to 500 custom fields per
+    object. The 60 tracked-field limit is enforced by the database and reported as 409.
+  - **API names never change.** Allowed type changes are only safe widenings (text → textarea → long text,
+    longer text, more digits); scale is fixed.
+  - **Standard fields** take only a label, description, help text and history tracking.
+  - **Access.** New fields are granted to the System Administrator profile, plus any permission sets named in
+    the request (FLS); the change bumps `permVersion`.
+  - **Delete** is a soft delete of custom fields only. It is refused while a validation rule or path uses the
+    field. It removes the field's FLS rows, index request and layout entries. Values stay invisible in records
+    and the name is not reused.
+  - **Picklists.** Values are written in order: known values are updated, new ones added, missing ones deactivated
+    (never removed, because records keep them). One default at most; categories only for lead status; stages
+    come from pipelines.
+  - **Not offered for custom fields yet:** unique and external-id. Both need an index, so they wait on the
+    index-build decision.
+  - **Search** covers the fixed T14 field set, so the `searchable` flag is not settable yet.
+  - **Indexed custom fields** (Q11) are recorded as PENDING `custom_field_index` rows, up to 10 per object. The
+    builder is blocked on OPEN_QUESTIONS Q30: CONCURRENTLY cannot run inside a SECURITY DEFINER function. That is
+    for the owner to decide.
+  - **Cache safety.** Setup writes read metadata uncached inside the transaction (`freshMetadata`). A version
+    that might roll back is never cached.

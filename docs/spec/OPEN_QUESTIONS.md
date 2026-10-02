@@ -59,3 +59,17 @@ approval (§9).
     asks for ≥ 3:1 on UI component boundaries. **Proposal:** add `--border-input` at ≥ 3:1 (light `#8C95A1`, dark
     about `#5F6875`) for form controls only, keeping `--border-default` for cards and dividers. The alternative is to
     rely on visible labels and field fills to identify inputs, and document that as a deliberate reading of 1.4.11.
+
+## Raised by P02 T15 (custom-field indexes)
+
+30. **How custom-field indexes are built (Q11 mechanism).** Q11 says indexes are built "`CONCURRENTLY` by a worker
+    job through a `SECURITY DEFINER` function". Postgres cannot do both: `CREATE INDEX CONCURRENTLY` refuses to run
+    inside a transaction block, and every function call runs inside one. Without `CONCURRENTLY`, the build locks the
+    shared table against writes for every tenant while it runs.
+    **Proposal:** the worker builds each index with `CREATE INDEX CONCURRENTLY` over a dedicated connection as
+    `sm_migrator` (the DDL-only role). The statement is assembled only from validated identifiers: table, field key,
+    cast and tenant id. Index rows move from PENDING to READY or FAILED.
+    **Alternatives:**
+    - a SECURITY DEFINER function without `CONCURRENTLY`, accepting the write lock;
+    - deferring custom-field indexes to P11.
+      Until this is answered, "indexed" requests are recorded (PENDING, capped at 10 per object) and nothing is built.

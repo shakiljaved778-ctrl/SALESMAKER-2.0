@@ -24,6 +24,8 @@ import type { ApiConfig } from './config.js';
 import { CurrencyController } from './currency/currency.controller.js';
 import { CurrencyService } from './currency/currency.service.js';
 import { HealthController } from './health/health.controller.js';
+import { FieldSetupService } from './metadata/field-setup.service.js';
+import { MetadataSetupController } from './metadata/metadata-setup.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
 import { IdempotencyService } from './records/idempotency.service.js';
 import { LeadMappingController, LeadsController } from './records/leads.controller.js';
@@ -104,6 +106,7 @@ export class AppModule {
         PeopleSetupController,
         SharingSetupController,
         CurrencyController,
+        MetadataSetupController,
         RecordsController,
         LeadMappingController,
         LeadsController,
@@ -143,6 +146,7 @@ export class AppModule {
         AccessService,
         MetadataService,
         CurrencyService,
+        FieldSetupService,
         IdempotencyService,
         RecordContextService,
         RecordsService,

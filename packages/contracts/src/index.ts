@@ -13,4 +13,5 @@ export * from './routes/users.js';
 export * from './routes/setup.js';
 export * from './routes/currency.js';
 export * from './routes/records.js';
+export * from './routes/metadata-setup.js';
 export * from './routes/me.js';
