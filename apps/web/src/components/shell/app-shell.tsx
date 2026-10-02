@@ -21,6 +21,7 @@ import { ALL_NAV } from './nav';
 import { ShortcutSheet } from './shortcut-sheet';
 import { Sidebar } from './sidebar';
 import { TopBar } from './top-bar';
+import { WorkspaceTabsProvider, WorkspaceTabStrip } from './workspace-tabs';
 
 interface ShellContextValue {
   user: Me | null;
@@ -184,30 +185,30 @@ function ShellFrame({
 
   return (
     <ShellContext.Provider value={value}>
-      <a
-        href="#content"
-        className="sr-only z-[var(--z-tooltip)] rounded-sm bg-surface-raised px-3 py-2 text-body text-fg focus:not-sr-only focus:fixed focus:start-2 focus:top-2"
-      >
-        {t('skipToContent')}
-      </a>
-      <div className="flex h-dvh overflow-hidden bg-canvas">
-        <Sidebar pathname={pathname} />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar pathname={pathname} />
-          <div
-            role="region"
-            aria-label={t('tabs.label')}
-            className="flex h-9 shrink-0 items-center border-b border-line-subtle bg-surface px-4 text-caption text-fg-secondary"
-          >
-            {t('tabs.empty')}
+      <WorkspaceTabsProvider>
+        <a
+          href="#content"
+          className="sr-only z-[var(--z-tooltip)] rounded-sm bg-surface-raised px-3 py-2 text-body text-fg focus:not-sr-only focus:fixed focus:start-2 focus:top-2"
+        >
+          {t('skipToContent')}
+        </a>
+        <div className="flex h-dvh overflow-hidden bg-canvas">
+          <Sidebar pathname={pathname} />
+          <div className="flex min-w-0 flex-1 flex-col">
+            <TopBar pathname={pathname} />
+            <WorkspaceTabStrip />
+            <main
+              id="content"
+              tabIndex={-1}
+              className="min-h-0 flex-1 overflow-y-auto outline-none"
+            >
+              {children}
+            </main>
           </div>
-          <main id="content" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto outline-none">
-            {children}
-          </main>
         </div>
-      </div>
-      <ShellCommandMenu open={paletteOpen} onOpenChange={setPaletteOpen} />
-      <ShortcutSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+        <ShellCommandMenu open={paletteOpen} onOpenChange={setPaletteOpen} />
+        <ShortcutSheet open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      </WorkspaceTabsProvider>
     </ShellContext.Provider>
   );
 }

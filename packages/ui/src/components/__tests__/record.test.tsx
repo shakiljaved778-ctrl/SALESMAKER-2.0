@@ -345,6 +345,29 @@ describe('Path', () => {
     expect(screen.queryByText('Send the proposal within 3 days.')).toBeNull();
   });
 
+  it('follows the current stage when it changes', async () => {
+    const { rerender } = render(
+      <Path
+        stages={stages}
+        current="qualification"
+        labels={pathLabels}
+        onMarkComplete={vi.fn()}
+        onMarkCurrent={vi.fn()}
+      />,
+    );
+    await userEvent.click(screen.getByRole('button', { name: /^Proposal/ }));
+    rerender(
+      <Path
+        stages={stages}
+        current="proposal"
+        labels={pathLabels}
+        onMarkComplete={vi.fn()}
+        onMarkCurrent={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Mark stage as complete' })).toBeTruthy();
+  });
+
   it('offers no completion on the last stage', () => {
     render(<Path stages={stages} current="closed" labels={pathLabels} onMarkComplete={vi.fn()} />);
     expect(screen.queryByRole('button', { name: 'Mark stage as complete' })).toBeNull();

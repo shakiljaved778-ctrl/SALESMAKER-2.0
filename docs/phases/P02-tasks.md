@@ -21,7 +21,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T17** `feat(ui): data grid`
 - [x] **T18** `feat(ui): record components`
 - [x] **T19** `feat(web): object lists (T1)`
-- [ ] **T20** `feat(web): record pages (T2)`
+- [x] **T20** `feat(web): record pages (T2)`
 - [ ] **T21** `feat(web): create and edit`
 - [ ] **T22** `feat(web): convert and account hierarchy`
 - [ ] **T23** `feat(web): global search`

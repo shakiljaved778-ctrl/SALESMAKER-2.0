@@ -429,3 +429,15 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   lookup. Admin-configured related lists win when present.
 - `GET …/history`: tracked changes newest first, keyset-paged, with the changer's name. FLS masks history: changes
   to fields the caller cannot read are left out entirely. Both routes are 404 for records the caller cannot see.
+
+### T20b — record pages (T2)
+
+- `/{section}/{id}` renders `RecordPage`: Highlights Panel (object chip, name, compact fields, owner; Edit, and
+  Delete with confirm → recycle bin with an Undo toast that restores), Path when the record type has an active
+  path (mark complete / mark another stage current, saved with If-Match), and tabs Overview (page-layout sections
+  with per-field inline edit, FLS- and layout-read-only aware), Related (preview of 5, count, "New" prefilled with
+  the lookup — the create page is T21), History (FLS-masked, load more).
+- Activity and AI tabs and the right rail arrive with their phases (P03/P07); they are not stubbed.
+- Opening a record posts `…/viewed` (recent items) and registers a **workspace tab**: the shell's tab bar now lists
+  open records for the browser session (≤ 10, sessionStorage, each closable).
+- `@sm/ui` Path now follows `current` when it changes.

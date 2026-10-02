@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronDown } from 'lucide-react';
-import { useId, useState, type ReactNode } from 'react';
+import { useEffect, useId, useState, type ReactNode } from 'react';
 
 import { cn } from '../lib/cn.js';
 import { Button } from './button.js';
@@ -62,6 +62,10 @@ export function Path({
   className,
 }: PathProps) {
   const [selected, setSelected] = useState(current);
+  // A saved stage change moves the selection with it.
+  useEffect(() => {
+    setSelected(current);
+  }, [current]);
   const [open, setOpen] = useState(defaultGuidanceOpen);
   const drawerId = useId();
   const currentIndex = stages.findIndex((s) => s.value === current);
