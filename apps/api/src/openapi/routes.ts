@@ -8,6 +8,7 @@ import {
   leadRoutes,
   searchRoutes,
   metadataSetupRoutes,
+  layoutSetupRoutes,
   meRoutes,
   userRoutes,
   authRoutes,
@@ -42,6 +43,7 @@ export const apiRoutes: readonly RouteContract[] = [
   ...Object.values(leadRoutes),
   ...Object.values(searchRoutes),
   ...Object.values(metadataSetupRoutes),
+  ...Object.values(layoutSetupRoutes),
   ...Object.values(meRoutes),
 ];
 

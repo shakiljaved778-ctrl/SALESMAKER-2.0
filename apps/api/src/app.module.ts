@@ -25,6 +25,7 @@ import { CurrencyController } from './currency/currency.controller.js';
 import { CurrencyService } from './currency/currency.service.js';
 import { HealthController } from './health/health.controller.js';
 import { FieldSetupService } from './metadata/field-setup.service.js';
+import { LayoutSetupService } from './metadata/layout-setup.service.js';
 import { MetadataSetupController } from './metadata/metadata-setup.controller.js';
 import { OpenApiController } from './openapi/openapi.controller.js';
 import { IdempotencyService } from './records/idempotency.service.js';
@@ -147,6 +148,7 @@ export class AppModule {
         MetadataService,
         CurrencyService,
         FieldSetupService,
+        LayoutSetupService,
         IdempotencyService,
         RecordContextService,
         RecordsService,

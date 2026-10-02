@@ -228,3 +228,358 @@ export const metadataSetupRoutes = {
     },
   }),
 };
+
+// ── Record types, layouts, compact layouts, paths, validation rules (T15b) ──────────────────
+const ApiName = z.string().regex(/^[a-z][a-z0-9_]{0,38}$/, 'Lower-case API name');
+const Version = z.number().int().positive();
+export const SetupItemParam = z.object({ object: ObjectApiName, id: Uuid });
+
+export const RecordTypeDto = z
+  .object({
+    id: Uuid,
+    apiName: z.string(),
+    name: z.string(),
+    description: z.string().nullable(),
+    active: z.boolean(),
+    isDefault: z.boolean(),
+    pipelineId: Uuid.nullable(),
+    /** Picklist field → the values this record type offers (absent: all of them). */
+    picklistValues: z.record(z.string(), z.array(z.string())),
+    version: z.number().int(),
+  })
+  .meta({ id: 'RecordTypeSetting' });
+const RecordTypeFields = {
+  name: Label,
+  description: Text.nullable().optional(),
+  isDefault: z.boolean().optional(),
+  pipelineId: Uuid.nullable().optional(),
+  picklistValues: z.record(FieldName, z.array(z.string()).min(1)).optional(),
+};
+export const CreateRecordTypeRequest = z
+  .object({ apiName: ApiName, ...RecordTypeFields })
+  .strict()
+  .meta({ id: 'CreateRecordType' });
+export const UpdateRecordTypeRequest = z
+  .object({
+    version: Version,
+    ...RecordTypeFields,
+    name: Label.optional(),
+    active: z.boolean().optional(),
+  })
+  .strict()
+  .meta({ id: 'UpdateRecordType' });
+
+export const LayoutSectionInput = z
+  .object({
+    key: z.string().regex(/^[a-z][a-z0-9_]{0,40}$/),
+    label: Label.nullable().optional(),
+    labelKey: z.string().max(120).nullable().optional(),
+    columns: z.union([z.literal(1), z.literal(2)]),
+    fields: z
+      .array(
+        z
+          .object({
+            field: FieldName,
+            required: z.boolean().optional(),
+            readOnly: z.boolean().optional(),
+          })
+          .strict(),
+      )
+      .max(200),
+  })
+  .strict();
+export const RelatedListInput = z
+  .object({
+    object: ObjectApiName,
+    field: FieldName,
+    columns: z.array(FieldName).min(1).max(10),
+    sort: z
+      .object({ field: FieldName, direction: z.enum(['asc', 'desc']) })
+      .strict()
+      .optional(),
+  })
+  .strict();
+export const PageLayoutDto = z
+  .object({
+    id: Uuid,
+    name: z.string(),
+    isDefault: z.boolean(),
+    sections: z.array(LayoutSectionInput),
+    relatedLists: z.array(RelatedListInput),
+    version: z.number().int(),
+  })
+  .meta({ id: 'PageLayoutSetting' });
+const LayoutFields = {
+  name: Label,
+  isDefault: z.boolean().optional(),
+  sections: z.array(LayoutSectionInput).min(1).max(30),
+  relatedLists: z.array(RelatedListInput).max(20).optional(),
+};
+export const CreateLayoutRequest = z.object(LayoutFields).strict().meta({ id: 'CreatePageLayout' });
+export const UpdateLayoutRequest = z
+  .object({
+    version: Version,
+    name: Label.optional(),
+    isDefault: z.boolean().optional(),
+    sections: LayoutFields.sections.optional(),
+    relatedLists: LayoutFields.relatedLists,
+  })
+  .strict()
+  .meta({ id: 'UpdatePageLayout' });
+
+export const LayoutAssignmentDto = z
+  .object({ profileId: Uuid, recordTypeId: Uuid, pageLayoutId: Uuid })
+  .strict()
+  .meta({ id: 'LayoutAssignment' });
+export const PutLayoutAssignmentsRequest = z
+  .object({ assignments: z.array(LayoutAssignmentDto).max(2000) })
+  .strict();
+
+export const CompactLayoutDto = z
+  .object({
+    id: Uuid,
+    name: z.string(),
+    isDefault: z.boolean(),
+    fields: z.array(z.string()),
+    version: z.number().int(),
+  })
+  .meta({ id: 'CompactLayoutSetting' });
+export const CreateCompactLayoutRequest = z
+  .object({
+    name: Label,
+    isDefault: z.boolean().optional(),
+    fields: z.array(FieldName).min(1).max(7),
+  })
+  .strict();
+export const UpdateCompactLayoutRequest = z
+  .object({
+    version: Version,
+    name: Label.optional(),
+    isDefault: z.boolean().optional(),
+    fields: z.array(FieldName).min(1).max(7).optional(),
+  })
+  .strict();
+
+export const PathStepInput = z
+  .object({ keyFields: z.array(FieldName).max(5), guidance: z.string().max(2000) })
+  .strict();
+export const PathDto = z
+  .object({
+    id: Uuid,
+    recordTypeId: Uuid,
+    field: z.string(),
+    active: z.boolean(),
+    steps: z.record(z.string(), PathStepInput),
+    version: z.number().int(),
+  })
+  .meta({ id: 'PathSetting' });
+export const PutPathRequest = z
+  .object({ active: z.boolean(), steps: z.record(z.string(), PathStepInput) })
+  .strict();
+export const PathParam = z.object({ object: ObjectApiName, recordTypeId: Uuid, field: FieldName });
+
+export const ValidationRuleDto = z
+  .object({
+    id: Uuid,
+    apiName: z.string(),
+    description: z.string().nullable(),
+    formula: z.string(),
+    errorMessage: z.string(),
+    errorField: z.string().nullable(),
+    active: z.boolean(),
+    version: z.number().int(),
+  })
+  .meta({ id: 'ValidationRuleSetting' });
+const RuleFields = {
+  description: Text.nullable().optional(),
+  formula: z.string().min(1).max(5000),
+  errorMessage: z.string().trim().min(1).max(255),
+  errorField: FieldName.nullable().optional(),
+  active: z.boolean().optional(),
+};
+export const CreateValidationRuleRequest = z
+  .object({ apiName: ApiName, ...RuleFields })
+  .strict()
+  .meta({ id: 'CreateValidationRule' });
+export const UpdateValidationRuleRequest = z
+  .object({
+    version: Version,
+    ...RuleFields,
+    formula: RuleFields.formula.optional(),
+    errorMessage: RuleFields.errorMessage.optional(),
+  })
+  .strict()
+  .meta({ id: 'UpdateValidationRule' });
+
+const crudOf = (
+  segment: string,
+  noun: string,
+  ids: { list: string; create: string; update: string; remove?: string },
+  shapes: { item: z.ZodType; create: z.ZodType; update: z.ZodType },
+) => ({
+  [ids.list]: route({
+    method: 'get',
+    path: `/v1/setup/objects/{object}/${segment}`,
+    operationId: ids.list,
+    summary: `An object’s ${noun}s`,
+    request: { params: SetupObjectParam },
+    responses: {
+      200: { description: `${noun}s`, body: z.object({ items: z.array(shapes.item) }) },
+      ...forbidden,
+      ...notFound,
+    },
+  }),
+  [ids.create]: route({
+    method: 'post',
+    path: `/v1/setup/objects/{object}/${segment}`,
+    operationId: ids.create,
+    summary: `Create a ${noun}`,
+    request: { params: SetupObjectParam, body: shapes.create },
+    responses: {
+      201: { description: `The ${noun}`, body: shapes.item },
+      400: { description: 'Invalid settings' },
+      409: { description: 'The name is taken' },
+      ...forbidden,
+      ...notFound,
+    },
+  }),
+  [ids.update]: route({
+    method: 'patch',
+    path: `/v1/setup/objects/{object}/${segment}/{id}`,
+    operationId: ids.update,
+    summary: `Change a ${noun}`,
+    request: { params: SetupItemParam, body: shapes.update },
+    responses: {
+      200: { description: `The ${noun}`, body: shapes.item },
+      400: { description: 'Invalid settings' },
+      409: { description: 'Stale version' },
+      ...forbidden,
+      ...notFound,
+    },
+  }),
+  ...(ids.remove
+    ? {
+        [ids.remove]: route({
+          method: 'delete',
+          path: `/v1/setup/objects/{object}/${segment}/{id}`,
+          operationId: ids.remove,
+          summary: `Delete a ${noun}`,
+          request: { params: SetupItemParam },
+          responses: {
+            204: { description: 'Deleted' },
+            409: { description: 'The default cannot be deleted' },
+            ...forbidden,
+            ...notFound,
+          },
+        }),
+      }
+    : {}),
+});
+
+export const layoutSetupRoutes = {
+  ...crudOf(
+    'record-types',
+    'record type',
+    { list: 'listRecordTypes', create: 'createRecordType', update: 'updateRecordType' },
+    { item: RecordTypeDto, create: CreateRecordTypeRequest, update: UpdateRecordTypeRequest },
+  ),
+  ...crudOf(
+    'layouts',
+    'page layout',
+    {
+      list: 'listPageLayouts',
+      create: 'createPageLayout',
+      update: 'updatePageLayout',
+      remove: 'deletePageLayout',
+    },
+    { item: PageLayoutDto, create: CreateLayoutRequest, update: UpdateLayoutRequest },
+  ),
+  ...crudOf(
+    'compact-layouts',
+    'compact layout',
+    {
+      list: 'listCompactLayouts',
+      create: 'createCompactLayout',
+      update: 'updateCompactLayout',
+      remove: 'deleteCompactLayout',
+    },
+    {
+      item: CompactLayoutDto,
+      create: CreateCompactLayoutRequest,
+      update: UpdateCompactLayoutRequest,
+    },
+  ),
+  ...crudOf(
+    'validation-rules',
+    'validation rule',
+    {
+      list: 'listValidationRules',
+      create: 'createValidationRule',
+      update: 'updateValidationRule',
+      remove: 'deleteValidationRule',
+    },
+    {
+      item: ValidationRuleDto,
+      create: CreateValidationRuleRequest,
+      update: UpdateValidationRuleRequest,
+    },
+  ),
+  getLayoutAssignments: route({
+    method: 'get',
+    path: '/v1/setup/objects/{object}/layout-assignments',
+    operationId: 'getLayoutAssignments',
+    summary: 'Which layout each profile sees per record type (default layout elsewhere)',
+    request: { params: SetupObjectParam },
+    responses: {
+      200: { description: 'Assignments', body: z.object({ items: z.array(LayoutAssignmentDto) }) },
+      ...forbidden,
+      ...notFound,
+    },
+  }),
+  putLayoutAssignments: route({
+    method: 'put',
+    path: '/v1/setup/objects/{object}/layout-assignments',
+    operationId: 'putLayoutAssignments',
+    summary: 'Replace the object’s layout assignments',
+    request: { params: SetupObjectParam, body: PutLayoutAssignmentsRequest },
+    responses: {
+      200: { description: 'Assignments', body: z.object({ items: z.array(LayoutAssignmentDto) }) },
+      400: { description: 'Unknown profile, record type or layout' },
+      ...forbidden,
+      ...notFound,
+    },
+  }),
+  listPaths: route({
+    method: 'get',
+    path: '/v1/setup/objects/{object}/paths',
+    operationId: 'listPaths',
+    summary: 'Path guidance per record type and picklist',
+    request: { params: SetupObjectParam },
+    responses: {
+      200: { description: 'Paths', body: z.object({ items: z.array(PathDto) }) },
+      ...forbidden,
+      ...notFound,
+    },
+  }),
+  putPath: route({
+    method: 'put',
+    path: '/v1/setup/objects/{object}/paths/{recordTypeId}/{field}',
+    operationId: 'putPath',
+    summary: 'Set the path (key fields and guidance per step) for a record type’s picklist',
+    request: { params: PathParam, body: PutPathRequest },
+    responses: {
+      200: { description: 'The path', body: PathDto },
+      400: { description: 'Not a picklist, or unknown steps or fields' },
+      ...forbidden,
+      ...notFound,
+    },
+  }),
+  deletePath: route({
+    method: 'delete',
+    path: '/v1/setup/objects/{object}/paths/{recordTypeId}/{field}',
+    operationId: 'deletePath',
+    summary: 'Remove a path',
+    request: { params: PathParam },
+    responses: { 204: { description: 'Removed' }, ...forbidden, ...notFound },
+  }),
+};

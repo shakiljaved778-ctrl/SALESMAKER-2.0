@@ -311,3 +311,19 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
     for the owner to decide.
   - **Cache safety.** Setup writes read metadata uncached inside the transaction (`freshMetadata`). A version
     that might roll back is never cached.
+- **Setup metadata API, layouts and rules (T15b).** These live under `/v1/setup/objects/{object}/…`, with the same
+  permissions and audit as T15a.
+  - **Record types.** Create and update; there is no delete — deactivate instead. Options:
+    - per-record-type picklist values, used by RecordService and describe;
+    - an opportunity pipeline;
+    - one default per object, which cannot be deactivated or unset.
+  - **Page layouts.** Sections may name only the object's fields, each once. Related lists must be real child
+    lookups with known columns. There is one default, which cannot be deleted; deleting another layout removes
+    its assignments.
+  - **Layout assignments.** Profile × record type → layout, replaced as a set, with references checked.
+  - **Compact layouts.** 1–7 fields, one default.
+  - **Paths.** Per record type and picklist, with steps that must be the picklist's values (stages for
+    opportunities) and key fields of the object.
+  - **Validation rules.** The formula must type check as Boolean against the object's metadata (prior values
+    allowed); errors come back as `formula.<code>` with the span. RecordService enforces active rules at once,
+    through the metadata version bump.
