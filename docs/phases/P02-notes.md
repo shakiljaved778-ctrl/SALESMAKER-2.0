@@ -416,3 +416,16 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   carries the request nonce (`get-nonce`, MIT, already in the tree).
 - **Deferred:** mass transfer (change owner) needs a user picker for non-admins; it lands with the record page's
   owner change (T20). Record and create pages are T20/T21 (links point there).
+
+### T20a — record page API
+
+- `GET /v1/records/{object}/{id}/page`: the record with every field its layout, compact layout and path need;
+  the caller's page layout (by profile × record type, else the default) with translated section headings and
+  fields cut down by FLS; related lists; and the active path for the record type, its stages in picklist order
+  with key fields (FLS-filtered) and guidance.
+- **Related lists (decision).** A layout without related lists gets one per lookup pointing at the object
+  (contacts and opportunities on an account, …), skipping owner/audit/record-type and `converted_*` lookups,
+  with the child's name and compact fields as columns (≤ 4). `canCreate` says whether "New" may prefill the
+  lookup. Admin-configured related lists win when present.
+- `GET …/history`: tracked changes newest first, keyset-paged, with the changer's name. FLS masks history: changes
+  to fields the caller cannot read are left out entirely. Both routes are 404 for records the caller cannot see.
