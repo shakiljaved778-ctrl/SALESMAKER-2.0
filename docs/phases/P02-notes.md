@@ -542,3 +542,73 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   activation is accepted. `SEED_CONCURRENCY` (load scale defaults to 4) runs batches in parallel waves.
 - Timing (local, one connection): bank demo ≈ 6,900 records in 1 min 45 s (≈ 65 rows/s); the load scale relies on
   concurrency and is measured in T28.
+
+### T28 — scale check at 500k
+
+**Seed.** `pnpm db:seed --scenario=bank --scale=load` wrote 60,000 accounts, 90,000 contacts, 500,000 leads and
+40,000 opportunities through `RecordService.bulkCreate` in 70 min locally (4 vCPU): about 180 rows/s with 4
+concurrent batches (one Node process is CPU-bound), about 38 rows/s for contacts and opportunities, which go one batch
+at a time because each recomputes its account's implicit shares (concurrent batches deadlocked on them; a deadlocked
+batch is now retried). Batch transactions get 120 s. The database is 2.7 GB (lead table 1.2 GB with indexes).
+Docker's default 64 MB `/dev/shm` broke `VACUUM` at this size; compose now gives Postgres 512 MB.
+
+**Budgets (§11.1), `pnpm --filter @sm/api perf:records`,** 60 sequential runs per row after 5 warm-ups, client-timed
+through the API, as the busiest telesales agent (sees ~550 leads), a branch manager and the administrator:
+
+| Operation                                                      |        p50 ms |          p95 ms | Budget |
+| -------------------------------------------------------------- | ------------: | --------------: | -----: |
+| Read lead (agent / admin)                                      |       20 / 18 |         25 / 24 |    120 |
+| Update lead (agent)                                            |            30 |              36 |    250 |
+| Create lead (agent)                                            |            29 |              41 |    250 |
+| List "All leads", first page + count (agent / manager / admin) | 120 / 92 / 82 | 145 / 109 / 110 |    400 |
+| List, status = working + count (agent / manager / admin)       | 18 / 35 / 177 |   22 / 46 / 228 |    400 |
+| List sorted by last name (agent / manager / admin)             | 117 / 18 / 17 |   140 / 24 / 22 |    400 |
+| List "My leads" + count (agent / manager / admin)              |  22 / 22 / 19 |    31 / 27 / 24 |    400 |
+| Search a last name (agent / admin)                             |     106 / 162 |       126 / 186 |    200 |
+| Search a company prefix (agent / admin)                        |     112 / 160 |       146 / 187 |    200 |
+| Convert a lead (agent; no budget)                              |            91 |             319 |      — |
+
+All budgeted operations pass. The script paces itself under the API's per-IP limit (20 requests/s); the wait is
+not timed.
+
+**What the first measurement found, and the fixes** (plans from `EXPLAIN (ANALYZE, BUFFERS)` as `sm_app` in the
+tenant):
+
+1. **The sharing predicate could not use an index.** `owner = me OR owner IN (closure) OR EXISTS (share)` made every
+   list a sequential scan of all 500k rows: the agent's "All leads" count took 622 ms (547 visible rows). The owner
+   and share arms are now arrays (`owner_id = ANY (…)`, `id = ANY (ARRAY(shared ids))`), which the planner combines
+   with a BitmapOr on `(tenant_id, owner_id)` and the primary key: the same count takes 4–8 ms. Semantics are
+   unchanged (the predicate suite passes, plus a test that the inlined form matches the subquery form for every user,
+   object and level).
+2. **The planner could not size the closure.** As a subquery it got the same row estimate for an agent (2 owners) as
+   for a director (hundreds), so a status-filtered list walked the `last_name` index past 237,822 rows for 51 (513
+   ms). API requests now read the closure once per request (`loadRecordContext({ inlineVisibility: true })`, one
+   index lookup) and pass it as a value; Postgres estimates per owner and picks owner-index-then-sort for the agent
+   (18 ms) and the sort index for wide viewers. Worker jobs and seeds keep the subquery, so a hierarchy change
+   during a long job applies at once.
+3. **JIT compiled OLTP statements.** Cost estimates that large made Postgres JIT-compile (301 ms of the 622 ms
+   count). `withTenant` turns `jit` off per transaction.
+4. **Search scored every row.** Under row-level security Postgres only evaluates leakproof functions before the
+   tenant policy; `@@` (full text) and pg_trgm's `<%` are not leakproof, so neither GIN index can drive a scan for
+   `sm_app` (as the superuser the same query uses `lead_search`). The trigram arm was OR-ed into every query and the
+   index on the name expression matched all 500k candidates, so a search took 1.4–4.6 s. Full text now runs alone
+   (a parallel scan, ~60–100 ms at 500k); typo matching runs only when nothing matched exactly in any object (plan
+   §3.5, "did you mean"), tested.
+
+**Known limits, for the owner (proposed Q31 below):**
+
+- **Typo-only searches** (no exact match anywhere) take ~350 ms for an agent and ~1.2 s for an administrator at
+  500k leads, and full-text search grows linearly with the tenant (≈ 10× at 5M). Both need the GIN indexes usable
+  under RLS. Options: (a) mark `ts_match_vq` and the pg_trgm operators `LEAKPROOF` (superuser only; not available on
+  RDS, so not portable); (b) a `SECURITY DEFINER` search function owned by a role with `BYPASSRLS` that filters on
+  `tenant_id` itself — a change to the tenancy design (golden rule 1), so it needs your approval; (c) bring the
+  OpenSearch provider forward from P12. Recommendation: (b), narrowly scoped to search candidate ids, with the
+  sharing predicate and the display query still run as the user.
+- **Concurrent bulk writes on shared parents** (imports that create many contacts under the same accounts) can
+  deadlock on the derived implicit shares. Postgres resolves it by aborting one transaction; the seed retries.
+  P04's import job should retry too, or the implicit-share sync should lock parents in id order.
+- **The pg driver warns** about overlapping queries on one client: it comes from Prisma's query engine inside
+  interactive transactions, not from our code (our two `Promise.all`s in transactions are now sequential). It must
+  be resolved before pg 9.
+- **Single-node numbers.** Measured on the development container (4 vCPU, Postgres in Docker), not on RDS; the
+  nightly `scale` workflow re-measures on a GitHub runner.

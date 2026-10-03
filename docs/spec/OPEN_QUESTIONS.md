@@ -73,3 +73,15 @@ approval (§9).
     - a SECURITY DEFINER function without `CONCURRENTLY`, accepting the write lock;
     - deferring custom-field indexes to P11.
       Until this is answered, "indexed" requests are recorded (PENDING, capped at 10 per object) and nothing is built.
+31. **Search indexes under row-level security (P02 T28).** Postgres evaluates only leakproof functions before an RLS
+    policy, and full-text `@@` and pg_trgm's `<%` are not leakproof, so for `sm_app` neither GIN search index can
+    drive a scan. Exact search is within budget at 500k leads (p95 ≤ 187 ms, a parallel scan), but it grows linearly
+    with the tenant, and typo-only searches take ~1.2 s for an administrator.
+    **Proposal:** a `SECURITY DEFINER` function, owned by a dedicated role with `BYPASSRLS`, that returns only
+    candidate record ids for one tenant (it filters on `tenant_id` itself and takes no free SQL); the sharing
+    predicate and the display query still run as the user. This changes the tenancy design (golden rule 1), so it
+    needs your approval.
+    **Alternatives:**
+    - mark the operators `LEAKPROOF` (superuser only; not possible on RDS);
+    - bring the OpenSearch provider forward from P12;
+    - accept the current numbers until the 5M-lead v1 gate.

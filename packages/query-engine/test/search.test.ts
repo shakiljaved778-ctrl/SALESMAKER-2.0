@@ -181,6 +181,19 @@ describe('search (§7.19)', () => {
     });
   });
 
+  it('falls back to typo matching only when nothing matched exactly in any object', async () => {
+    // An exact hit on the account: the near-matching leads are not offered.
+    expect(await names('sam', { q: 'Pixelcraft Studio', objects: ['lead', 'account'] })).toEqual({
+      lead: [],
+      account: ['Pixelcraft Studio'],
+    });
+    // No exact hit anywhere ("Studo"): typo matching runs for every object.
+    expect(await names('sam', { q: 'Pixelcraft Studo', objects: ['lead', 'account'] })).toEqual({
+      lead: expect.arrayContaining(['Priya Nair']) as unknown,
+      account: ['Pixelcraft Studio'],
+    });
+  });
+
   it('matches phone numbers by their last digits', async () => {
     expect(await names('sam', { q: '0958', objects: ['lead', 'account'] })).toEqual({
       lead: ['Maya Chen'],

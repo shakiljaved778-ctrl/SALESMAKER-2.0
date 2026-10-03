@@ -67,7 +67,13 @@ for (const [who, email] of Object.entries(users)) {
   tokens[who] = await signIn(email);
 }
 
+// The API limits each IP to 20 requests a second; stay under it (the wait is not timed).
+const SPACING_MS = 55;
+let lastStart = 0;
 async function call(who, method, path, body) {
+  const wait = lastStart + SPACING_MS - performance.now();
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  lastStart = performance.now();
   const started = performance.now();
   const res = await fetch(`${API}${path}`, {
     method,
@@ -113,8 +119,11 @@ for (const who of Object.keys(users)) {
 }
 const run = (who, view, body) =>
   call(who, 'POST', `/v1/objects/lead/list-views/${views[who][view]}/results`, body);
-const sample = (await run('agent', 'mine', { limit: 200 })).json.items;
-const ids = sample.filter((r) => !r.converted_at).map((r) => r.id);
+// Leads still open: earlier runs convert some (converted leads are read-only).
+const sample = (
+  await run('agent', 'mine', { limit: 200, where: { field: 'converted_at', op: 'is_null' } })
+).json.items;
+const ids = sample.map((r) => r.id);
 if (ids.length < 40) throw new Error('The agent owns too few open leads to measure');
 process.stdout.write(
   `${SLUG}: ${String(leads.n)} leads; agent ${users.agent}, manager ${users.manager}\n\n`,

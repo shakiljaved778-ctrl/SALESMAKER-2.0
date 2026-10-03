@@ -1,4 +1,5 @@
 import { principalsOf, visibility, type TenantTransaction } from '@sm/db';
+import { sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
@@ -27,6 +28,8 @@ interface Options {
   models?: Partial<Record<string, SharingModel>>;
   hierarchy?: boolean;
   bypass?: (object: string, level: AccessLevel) => boolean;
+  /** Inline the visibility closure (as per-request API contexts do) instead of a subquery. */
+  inline?: boolean;
 }
 
 async function context(
@@ -61,9 +64,16 @@ async function context(
       ],
     },
   };
+  const owners = o.inline
+    ? (
+        await sql<{ owner_id: string }>`SELECT owner_id FROM user_visibility_closure
+          WHERE tenant_id = ${T}::uuid AND viewer_user_id = ${get(user)}::uuid`.execute(tx.kysely)
+      ).rows.map((r) => r.owner_id)
+    : undefined;
   return {
     tenantId: T,
     principals,
+    ...(owners ? { visibleOwners: owners } : {}),
     objectSharing: (object) => {
       const s = table[object];
       if (!s) throw new Error(object);
@@ -247,6 +257,17 @@ describe('PRIVATE (§6.4 predicate)', () => {
       'a_zed',
     ]);
     expect(await visible('eve', 'account', 'edit', { hierarchy: false })).toEqual(['a_eve', 'a_q']);
+  });
+});
+
+describe('inlined visibility closure (T28)', () => {
+  it('matches exactly what the subquery form matches, for every user, object and level', async () => {
+    for (const user of ['cara', 'sam', 'eve', 'zed', 'out'])
+      for (const object of ['account', 'contact', 'activity'])
+        for (const level of ['read', 'edit', 'full'] as const)
+          expect(await visible(user, object, level, { inline: true })).toEqual(
+            await visible(user, object, level),
+          );
   });
 });
 

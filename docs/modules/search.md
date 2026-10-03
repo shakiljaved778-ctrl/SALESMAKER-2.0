@@ -17,9 +17,10 @@ entry point, so an OpenSearch provider (P12) can replace it without touching cal
 
 ## Query
 
-`search()` matches prefix full text (`to_tsquery` with `:*`), trigram names and phone suffixes, ranks with
-`ts_rank` (trigram similarity as fallback), applies the sharing predicate in SQL, and loads display values through
-SMQ, so sharing and FLS apply twice.
+`search()` runs an exact pass per object: prefix full text (`to_tsquery` with `:*`) and phone suffixes, ranked with
+`ts_rank`, with the sharing predicate in SQL; display values come through SMQ, so sharing and FLS apply twice. Only
+when nothing matched exactly in any object does it run the typo pass (`pg_trgm` word similarity on names), the
+"did you mean" fallback of plan §3.5.
 
 **FLS.** A field the caller cannot read never decides a match: the readable part of the vector is rechecked,
 trigram matching is off when a name field is hidden, hidden phones are not suffix-matched, and hidden fields are
@@ -34,7 +35,10 @@ commands, with "See all results" last; `/search` has object, owner and updated f
 
 ## Performance
 
-Measured at 500k leads in T28 (budget: p95 ≤ 200 ms API); numbers in [P02-notes](../phases/P02-notes.md).
+At 500k leads exact searches meet the budget (p95 126–187 ms for an agent and an administrator). Under row-level
+security the GIN indexes cannot drive a scan (the operators are not leakproof), so search scans the tenant's rows
+in parallel and grows linearly; typo-only searches take ~350 ms for an agent and ~1.2 s for an administrator. The
+fix needs an owner decision (OPEN_QUESTIONS Q31). Details in [P02-notes](../phases/P02-notes.md) (T28).
 
 ## Tests
 

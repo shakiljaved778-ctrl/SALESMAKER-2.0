@@ -29,6 +29,6 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T25** `feat(web): object manager — layouts and rules`
 - [x] **T26** `feat(web): currencies and recycle bin`
 - [x] **T27** `feat(seed): CRM demo data`
-- [ ] **T28** `perf(records): scale check at 500k`
+- [x] **T28** `perf(records): scale check at 500k`
 - [ ] **T29** `test(e2e): P02 journeys`
 - [ ] **T30** `docs: P02 docs + handoff`

@@ -38,11 +38,18 @@ inside the caller's tenant transaction, with sharing and field-level security ap
 visibility closure, or a share for my principals at the level, or (Controlled by Parent) access to a parent. Public
 models short-circuit it; View All / Modify All skip it. See [sharing](sharing.md).
 
+Its owner and share arms are arrays (`owner_id = ANY (…)`, `id = ANY (shared ids)`), so the planner can combine
+the `(tenant_id, owner_id)` index and the primary key in a BitmapOr instead of scanning the table. API requests
+inline the viewer's visibility closure, read once per request, so the planner knows whether it is planning for a rep
+who sees two owners or a director who sees hundreds; worker jobs keep the per-statement subquery. Every tenant
+transaction runs with `jit = off`.
+
 ## Indexes it relies on
 
 Each object table has `(tenant_id, owner_id)`, and for every sortable standard field both `(tenant_id, field, id)`
 (admins, broad views) and `(tenant_id, owner_id, field, id)` (a rep's own records in any order). Related-list
-lookups are indexed. Plans at 500k leads are recorded in [P02-notes](../phases/P02-notes.md) (T28).
+lookups are indexed. Plans and timings at 500k leads (every list budget met, worst p95 228 ms) are in
+[P02-notes](../phases/P02-notes.md) (T28); rerun with `pnpm --filter @sm/api perf:records`.
 
 ## Tests
 

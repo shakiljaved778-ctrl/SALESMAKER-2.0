@@ -10,6 +10,8 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports: ['5432:5432']
+    # Docker's default 64 MB /dev/shm fails parallel VACUUM and parallel hashes at the 500k seed.
+    shm_size: 512m
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U postgres']

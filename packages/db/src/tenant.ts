@@ -50,6 +50,8 @@ export async function withTenant<T>(
     throw new InvalidTenantContextError('userId');
   }
   const statementTimeout = `${String(options.statementTimeoutMs ?? 5_000)}ms`;
+  // JIT compiles plans the planner thinks are expensive; for short OLTP statements it only adds
+  // compile time (300 ms of a 620 ms list count at 500k leads, P02 T28).
   const frozen = Object.freeze({ ...context });
 
   return prisma.$transaction(
@@ -57,7 +59,8 @@ export async function withTenant<T>(
       await tx.$queryRaw`SELECT
         set_config('app.tenant_id', ${context.tenantId}, true),
         set_config('app.user_id', ${context.userId ?? ''}, true),
-        set_config('statement_timeout', ${statementTimeout}, true)`;
+        set_config('statement_timeout', ${statementTimeout}, true),
+        set_config('jit', 'off', true)`;
       return fn({ prisma: tx, kysely: kyselyForTransaction(tx), context: frozen });
     },
     { timeout: options.timeoutMs ?? 10_000, maxWait: 5_000 },

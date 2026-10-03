@@ -9,6 +9,7 @@ import {
   type PermissionSource,
 } from '@sm/permissions';
 import type { ObjectSharing, SharingContext, SharingPrincipals } from '@sm/query-engine';
+import { sql } from 'kysely';
 
 import type { RecordContext } from './context.js';
 import { tenantCurrencyConverter } from './currency.js';
@@ -157,10 +158,12 @@ export function sharingContextOf(
   principals: SharingPrincipals,
   permissions: EffectivePermissions,
   settings: ReadonlyMap<string, ObjectSharing>,
+  visibleOwners?: readonly string[],
 ): SharingContext {
   return {
     tenantId,
     principals,
+    ...(visibleOwners ? { visibleOwners } : {}),
     objectSharing: (name) => {
       const s = settings.get(name);
       if (!s) throw new Error(`no sharing settings for ${name}`);
@@ -171,6 +174,16 @@ export function sharingContextOf(
       return level === 'read' ? access.viewAll : access.modifyAll;
     },
   };
+}
+
+/** The user's visibility closure (§6.3 hierarchy and queues), as of this transaction. */
+async function visibleOwnersOf(tx: TenantTransaction, userId: string): Promise<string[]> {
+  const rows = await sql<{ owner_id: string }>`
+    SELECT owner_id FROM user_visibility_closure
+     WHERE tenant_id = ${tx.context.tenantId}::uuid AND viewer_user_id = ${userId}::uuid`.execute(
+    tx.kysely,
+  );
+  return rows.rows.map((r) => r.owner_id);
 }
 
 const USER_GLOBALS = ['id', 'name', 'email', 'title', 'department', 'timezone', 'locale'] as const;
@@ -189,6 +202,12 @@ export async function loadRecordContext(
     metadata?: MetadataIndex;
     requestId?: string;
     now?: () => Date;
+    /**
+     * Read the user's visibility closure now and inline it in sharing predicates (better plans).
+     * For contexts that live one request; long jobs keep the per-statement subquery, so a
+     * hierarchy change mid-job applies at once.
+     */
+    inlineVisibility?: boolean;
   } = {},
 ): Promise<RecordContext> {
   const { tenantId } = tx.context;
@@ -225,6 +244,7 @@ export async function loadRecordContext(
       principals,
       permissions,
       await loadObjectSharing(tx, metadata),
+      options.inlineVisibility ? await visibleOwnersOf(tx, userId) : undefined,
     ),
     corporateCurrency: settings.corporateCurrency,
     timezone: user?.timezone ?? settings.defaultTimezone,

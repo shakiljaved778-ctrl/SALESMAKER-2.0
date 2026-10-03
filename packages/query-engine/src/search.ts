@@ -144,6 +144,7 @@ async function searchObject<DB>(
   spec: SearchSpec,
   input: SearchInput,
   tokens: string[],
+  mode: 'exact' | 'fuzzy',
 ): Promise<SearchGroup> {
   const readable = (name: string) => {
     const f = object.fields.find((x) => x.apiName === name);
@@ -170,13 +171,6 @@ async function searchObject<DB>(
       matched.push(sql`CASE WHEN ${piece(f, k)} @@ ${tsq} THEN ${f} END`);
   }
   const q = input.q.trim();
-  if (q.length >= 3 && spec.trigram.length && spec.trigram.every(readable)) {
-    const expr = trigramExpr(spec.trigram);
-    paths.push(sql`(${q} <% (${expr}))`);
-    scores.push(sql`word_similarity(${q}, ${expr})`);
-    for (const f of spec.trigram)
-      matched.push(sql`CASE WHEN ${q} <% coalesce(${col(f)}, '') THEN ${f} END`);
-  }
   const digits = q.replace(/\D/g, '');
   if (digits.length >= 4) {
     const suffix = `${Array.from(digits).reverse().join('')}%`;
@@ -187,38 +181,59 @@ async function searchObject<DB>(
       matched.push(sql`CASE WHEN ${hit} THEN ${f} END`);
     }
   }
-  if (paths.length === 0) return { object: object.apiName, hits: [] };
+  // Typo tolerance is a fallback (plan §3.5): `search()` runs the fuzzy pass only when nothing
+  // matched exactly anywhere. Under row-level security neither GIN index can drive the scan (the
+  // operators are not leakproof), so a fuzzy pass scores every visible row (T28).
+  const fuzzy =
+    mode === 'fuzzy' && q.length >= 3 && spec.trigram.length && spec.trigram.every(readable)
+      ? trigramExpr(spec.trigram)
+      : null;
+  if (mode === 'exact' ? paths.length === 0 : !fuzzy) return { object: object.apiName, hits: [] };
 
-  const where = sql.join(
-    [
-      sql`r.tenant_id = ${ctx.sharing.tenantId}::uuid`,
-      sql`r.deleted_at IS NULL`,
-      sql`(${sql.join(paths, sql` OR `)})`,
-      ...(input.ownerId ? [sql`r.owner_id = ${input.ownerId}::uuid`] : []),
-      ...(input.updatedSince
-        ? [sql`r.updated_at >= ${input.updatedSince.toISOString()}::timestamptz`]
-        : []),
-      sql`${sharingPredicate(ctx.sharing, object.apiName, 'r', 'read')}`,
-    ],
-    sql` AND `,
-  );
+  const filters = [
+    sql`r.tenant_id = ${ctx.sharing.tenantId}::uuid`,
+    sql`r.deleted_at IS NULL`,
+    ...(input.ownerId ? [sql`r.owner_id = ${input.ownerId}::uuid`] : []),
+    ...(input.updatedSince
+      ? [sql`r.updated_at >= ${input.updatedSince.toISOString()}::timestamptz`]
+      : []),
+    sql`${sharingPredicate(ctx.sharing, object.apiName, 'r', 'read')}`,
+  ];
   const table = sql.table(object.table);
   const limit = Math.min(Math.max(input.limit ?? 5, 1), 50);
-  const rows = await sql<{ id: string; matched: (string | null)[] }>`
-    SELECT r.id, ARRAY[${sql.join(matched)}]::text[] AS matched
-      FROM ${table} AS r
-     WHERE ${where}
-     ORDER BY (${sql.join(scores, sql` + `)}) DESC, r.updated_at DESC, r.id
-     LIMIT ${limit}`.execute(db);
-  const ids = rows.rows.map((r) => r.id);
+  type Row = { id: string; matched: (string | null)[] };
+  const exact = mode === 'exact' && paths.length ? sql`(${sql.join(paths, sql` OR `)})` : null;
+  const similar = fuzzy ? sql`(${q} <% (${fuzzy}))` : null;
+  const rows: Row[] = [];
+  if (exact) {
+    const found = await sql<Row>`
+      SELECT r.id, ARRAY[${sql.join(matched)}]::text[] AS matched
+        FROM ${table} AS r
+       WHERE ${sql.join([...filters, exact], sql` AND `)}
+       ORDER BY (${sql.join(scores, sql` + `)}) DESC, r.updated_at DESC, r.id
+       LIMIT ${limit}`.execute(db);
+    rows.push(...found.rows);
+  }
+  if (fuzzy && similar) {
+    const found = await sql<Row>`
+      SELECT r.id, ARRAY[${sql.join(
+        spec.trigram.map((f) => sql`CASE WHEN ${q} <% coalesce(${col(f)}, '') THEN ${f} END`),
+      )}]::text[] AS matched
+        FROM ${table} AS r
+       WHERE ${sql.join([...filters, similar], sql` AND `)}
+       ORDER BY word_similarity(${q}, ${fuzzy}) DESC, r.updated_at DESC, r.id
+       LIMIT ${limit}`.execute(db);
+    rows.push(...found.rows);
+  }
   let total: number | undefined;
-  if (input.withTotals) {
+  const condition = exact ?? similar;
+  if (input.withTotals && condition) {
     const counted = await sql<{ n: number }>`
-      SELECT count(*)::int AS n FROM (SELECT 1 FROM ${table} AS r WHERE ${where} LIMIT ${TOTAL_CAP}) s`.execute(
-      db,
-    );
+      SELECT count(*)::int AS n FROM (SELECT 1 FROM ${table} AS r
+       WHERE ${sql.join([...filters, condition], sql` AND `)} LIMIT ${TOTAL_CAP}) s`.execute(db);
     total = counted.rows[0]?.n ?? 0;
   }
+  const ids = rows.map((r) => r.id);
   if (ids.length === 0)
     return { object: object.apiName, hits: [], ...(total !== undefined ? { total } : {}) };
 
@@ -237,7 +252,7 @@ async function searchObject<DB>(
   const byId = new Map(page.records.map((r) => [r.id, r]));
   const names = ctx.metadata.nameFields(object.apiName);
   const hits: SearchHit[] = [];
-  for (const row of rows.rows) {
+  for (const row of rows) {
     const record = byId.get(row.id);
     if (!record) continue;
     const name = names
@@ -263,15 +278,20 @@ export async function search<DB>(
   const tokens = searchTokens(input.q);
   if (tokens.length === 0 && input.q.replace(/\D/g, '').length < 4) return [];
   const wanted = input.objects ?? Object.keys(SEARCH_FIELDS);
-  const groups: SearchGroup[] = [];
-  for (const name of wanted) {
-    const spec = SEARCH_FIELDS[name];
-    const object = ctx.metadata.object(name);
-    if (!spec || !object || object.features['search'] === false) continue;
-    if (!objectAccess(ctx.permissions, name).read) continue;
-    groups.push(await searchObject(db, ctx, object, spec, input, tokens));
-  }
-  return groups;
+  const run = async (mode: 'exact' | 'fuzzy') => {
+    const groups: SearchGroup[] = [];
+    for (const name of wanted) {
+      const spec = SEARCH_FIELDS[name];
+      const object = ctx.metadata.object(name);
+      if (!spec || !object || object.features['search'] === false) continue;
+      if (!objectAccess(ctx.permissions, name).read) continue;
+      groups.push(await searchObject(db, ctx, object, spec, input, tokens, mode));
+    }
+    return groups;
+  };
+  const exact = await run('exact');
+  // "Did you mean": typo tolerance only when nothing matched exactly in any object.
+  return exact.some((g) => g.hits.length > 0) ? exact : run('fuzzy');
 }
 
 /** Remember that the caller opened a record (recent items, §7.19); keeps the latest 100. */

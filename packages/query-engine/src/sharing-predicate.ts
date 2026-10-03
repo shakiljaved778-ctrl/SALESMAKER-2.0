@@ -35,6 +35,13 @@ export interface SharingContext {
    * view_all_data for read; Modify All or modify_all_data for anything.
    */
   bypasses(object: string, level: AccessLevel): boolean;
+  /**
+   * The owners whose records hierarchy access shows the user (their visibility closure), read in
+   * this transaction. Inlined as a value, the planner sees how many there are and picks a plan
+   * for this user: index on owner then sort for a rep who sees two owners, the sort index for a
+   * director who sees hundreds. Without it the closure is a subquery the planner cannot size.
+   */
+  visibleOwners?: readonly string[];
 }
 
 /** Parents of parents are followed this deep (quote → opportunity → account). */
@@ -54,7 +61,13 @@ function ownerAccess(ctx: SharingContext, s: ObjectSharing, alias: string): Expr
   const { userId, queueIds } = ctx.principals;
   if (!s.grantHierarchy)
     return sql<SqlBool>`(${owner} = ${userId}::uuid OR ${owner} = ANY (${uuids(queueIds)}))`;
-  return sql<SqlBool>`(${owner} = ${userId}::uuid OR ${owner} IN (
+  // An array, not `IN (subquery)`: `owner_id = ANY (…)` can drive an index (with the share arm,
+  // a BitmapOr), so a rep who sees a few hundred of 500k rows never scans the table (T28).
+  if (ctx.visibleOwners)
+    return sql<SqlBool>`${owner} = ANY (${uuids([userId, ...ctx.visibleOwners])})`;
+  return sql<SqlBool>`${owner} = ANY (ARRAY(
+    SELECT ${userId}::uuid
+    UNION ALL
     SELECT v.owner_id FROM user_visibility_closure v
     WHERE v.tenant_id = ${ctx.tenantId}::uuid AND v.viewer_user_id = ${userId}::uuid))`;
 }
@@ -68,13 +81,15 @@ function shareAccess(
 ): Expression<SqlBool> {
   const p = ctx.principals;
   const exact = [p.userId, ...p.groupIds, ...p.queueIds, ...(p.orgUnitId ? [p.orgUnitId] : [])];
-  return sql<SqlBool>`EXISTS (
-    SELECT 1 FROM record_share s
+  // The shared record ids as an array (index probes on the record's primary key), for the same
+  // reason as the owner arm.
+  return sql<SqlBool>`${sql.ref(`${alias}.id`)} = ANY (ARRAY(
+    SELECT s.record_id FROM record_share s
     WHERE s.tenant_id = ${ctx.tenantId}::uuid AND s.object = ${object}
-      AND s.record_id = ${sql.ref(`${alias}.id`)} AND s.access >= ${ACCESS_LEVEL[level]}
+      AND s.access >= ${ACCESS_LEVEL[level]}
       AND ((s.principal_type <> 'ORG_UNIT_AND_SUBORDINATES' AND s.principal_id = ANY (${uuids(exact)}))
         OR (s.principal_type = 'ORG_UNIT_AND_SUBORDINATES'
-          AND s.principal_id = ANY (${uuids(p.orgUnitAndAncestors)}))))`;
+          AND s.principal_id = ANY (${uuids(p.orgUnitAndAncestors)})))))`;
 }
 
 const TRUE = sql<SqlBool>`TRUE`;
@@ -83,8 +98,8 @@ const FALSE = sql<SqlBool>`FALSE`;
 /**
  * The record-access predicate the Query Engine injects for `object` rows aliased `alias` (§6.4):
  * true exactly for the rows the context's user may access at `level`. It is a plain SQL
- * expression (EXISTS / IN subqueries against the closure and the share table), so it composes
- * with any other where-clause and uses the (tenant_id, …) indexes.
+ * expression (array subqueries against the closure and the share table, EXISTS for parents), so
+ * it composes with any other where-clause and uses the (tenant_id, …) indexes.
  */
 export function sharingPredicate(
   ctx: SharingContext,

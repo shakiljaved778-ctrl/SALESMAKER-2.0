@@ -30,6 +30,7 @@ export class RecordContextService {
       permissions,
       principals,
       metadata,
+      inlineVisibility: true,
       ...(requestId ? { requestId } : {}),
     });
   }
