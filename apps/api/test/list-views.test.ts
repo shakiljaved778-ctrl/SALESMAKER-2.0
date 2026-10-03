@@ -208,3 +208,46 @@ describe('list views (§5.6)', () => {
     ).toBe(400);
   });
 });
+
+describe('field-level security in list views (§6.5)', () => {
+  it('leaves a hidden column out of a shared view, ignores it in sorts and refuses it in filters', async () => {
+    const created = await f.call('admin', 'POST', base, {
+      name: 'With titles',
+      visibility: 'ALL',
+      columns: ['last_name', 'company', 'title'],
+    });
+    expect(created.statusCode).toBe(201);
+    const results = `${base}/${String(json(created)['id'])}/results`;
+    await f.inTenant(async ({ prisma }) => {
+      const profile = await prisma.profile.findFirstOrThrow({
+        where: { id: f.id('profile:standard') },
+      });
+      await prisma.fieldPermission.updateMany({
+        where: { permissionSetId: profile.permissionSetId, object: 'lead', field: 'title' },
+        data: { canRead: false, canEdit: false },
+      });
+      await prisma.tenantSettings.update({
+        where: { tenantId: f.tenantId },
+        data: { permVersion: { increment: 1 } },
+      });
+    });
+    const run = await f.call('rep', 'POST', results, {});
+    expect(run.statusCode).toBe(200);
+    expect(json(run)['columns']).toEqual(['last_name', 'company']);
+    for (const row of items(run)) expect(row).not.toHaveProperty('title');
+    // The administrator still sees the column.
+    expect(json(await f.call('admin', 'POST', results, {}))['columns']).toContain('title');
+    // A sort on a hidden field is dropped (the order would reveal its values); the default
+    // order comes back.
+    const sorted = await f.call('rep', 'POST', results, {
+      sort: [{ field: 'title', direction: 'asc' }],
+    });
+    expect(sorted.statusCode).toBe(200);
+    expect(items(sorted).map((r) => r['id'])).toEqual(items(run).map((r) => r['id']));
+    // A filter on it is refused as an unknown field, as if it did not exist.
+    const filtered = await f.call('rep', 'POST', results, {
+      where: { field: 'title', op: 'eq', value: 'CTO' },
+    });
+    expect(filtered.statusCode).toBe(400);
+  });
+});

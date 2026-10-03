@@ -606,7 +606,7 @@ tenant):
   sharing predicate and the display query still run as the user.
 - **Concurrent bulk writes on shared parents** (imports that create many contacts under the same accounts) can
   deadlock on the derived implicit shares. Postgres resolves it by aborting one transaction; the seed retries.
-  P04's import job should retry too, or the implicit-share sync should lock parents in id order.
+  P03's import job should retry too, or the implicit-share sync should lock parents in id order.
 - **The pg driver warns** about overlapping queries on one client: it comes from Prisma's query engine inside
   interactive transactions, not from our code (our two `Promise.all`s in transactions are now sequential). It must
   be resolved before pg 9.

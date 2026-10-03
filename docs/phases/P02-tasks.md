@@ -31,4 +31,4 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T27** `feat(seed): CRM demo data`
 - [x] **T28** `perf(records): scale check at 500k`
 - [x] **T29** `test(e2e): P02 journeys`
-- [ ] **T30** `docs: P02 docs + handoff`
+- [x] **T30** `docs: P02 docs + handoff`
