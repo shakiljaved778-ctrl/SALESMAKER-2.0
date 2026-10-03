@@ -96,6 +96,8 @@ scale journey). Every new endpoint has happy-path, validation, permission and cr
 - **Indexed custom fields, unique and external-id custom fields:** wait on Q30.
 - **Corporate amounts in the API, UI and reports:** stored and recalculated, not exposed yet; reports (P05) need
   them.
+- **Audit exception:** GHSA-vfj7-8cjw-p6xm (`braces`, no patched version) is ignored by id; it reaches only ESLint
+  tooling. Remove the ignore when a fix ships (see P02-notes).
 - **Scale workflow:** first nightly run on a GitHub runner pending; local numbers are from a 4-vCPU container.
 
 ## For P03

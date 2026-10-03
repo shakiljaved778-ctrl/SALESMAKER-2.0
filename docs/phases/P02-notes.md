@@ -636,3 +636,12 @@ tenant):
   its one session refresh lost the rotated cookie and signed the user out (seen in the journey before it waited for
   pages to settle). This is the P01 decision 1 risk, still waiting on your approval; the journeys now let each page
   finish its own requests before leaving it, and API checks reuse the app's access token instead of refreshing.
+
+### Audit exception (end of P02)
+
+- **GHSA-vfj7-8cjw-p6xm (`braces` ≤ 3.0.3, stack exhaustion on deeply nested patterns)** was published with no
+  patched version and failed CI's `pnpm audit --audit-level high` on every branch. The only path is lint tooling:
+  `@sm/config` → `eslint-plugin-boundaries` → `micromatch` → `braces`, which expands our own ESLint config globs,
+  never input from users or the network, and is not in any runtime bundle. It is ignored by id in
+  `package.json` (`pnpm.auditConfig.ignoreGhsas`); remove the entry when a fixed `braces` (or a `micromatch` without
+  it) is published.
