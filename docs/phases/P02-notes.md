@@ -612,3 +612,27 @@ tenant):
   be resolved before pg 9.
 - **Single-node numbers.** Measured on the development container (4 vCPU, Postgres in Docker), not on RDS; the
   nightly `scale` workflow re-measures on a GitHub runner.
+
+### T29 — e2e P02 journeys
+
+- `apps/web/e2e/records.spec.ts`, in every CI run:
+  - **Create → edit → convert → search:** quick create from an empty list, the full form, conversion into an
+    account, contact and opportunity, search finding them, and the account's related contact; axe on the list,
+    quick create, record page (light and dark), convert dialog, search and account.
+  - **Sharing, FLS, list views, inline edit:** an invited Standard User rep; leads private by default; a custom
+    field created in the wizard with Standard User read turned off is absent from the rep's form, list columns,
+    column chooser, record page and API response, while the administrator reads it; keyboard inline edit (focus a
+    cell, E, Enter) saved and reloaded; a saved private view selected in the picker; the administrator's lead is
+    "not available" to the rep and **404** from the API; search finds the rep's lead and not the private one; axe in
+    dark mode.
+- `apps/web/e2e/scale.spec.ts` (`E2E_SCALE=1`): a telesales agent of the bank seed at 500k leads signs in, opens the
+  list (median **502 ms** to rendered rows over three client navigations, budget 800 ms), opens a lead and finds it by
+  name. Green locally at the 500k seed, together with both journeys above.
+- `.github/workflows/scale.yml`, nightly and on demand: seeds the bank at load scale, refreshes statistics, runs
+  `perf:records` (fails over budget) and the scale journey.
+- **Bugs the journeys found:** the new-record form loaded its layout twice and wiped what had been typed in between
+  (fixed, T29 follow-up commit); toasts are mirrored in the live region, so tests match them exactly.
+- **Session loss, more evidence for the grace window.** Under load, navigating away from a page while it performs
+  its one session refresh lost the rotated cookie and signed the user out (seen in the journey before it waited for
+  pages to settle). This is the P01 decision 1 risk, still waiting on your approval; the journeys now let each page
+  finish its own requests before leaving it, and API checks reuse the app's access token instead of refreshing.

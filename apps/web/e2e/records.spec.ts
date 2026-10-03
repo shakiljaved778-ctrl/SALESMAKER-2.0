@@ -41,21 +41,40 @@ async function inviteRep(admin: Page, rep: Page, slug: string, name: string) {
   await expectHome(rep, name.split(' ')[0] ?? name);
 }
 
-/** What the API answers this user for a path, outside the UI (same origin, fresh access token). */
+/** The access token each page's app last sent: API checks reuse it instead of refreshing. */
+const tokens = new WeakMap<Page, string>();
+function trackToken(page: Page) {
+  page.on('request', (request) => {
+    const auth = request.headers()['authorization'];
+    if (auth?.startsWith('Bearer ')) tokens.set(page, auth.slice(7));
+  });
+}
+
+/**
+ * What the API answers this user for a path, outside the UI. It never refreshes the session
+ * itself: rotating the single-use refresh cookie alongside the app's own refresh signs the user
+ * out (the P01 grace-window question).
+ */
 async function apiGet(page: Page, path: string): Promise<{ status: number; body: unknown }> {
-  // Refreshing rotates the single-use refresh cookie: never alongside the page's own refresh, or
-  // reuse detection signs the user out (the P01 grace-window question).
+  const token = tokens.get(page);
+  if (!token) throw new Error('the page has not called the API yet');
+  // From inside the page: workspace hosts (*.localhost) resolve only in the browser.
+  return page.evaluate(
+    async ({ p, t }) => {
+      const res = await fetch(`/api${p}`, { headers: { authorization: `Bearer ${t}` } });
+      return { status: res.status, body: (await res.json()) as unknown };
+    },
+    { p: path, t: token },
+  );
+}
+
+/**
+ * Let a page finish its own requests before leaving it. A page refreshes the session once as it
+ * loads; navigating away mid-refresh can lose the rotated cookie and sign the user out (the P01
+ * grace-window question, open). An absence check passes at once, so it needs this too.
+ */
+async function settle(page: Page) {
   await page.waitForLoadState('networkidle');
-  return page.evaluate(async (p) => {
-    const refreshed = await fetch('/api/auth/refresh', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: '{}',
-    });
-    const { accessToken } = (await refreshed.json()) as { accessToken: string };
-    const res = await fetch(`/api${p}`, { headers: { authorization: `Bearer ${accessToken}` } });
-    return { status: res.status, body: (await res.json()) as unknown };
-  }, path);
 }
 
 /** Fill the full record form and save it; lands on the record page. */
@@ -144,6 +163,8 @@ test('private sharing, a field hidden by field-level security, list views and in
 }) => {
   const admin = await (await browser.newContext()).newPage();
   const rep = await (await browser.newContext()).newPage();
+  trackToken(admin);
+  trackToken(rep);
   const { slug } = await newWorkspace(admin, 'shr', 'Nadia Karim');
   await inviteRep(admin, rep, slug, 'Rami Haddad');
 
@@ -222,9 +243,11 @@ test('private sharing, a field hidden by field-level security, list views and in
     rep.getByRole('heading', { name: /isn.t available|not found|doesn.t exist/i }),
   ).toBeVisible();
   await expect(rep.getByText('Admin Holdings')).toHaveCount(0);
+  await settle(rep);
 
   // Search finds the rep's own lead and not the private one.
   await rep.goto(workspaceUrl(slug, `/search?q=${encodeURIComponent('Holdings')}`));
+  await settle(rep);
   await expect(rep.getByRole('main').getByRole('link', { name: 'Rahman' })).toHaveCount(0);
   await rep.goto(workspaceUrl(slug, `/search?q=${encodeURIComponent('Traders')}`));
   await expect(rep.getByRole('main').getByRole('link', { name: 'Nasser' }).first()).toBeVisible();

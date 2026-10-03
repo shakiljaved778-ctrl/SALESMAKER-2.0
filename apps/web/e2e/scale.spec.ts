@@ -16,7 +16,7 @@ const PASSWORD = process.env.SEED_PASSWORD ?? 'demo passphrase 4821';
 /** §11.1: list view first page ≤ 800 ms to rendered rows. */
 const LIST_RENDER_BUDGET_MS = 800;
 
-test('an agent works their leads at 500k: list, open, inline edit and search', async ({ page }) => {
+test('an agent works their leads at 500k: list, open and search', async ({ page }) => {
   await signIn(page, SLUG, AGENT, PASSWORD);
   await expectHome(page, 'Samuel');
 
