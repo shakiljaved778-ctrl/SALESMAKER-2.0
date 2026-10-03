@@ -15,12 +15,12 @@
     "test": "vitest run --coverage"
   },
   "dependencies": {
-    "nodemailer": "10.0.10",
+    "nodemailer": "10.0.12",
     "openid-client": "6.8.8"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
-    "@types/node": "26.6.2",
+    "@types/node": "26.6.3",
     "@types/nodemailer": "8.0.2",
     "eslint": "10.11.0",
     "jose": "6.2.12",
