@@ -36,7 +36,10 @@
     ],
     "overrides": {
       "deepmerge-ts@<8.0.0": "8.0.2",
-      "mysql2@<3.22.0": "3.24.4"
+      "mysql2@<3.22.0": "3.24.4",
+      "sharp@<0.35.5": "0.35.5",
+      "source-map-js@<1.2.2": "1.2.2",
+      "handlebars@<4.7.10": "4.7.10"
     },
     "auditConfig": {
       "ignoreGhsas": [
