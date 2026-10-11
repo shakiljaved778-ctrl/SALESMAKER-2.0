@@ -84,6 +84,15 @@ async function relatedValue(
   return current[path.at(-1) ?? ''] ?? null;
 }
 
+/** The id the first hop of a lookup path starts from: the whole path's value depends on it alone. */
+function firstHopId(object: ObjectMeta, values: Record<string, unknown>, relationship: string) {
+  const lookup = object.fields.find(
+    (f) =>
+      ['lookup', 'master_detail', 'user'].includes(f.type) && relationshipName(f) === relationship,
+  );
+  return lookup ? (values[lookup.apiName] ?? null) : null;
+}
+
 /**
  * Run the object's active validation rules against the record as it would be saved (§3.7 step 5).
  * A rule whose formula is true rejects the save with its own message; a rule that no longer type
@@ -95,6 +104,11 @@ export async function runValidationRules(
   object: ObjectMeta,
   values: Record<string, unknown>,
   prior: Record<string, unknown> | null,
+  /**
+   * Related values shared across the rows of a batch (bulk.ts): a path read once per first-hop
+   * record, not once per row.
+   */
+  shared?: Map<string, Promise<unknown>>,
 ): Promise<FieldError[]> {
   const rules = object.validationRules.filter((r) => r.active);
   if (rules.length === 0) return [];
@@ -112,9 +126,22 @@ export async function runValidationRules(
       errors.push(failure());
       continue;
     }
-    for (const path of crossObjectPaths(checked.ast))
-      if (!related.has(path))
-        related.set(path, await relatedValue(tx, ctx, object, values, path.split('.')));
+    for (const path of crossObjectPaths(checked.ast)) {
+      if (related.has(path)) continue;
+      const segments = path.split('.');
+      const read = () => relatedValue(tx, ctx, object, values, segments);
+      if (!shared) {
+        related.set(path, await read());
+        continue;
+      }
+      const key = `${path}|${JSON.stringify(firstHopId(object, values, segments[0] ?? ''))}`;
+      let value = shared.get(key);
+      if (!value) {
+        value = read();
+        shared.set(key, value);
+      }
+      related.set(path, await value);
+    }
     const result = evaluateFormula(checked.ast, {
       field: (p) => (p.length === 1 ? values[p[0] ?? ''] : related.get(p.join('.'))),
       prior: (p) => (prior ? prior[p[0] ?? ''] : undefined),

@@ -39,6 +39,7 @@ export {
   type RowResult,
   type TransferOptions,
 } from './bulk.js';
+export { BULK_INSERT_BATCH, bulkInsert } from './bulk-insert.js';
 export {
   MASS_ACTION_TOPIC,
   MASS_FAILURES_KEPT,

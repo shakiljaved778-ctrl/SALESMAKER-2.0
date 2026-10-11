@@ -70,6 +70,11 @@ export async function syncAccountShares(
   if (present.length === 0) return;
   const tenantId = tx.context.tenantId;
   const ids = uuids(present);
+  // Lock the accounts in id order first: concurrent writers (imports, bulk loads) under the same
+  // accounts then queue instead of deadlocking on their share rows. NO KEY UPDATE does not block
+  // the foreign-key checks of children being inserted.
+  await sql`SELECT 1 FROM account WHERE tenant_id = ${tenantId}::uuid AND id = ANY (${ids})
+    ORDER BY id FOR NO KEY UPDATE`.execute(tx.kysely);
   await sql`DELETE FROM record_share
     WHERE tenant_id = ${tenantId}::uuid AND object = 'account' AND record_id = ANY (${ids})
       AND reason IN ('TEAM', 'IMPLICIT_PARENT')`.execute(tx.kysely);

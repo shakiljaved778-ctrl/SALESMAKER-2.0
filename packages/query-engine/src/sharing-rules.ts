@@ -141,9 +141,23 @@ export async function evaluateRulesForRecord(
     rules: readonly SharingRuleDefinition[];
   },
 ): Promise<number> {
+  return evaluateRulesForRecords(db, { ...input, recordIds: [input.recordId] });
+}
+
+/** The same for a set of records at once: one statement per rule (the set-based write path). */
+export async function evaluateRulesForRecords(
+  db: Db,
+  input: {
+    tenantId: string;
+    recordTable: string;
+    recordIds: readonly string[];
+    rules: readonly SharingRuleDefinition[];
+  },
+): Promise<number> {
+  if (input.recordIds.length === 0) return 0;
   let written = 0;
   for (const rule of input.rules)
-    written += await applyRule(db, input.tenantId, rule, input.recordTable, [input.recordId]);
+    written += await applyRule(db, input.tenantId, rule, input.recordTable, input.recordIds);
   return written;
 }
 

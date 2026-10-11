@@ -41,7 +41,7 @@ export interface WriteOptions {
   system?: Record<string, unknown>;
 }
 
-const LOOKUPS = new Set(['lookup', 'master_detail', 'user']);
+export const LOOKUPS = new Set(['lookup', 'master_detail', 'user']);
 const OPPORTUNITY_TRACKED = ['stage', 'amount', 'close_date', 'forecast_category', 'probability'];
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const blank = (v: unknown) =>
@@ -62,7 +62,7 @@ export async function hasAccess(
   return rows.rows.length > 0;
 }
 
-function objectOf(ctx: RecordContext, name: string): ObjectMeta {
+export function objectOf(ctx: RecordContext, name: string): ObjectMeta {
   const object = ctx.metadata.object(name);
   if (!object || !objectAccess(ctx.permissions, name).read) throw new RecordError('not_found');
   return object;
@@ -238,7 +238,7 @@ async function applyStage(
   return [];
 }
 
-async function activeRules(
+export async function activeRules(
   tx: TenantTransaction,
   object: string,
 ): Promise<SharingRuleDefinition[]> {
@@ -257,17 +257,18 @@ async function activeRules(
   }));
 }
 
-/** The shared pipeline for create and update (§3.7 steps 1–8). */
-async function write(
-  tx: TenantTransaction,
+/**
+ * §3.7 steps 1–4 on the caller's input: fields normalised (known, writable by type and FLS,
+ * well typed), merged over the current values, defaults applied on create, and the lead lifecycle
+ * guarded. Shared by the single-row and set-based (bulk.ts) paths.
+ */
+export function prepareValues(
   ctx: RecordContext,
   object: ObjectMeta,
   current: StoredRecord | null,
   input: WriteInput,
   options: WriteOptions,
-): Promise<WriteResult> {
-  const tenantId = tx.context.tenantId;
-  const isNew = current === null;
+): { values: Record<string, unknown>; given: Set<string> } {
   const recordTypeId =
     (input.fields['record_type_id'] as string | undefined) ??
     (current?.values['record_type_id'] as string | null | undefined) ??
@@ -280,7 +281,7 @@ async function write(
     if (!options.conversion) throw new Error('system field values are only for lead conversion');
     Object.assign(values, options.system);
   }
-  if (isNew) {
+  if (current === null) {
     if (!given.has('record_type_id') && recordTypeId) values['record_type_id'] = recordTypeId;
     applyDefaults(ctx, object, values, given);
   }
@@ -295,6 +296,72 @@ async function write(
         { field: 'status', code: 'converted_by_conversion' },
       ]);
   }
+  return { values, given };
+}
+
+/** Required fields left blank (§3.7 step 3), except those already reported. */
+export function missingRequired(
+  object: ObjectMeta,
+  values: Record<string, unknown>,
+  reported: readonly FieldError[],
+): FieldError[] {
+  return object.fields
+    .filter(
+      (f) =>
+        f.required &&
+        !f.system &&
+        blank(values[f.apiName]) &&
+        !reported.some((e) => e.field === f.apiName),
+    )
+    .map((f) => ({ field: f.apiName, code: 'required' }));
+}
+
+/**
+ * Corporate amounts (Q13): opportunity amount at the close date, other money on the day it is
+ * set. `recompute(field)` says which money fields (or `close_date`) changed. Returns the
+ * `*_corporate`, `currency_code` and `corporate_rate_date` column values.
+ */
+export async function corporateColumns(
+  ctx: RecordContext,
+  object: ObjectMeta,
+  values: Record<string, unknown>,
+  currencyCode: string,
+  recompute: (field: string) => boolean,
+): Promise<[string, unknown][]> {
+  const extra: [string, unknown][] = [];
+  const today = dateIn(ctx.now?.() ?? new Date(), ctx.timezone);
+  let rateDate: string | null = null;
+  for (const f of object.fields.filter((x) => x.isStandard && x.type === 'currency')) {
+    const isAmount = object.apiName === 'opportunity' && f.apiName === 'amount';
+    if (!(recompute(f.apiName) || (isAmount && recompute('close_date')))) continue;
+    const amount = values[f.apiName];
+    let corporate: string | null = null;
+    if (typeof amount === 'string') {
+      const date =
+        isAmount && typeof values['close_date'] === 'string' ? values['close_date'] : today;
+      const converted = await ctx.currency.toCorporate(amount, currencyCode, date);
+      corporate = converted?.amount ?? null;
+      if (converted) rateDate = converted.rateDate;
+    }
+    extra.push([`${f.apiName}_corporate`, corporate]);
+  }
+  extra.push(['currency_code', currencyCode]);
+  if (rateDate) extra.push(['corporate_rate_date', rateDate]);
+  return extra;
+}
+
+/** The shared pipeline for create and update (§3.7 steps 1–8). */
+async function write(
+  tx: TenantTransaction,
+  ctx: RecordContext,
+  object: ObjectMeta,
+  current: StoredRecord | null,
+  input: WriteInput,
+  options: WriteOptions,
+): Promise<WriteResult> {
+  const tenantId = tx.context.tenantId;
+  const isNew = current === null;
+  const { values, given } = prepareValues(ctx, object, current, input, options);
 
   const errors: FieldError[] = [];
   if (object.apiName === 'opportunity') {
@@ -309,14 +376,7 @@ async function write(
     errors.push(...(await applyStage(tx, values, given, current?.values ?? null)));
   }
 
-  for (const f of object.fields)
-    if (
-      f.required &&
-      !f.system &&
-      blank(values[f.apiName]) &&
-      !errors.some((e) => e.field === f.apiName)
-    )
-      errors.push({ field: f.apiName, code: 'required' });
+  errors.push(...missingRequired(object, values, errors));
 
   const changed = object.fields
     .map((f) => f.apiName)
@@ -344,29 +404,15 @@ async function write(
   const ruleErrors = await runValidationRules(tx, ctx, object, values, current?.values ?? null);
   if (ruleErrors.length) throw new RecordError('unprocessable', ruleErrors);
 
-  // Corporate amounts (Q13): opportunity amount at the close date, other money on the day it is set.
-  const extra: [string, unknown][] = [];
-  if (money) {
-    const today = dateIn(ctx.now?.() ?? new Date(), ctx.timezone);
-    let rateDate: string | null = null;
-    for (const f of object.fields.filter((x) => x.isStandard && x.type === 'currency')) {
-      const isAmount = object.apiName === 'opportunity' && f.apiName === 'amount';
-      const dateChanged = isAmount && changedSet.has('close_date');
-      if (!(isNew || currencyChanged || changedSet.has(f.apiName) || dateChanged)) continue;
-      const amount = values[f.apiName];
-      let corporate: string | null = null;
-      if (typeof amount === 'string') {
-        const date =
-          isAmount && typeof values['close_date'] === 'string' ? values['close_date'] : today;
-        const converted = await ctx.currency.toCorporate(amount, currencyCode, date);
-        corporate = converted?.amount ?? null;
-        if (converted) rateDate = converted.rateDate;
-      }
-      extra.push([`${f.apiName}_corporate`, corporate]);
-    }
-    extra.push(['currency_code', currencyCode]);
-    if (rateDate) extra.push(['corporate_rate_date', rateDate]);
-  }
+  const extra = money
+    ? await corporateColumns(
+        ctx,
+        object,
+        values,
+        currencyCode,
+        (name) => isNew || currencyChanged || changedSet.has(name),
+      )
+    : [];
 
   const toWrite = isNew ? values : Object.fromEntries(changed.map((n) => [n, values[n]]));
   // Computed standard columns (is_closed, is_won) are system fields but written by the pipeline.
@@ -516,7 +562,7 @@ async function write(
 }
 
 /** Drop platform-maintained fields from what is written (the pipeline writes those itself). */
-function stripReadOnly(
+export function stripReadOnly(
   object: ObjectMeta,
   values: Record<string, unknown>,
   allowed: ReadonlySet<string>,

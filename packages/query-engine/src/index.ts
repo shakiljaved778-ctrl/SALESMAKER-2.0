@@ -25,6 +25,7 @@ export {
 } from './sharing-predicate.js';
 export {
   evaluateRulesForRecord,
+  evaluateRulesForRecords,
   grantManualShare,
   NIL_UUID,
   recalculateRule,

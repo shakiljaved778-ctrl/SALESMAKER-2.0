@@ -92,3 +92,31 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Last used** is written at most once a minute per key, not on every call.
 - **Permissions and audit.** Listing needs `view_setup`; creating, rotating and revoking need `manage_users`,
   because a key acts as a user. Every change writes a Setup audit entry with the key's preview, never its secret.
+
+### T05 — set-based bulk inserts
+
+- **`bulkInsert(tx, ctx, object, inputs)`** (up to 1,000 rows) runs every row through the same §3.7 steps as
+  `createRecord`, sharing its code (`prepareValues`, `missingRequired`, `corporateColumns`, `stripReadOnly`), but
+  per batch: one reference query per lookup field (and target object), active currencies and rates read once,
+  validation rules' related values read once per first-hop record (`runValidationRules(…, shared)`), ids and
+  record numbers drawn as a block, one multi-row `INSERT` per 500 rows (a column a row does not set takes its default,
+  as on the single path), account shares and criteria-rule shares computed over the inserted ids
+  (`evaluateRulesForRecords`), one audit insert (`audit.recordMany`, one row per record) and one outbox insert.
+- **Per-row results.** Rows that fail in memory are reported and never inserted. A database refusal of a row's data
+  (SQLSTATE class 22 or 23) rolls back to a savepoint, splits the chunk and retries the halves until the bad row is
+  alone: it is reported as 422 `invalid_value` (409 `duplicate_value` for a unique violation); anything else aborts
+  the batch.
+- **Equivalence.** `test/bulk-insert.test.ts` runs 160 random leads (missing and invalid fields, unknown and read-only
+  fields, bad picklist values, converted status, inactive or unknown owners, inactive currencies, cross-object
+  validation rules, a criteria sharing rule) and 80 random contacts through both paths and compares per-row outcomes
+  and every created record's values, corporate amounts, match keys, record-number format, shares, audit entries and
+  outbox events. It caught one difference on the way (required-field errors were reported apart from reference and
+  currency errors) before this landed.
+- **Limits.** Opportunities keep the single-row path (stages, stage history and pipelines are per record; imports of
+  opportunities are not in P03's scope). Rows of one batch cannot reference each other, since lookups are checked
+  before anything is inserted; the import orders parents before children.
+- **Deadlocks (P02 carry-over).** `syncAccountShares` now locks the accounts it recomputes in id order
+  (`FOR NO KEY UPDATE`, which does not block children's foreign-key checks), so concurrent bulk writes under the same
+  accounts queue instead of deadlocking on their share rows. The bulk path also sorts the parent ids it syncs.
+- **Speed.** 1,000 leads with a criteria sharing rule in ~1 s in one call on a small test database (context load
+  included); throughput at the 500k seed is measured in T29.

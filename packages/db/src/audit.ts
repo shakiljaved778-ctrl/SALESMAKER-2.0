@@ -171,6 +171,33 @@ export const audit = {
     return row.id;
   },
 
+  /**
+   * Append several entries at once (the set-based write path): one multi-row insert, each row
+   * still drawing its own sequence number, and one chain request.
+   */
+  async recordMany(tx: TenantTransaction, entries: readonly AuditEntry[]): Promise<number> {
+    if (entries.length === 0) return 0;
+    const { tenantId, userId } = tx.context;
+    const { count } = await tx.prisma.auditLog.createMany({
+      data: entries.map((entry) => {
+        const actorId = entry.actorId ?? userId ?? null;
+        return {
+          tenantId,
+          actorType: entry.actorType ?? (actorId ? 'user' : 'system'),
+          actorId,
+          onBehalfOf: entry.onBehalfOf ?? null,
+          action: entry.action,
+          object: entry.object ?? null,
+          recordId: entry.recordId ?? null,
+          payload: entry.payload ?? {},
+          requestId: entry.requestId ?? null,
+        };
+      }),
+    });
+    await outbox.emit(tx, { topic: AUDIT_CHAIN_TOPIC });
+    return count;
+  },
+
   /** Record a Setup change with its before and after state (§5.6). */
   async setup(tx: TenantTransaction, entry: SetupAuditEntry): Promise<void> {
     const { tenantId, userId } = tx.context;
