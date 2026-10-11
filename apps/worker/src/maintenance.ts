@@ -8,7 +8,13 @@ import {
   type ChainResult,
 } from '@sm/db';
 import { MetadataIndex } from '@sm/metadata';
-import { CURRENCY_RECALC_TOPIC, purgeRecycleBin, recalculateCorporateAmounts } from '@sm/records';
+import {
+  backfillDerivedColumns,
+  CURRENCY_RECALC_TOPIC,
+  DERIVED_BACKFILL_TOPIC,
+  purgeRecycleBin,
+  recalculateCorporateAmounts,
+} from '@sm/records';
 import type { ControlPlane } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
@@ -206,6 +212,22 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
         logger.info({ tenantId, updated }, 'corporate amounts recalculated');
         return;
       }
+      case DERIVED_BACKFILL_TOPIC: {
+        // Derived columns (match keys) for rows written before their trigger existed; a no-op
+        // once a tenant is at DERIVED_VERSION.
+        const backfill = async (tenantId: string) => {
+          const rows = await backfillDerivedColumns((fn) =>
+            withTenant(prisma, { tenantId }, fn, {
+              timeoutMs: 120_000,
+              statementTimeoutMs: 60_000,
+            }),
+          );
+          if (rows) logger.info({ tenantId, rows }, 'derived columns backfilled');
+        };
+        if (envelope.tenantId) await backfill(envelope.tenantId);
+        else await eachTenant(deps, backfill);
+        return;
+      }
       case RECYCLE_PURGE_TOPIC: {
         const now = new Date();
         const purge = async (tenantId: string) => {
@@ -250,6 +272,11 @@ export async function scheduleMaintenance(queues: QueueSet): Promise<void> {
     AUDIT_VERIFY_TOPIC,
     { pattern: '17 3 * * *' },
     system(AUDIT_VERIFY_TOPIC),
+  );
+  await q.upsertJobScheduler(
+    DERIVED_BACKFILL_TOPIC,
+    { every: 3_600_000, immediately: true },
+    system(DERIVED_BACKFILL_TOPIC),
   );
   await q.upsertJobScheduler(
     RECYCLE_PURGE_TOPIC,

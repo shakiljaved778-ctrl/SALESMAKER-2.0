@@ -2,7 +2,7 @@
 
 Tick each box when the task's commit is pushed with CI green. Details are in `P03-plan.md`.
 
-- [ ] **T01** `feat(db): capture and data-quality schema`
+- [x] **T01** `feat(db): capture and data-quality schema`
 - [ ] **T02** `feat(db): routing, SLA and scoring schema`
 - [ ] **T03** `feat(metadata): capture and score fields`
 - [ ] **T04** `feat(api): API keys`

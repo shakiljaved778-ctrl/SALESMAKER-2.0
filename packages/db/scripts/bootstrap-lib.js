@@ -1,4 +1,4 @@
-const EXTENSIONS = ['pgcrypto', 'pg_trgm', 'citext', 'btree_gin', 'vector'];
+const EXTENSIONS = ['pgcrypto', 'pg_trgm', 'citext', 'btree_gin', 'vector', 'fuzzystrmatch'];
 
 /**
  * Idempotently create or update the five cluster-wide cell roles.

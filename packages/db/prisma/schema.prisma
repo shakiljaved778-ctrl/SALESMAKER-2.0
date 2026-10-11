@@ -81,6 +81,9 @@ model TenantSettings {
   metadataVersion      Int       @default(1) @map("metadata_version")
   /// Catalogue revision whose standard metadata this tenant has (P02 T01); synced when behind.
   catalogueVersion     Int       @default(0) @map("catalogue_version")
+  /// Derived columns (match keys, search documents) are current up to this version; a worker job
+  /// backfills a tenant's existing rows when DERIVED_VERSION moves.
+  derivedVersion       Int       @default(0) @map("derived_version")
   permVersion          Int       @default(1) @map("perm_version")
   logoFileId           String?   @map("logo_file_id") @db.Uuid
   /// The user who created the organisation at signup.
@@ -138,6 +141,9 @@ model User {
   invitations           Invitation[]
   listViews             ListView[]
   listViewPins          ListViewPin[]
+  apiKeys               ApiKey[]               @relation("ApiKeyRunAs")
+  webForms              WebForm[]              @relation("WebFormRunAs")
+  inboundEmailAddresses InboundEmailAddress[]  @relation("InboundEmailRunAs")
 
   @@id([tenantId, id])
   @@unique([tenantId, email])
@@ -1403,6 +1409,15 @@ model Lead {
   custom                 Json                     @default("{}")
   /// Weighted full-text document (§7.19), maintained by a trigger.
   searchVector           Unsupported("tsvector")? @map("search_vector")
+  /// Duplicate-matching keys (§7.2), maintained by trigger: indexed equality finds candidates.
+  matchEmail             String?                  @map("match_email")
+  matchEmailDomain       String?                  @map("match_email_domain")
+  matchPhone             String?                  @map("match_phone")
+  matchMobile            String?                  @map("match_mobile")
+  matchNameKey           String?                  @map("match_name_key")
+  matchCompanyKey        String?                  @map("match_company_key")
+  /// Set on the losers of a merge (§7.2).
+  mergedIntoId           String?                  @map("merged_into_id") @db.Uuid
   version                Int                      @default(1)
   deletedAt              DateTime?                @map("deleted_at") @db.Timestamptz(6)
 
@@ -1425,6 +1440,12 @@ model Lead {
   @@index([tenantId, updatedAt, id])
   @@index([tenantId, ownerId, updatedAt, id])
   @@index([tenantId, campaignId])
+  @@index([tenantId, matchEmail])
+  @@index([tenantId, matchEmailDomain])
+  @@index([tenantId, matchPhone])
+  @@index([tenantId, matchMobile])
+  @@index([tenantId, matchNameKey])
+  @@index([tenantId, matchCompanyKey])
   @@map("lead")
 }
 
@@ -1469,6 +1490,12 @@ model Account {
   custom                 Json                     @default("{}")
   /// Weighted full-text document (§7.19), maintained by a trigger.
   searchVector           Unsupported("tsvector")? @map("search_vector")
+  /// Duplicate-matching keys (§7.2), maintained by trigger.
+  matchCompanyKey        String?                  @map("match_company_key")
+  matchPhone             String?                  @map("match_phone")
+  matchDomain            String?                  @map("match_domain")
+  /// Set on the losers of a merge (§7.2).
+  mergedIntoId           String?                  @map("merged_into_id") @db.Uuid
   version                Int                      @default(1)
   deletedAt              DateTime?                @map("deleted_at") @db.Timestamptz(6)
 
@@ -1487,6 +1514,9 @@ model Account {
   @@index([tenantId, updatedAt, id])
   @@index([tenantId, ownerId, updatedAt, id])
   @@index([tenantId, parentAccountId])
+  @@index([tenantId, matchCompanyKey])
+  @@index([tenantId, matchPhone])
+  @@index([tenantId, matchDomain])
   @@map("account")
 }
 
@@ -1524,6 +1554,14 @@ model Contact {
   custom            Json                     @default("{}")
   /// Weighted full-text document (§7.19), maintained by a trigger.
   searchVector      Unsupported("tsvector")? @map("search_vector")
+  /// Duplicate-matching keys (§7.2), maintained by trigger.
+  matchEmail        String?                  @map("match_email")
+  matchEmailDomain  String?                  @map("match_email_domain")
+  matchPhone        String?                  @map("match_phone")
+  matchMobile       String?                  @map("match_mobile")
+  matchNameKey      String?                  @map("match_name_key")
+  /// Set on the losers of a merge (§7.2).
+  mergedIntoId      String?                  @map("merged_into_id") @db.Uuid
   version           Int                      @default(1)
   deletedAt         DateTime?                @map("deleted_at") @db.Timestamptz(6)
 
@@ -1541,6 +1579,11 @@ model Contact {
   @@index([tenantId, ownerId, updatedAt, id])
   @@index([tenantId, accountId])
   @@index([tenantId, reportsToId])
+  @@index([tenantId, matchEmail])
+  @@index([tenantId, matchEmailDomain])
+  @@index([tenantId, matchPhone])
+  @@index([tenantId, matchMobile])
+  @@index([tenantId, matchNameKey])
   @@map("contact")
 }
 
@@ -1994,4 +2037,413 @@ model CustomFieldIndex {
   @@id([tenantId, fieldId])
   @@unique([tenantId, indexName])
   @@map("custom_field_index")
+}
+
+// ── P03: capture and data quality (migration 0022) ─────────────────────────────────────────
+
+enum ApiKeyEnvironment {
+  LIVE
+  TEST
+
+  @@map("api_key_environment")
+}
+
+/// A key for the public API (§6, §10.1): the secret is shown once and stored as a SHA-256 hash;
+/// calls run as `run_as_user_id`, an integration user, with that user's permissions.
+model ApiKey {
+  tenantId      String            @map("tenant_id") @db.Uuid
+  id            String            @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name          String
+  environment   ApiKeyEnvironment @default(LIVE)
+  /// SHA-256 of the secret part, hex.
+  secretHash    String            @map("secret_hash")
+  /// The last four characters of the key, to tell keys apart.
+  hint          String
+  runAsUserId   String            @map("run_as_user_id") @db.Uuid
+  expiresAt     DateTime?         @map("expires_at") @db.Timestamptz(6)
+  lastUsedAt    DateTime?         @map("last_used_at") @db.Timestamptz(6)
+  revokedAt     DateTime?         @map("revoked_at") @db.Timestamptz(6)
+  /// The key this one replaced on rotation.
+  rotatedFromId String?           @map("rotated_from_id") @db.Uuid
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy     String?           @map("created_by") @db.Uuid
+  version       Int               @default(1)
+
+  runAs User @relation("ApiKeyRunAs", fields: [tenantId, runAsUserId], references: [tenantId, id], onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@index([tenantId, runAsUserId])
+  @@map("api_key")
+}
+
+enum ImportStatus {
+  UPLOADED
+  READY
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  UNDOING
+  UNDONE
+
+  @@map("import_status")
+}
+
+enum DuplicateMode {
+  SKIP
+  UPDATE
+  CREATE
+
+  @@map("duplicate_mode")
+}
+
+/// A CSV/XLSX import (§7.1): file, mapping, options, progress and outcome.
+model ImportJob {
+  tenantId         String        @map("tenant_id") @db.Uuid
+  id               String        @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object           String
+  status           ImportStatus  @default(UPLOADED)
+  fileName         String        @map("file_name")
+  /// StorageProvider key of the uploaded file.
+  fileKey          String        @map("file_key")
+  fileSize         BigInt        @map("file_size")
+  fileType         String        @map("file_type")
+  sheet            String?
+  headerRow        Int           @default(1) @map("header_row")
+  headers          String[]      @default([])
+  /// [{ column, field, transform }]
+  mapping          Json          @default("[]")
+  duplicateMode    DuplicateMode @default(SKIP) @map("duplicate_mode")
+  matchingRuleId   String?       @map("matching_rule_id") @db.Uuid
+  runAssignment    Boolean       @default(false) @map("run_assignment")
+  assignmentRuleId String?       @map("assignment_rule_id") @db.Uuid
+  /// Defaults applied to every row (lead source, campaign, owner).
+  defaults         Json          @default("{}")
+  /// The 100-row dry run: projected outcomes and errors.
+  dryRun           Json?         @map("dry_run")
+  total            Int?
+  processed        Int           @default(0)
+  created          Int           @default(0)
+  updated          Int           @default(0)
+  skipped          Int           @default(0)
+  failed           Int           @default(0)
+  resultFileKey    String?       @map("result_file_key")
+  error            String?
+  startedAt        DateTime?     @map("started_at") @db.Timestamptz(6)
+  finishedAt       DateTime?     @map("finished_at") @db.Timestamptz(6)
+  undoneAt         DateTime?     @map("undone_at") @db.Timestamptz(6)
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy        String?       @map("created_by") @db.Uuid
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version          Int           @default(1)
+
+  rows ImportRowResult[]
+
+  @@id([tenantId, id])
+  @@index([tenantId, createdBy, createdAt])
+  @@index([tenantId, status])
+  @@map("import_job")
+}
+
+enum ImportRowStatus {
+  CREATED
+  UPDATED
+  SKIPPED
+  FAILED
+
+  @@map("import_row_status")
+}
+
+/// What happened to each row of an import; the created ids make undo possible.
+model ImportRowResult {
+  tenantId    String          @map("tenant_id") @db.Uuid
+  importJobId String          @map("import_job_id") @db.Uuid
+  rowNumber   Int             @map("row_number")
+  status      ImportRowStatus
+  recordId    String?         @map("record_id") @db.Uuid
+  /// [{ field, code, message }]
+  errors      Json?
+
+  importJob ImportJob @relation(fields: [tenantId, importJobId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, importJobId, rowNumber])
+  @@index([tenantId, importJobId, status])
+  @@map("import_row_result")
+}
+
+/// A saved column → field mapping, offered again for files with the same headers.
+model ImportMappingTemplate {
+  tenantId         String   @map("tenant_id") @db.Uuid
+  id               String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object           String
+  name             String
+  /// Normalised header list, so a matching file finds its template.
+  headersSignature String   @map("headers_signature")
+  mapping          Json     @default("[]")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version          Int      @default(1)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, name])
+  @@index([tenantId, object, headersSignature])
+  @@map("import_mapping_template")
+}
+
+enum CaptureStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+
+  @@map("capture_status")
+}
+
+/// A web-to-lead form (§7.1); submissions run as `run_as_user_id`.
+model WebForm {
+  tenantId         String        @map("tenant_id") @db.Uuid
+  id               String        @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name             String
+  object           String        @default("lead")
+  status           CaptureStatus @default(DRAFT)
+  runAsUserId      String        @map("run_as_user_id") @db.Uuid
+  /// Theme, button label, thank-you message or redirect URL, consent text, Turnstile on/off.
+  settings         Json          @default("{}")
+  /// Field values set on every submission (lead source, campaign).
+  defaults         Json          @default("{}")
+  assignmentRuleId String?       @map("assignment_rule_id") @db.Uuid
+  /// Auto-responder: { subject, body } or null.
+  autoResponder    Json?         @map("auto_responder")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy        String?       @map("created_by") @db.Uuid
+  updatedAt        DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy        String?       @map("updated_by") @db.Uuid
+  version          Int           @default(1)
+
+  runAs       User                @relation("WebFormRunAs", fields: [tenantId, runAsUserId], references: [tenantId, id], onDelete: Restrict)
+  fields      WebFormField[]
+  submissions WebFormSubmission[]
+
+  @@id([tenantId, id])
+  @@map("web_form")
+}
+
+model WebFormField {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  id           String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  formId       String   @map("form_id") @db.Uuid
+  /// Field API name on the form's object.
+  field        String
+  label        String?
+  required     Boolean  @default(false)
+  hidden       Boolean  @default(false)
+  defaultValue Json?    @map("default_value")
+  /// Picklist values offered (a subset); empty means all active values.
+  values       String[] @default([])
+  sortOrder    Int      @default(0) @map("sort_order")
+
+  form WebForm @relation(fields: [tenantId, formId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, formId, field])
+  @@map("web_form_field")
+}
+
+enum SubmissionStatus {
+  RECEIVED
+  CREATED
+  DUPLICATE
+  REJECTED
+  FAILED
+
+  @@map("submission_status")
+}
+
+/// Every submission is stored before it is processed, so nothing is lost when a rule rejects it.
+model WebFormSubmission {
+  tenantId   String           @map("tenant_id") @db.Uuid
+  id         String           @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  formId     String           @map("form_id") @db.Uuid
+  receivedAt DateTime         @default(now()) @map("received_at") @db.Timestamptz(6)
+  status     SubmissionStatus @default(RECEIVED)
+  payload    Json
+  /// UTM, referrer, landing page, click ids, user agent; the IP only as a keyed hash.
+  meta       Json             @default("{}")
+  recordId   String?          @map("record_id") @db.Uuid
+  reason     String?
+
+  form WebForm @relation(fields: [tenantId, formId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@index([tenantId, formId, receivedAt])
+  @@map("web_form_submission")
+}
+
+/// A per-tenant email-to-lead address (§7.1): leads-{tenant}-{token}@in.<cell domain>.
+model InboundEmailAddress {
+  tenantId         String        @map("tenant_id") @db.Uuid
+  id               String        @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name             String
+  token            String
+  status           CaptureStatus @default(ACTIVE)
+  runAsUserId      String        @map("run_as_user_id") @db.Uuid
+  /// Field values set on every lead (lead source, campaign) and the assignment rule.
+  defaults         Json          @default("{}")
+  assignmentRuleId String?       @map("assignment_rule_id") @db.Uuid
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy        String?       @map("created_by") @db.Uuid
+  version          Int           @default(1)
+
+  runAs  User           @relation("InboundEmailRunAs", fields: [tenantId, runAsUserId], references: [tenantId, id], onDelete: Restrict)
+  emails InboundEmail[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, token])
+  @@map("inbound_email_address")
+}
+
+enum InboundEmailStatus {
+  RECEIVED
+  CREATED
+  MATCHED
+  REJECTED
+  FAILED
+
+  @@map("inbound_email_status")
+}
+
+/// An email received at an inbound address; the raw message stays in storage.
+model InboundEmail {
+  tenantId     String             @map("tenant_id") @db.Uuid
+  id           String             @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  addressId    String             @map("address_id") @db.Uuid
+  receivedAt   DateTime           @default(now()) @map("received_at") @db.Timestamptz(6)
+  messageId    String?            @map("message_id")
+  fromAddress  String             @map("from_address")
+  fromName     String?            @map("from_name")
+  subject      String?
+  /// StorageProvider key of the raw MIME message.
+  rawKey       String             @map("raw_key")
+  status       InboundEmailStatus @default(RECEIVED)
+  recordObject String?            @map("record_object")
+  recordId     String?            @map("record_id") @db.Uuid
+  reason       String?
+
+  address InboundEmailAddress @relation(fields: [tenantId, addressId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, messageId])
+  @@index([tenantId, recordObject, recordId])
+  @@map("inbound_email")
+}
+
+/// How two records are compared (§7.2): [{ field, method, threshold }].
+model MatchingRule {
+  tenantId   String   @map("tenant_id") @db.Uuid
+  id         String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object     String
+  name       String
+  active     Boolean  @default(true)
+  /// [{ field, method: exact|fuzzy|phone|email|email_domain_name|company, threshold? }]
+  conditions Json     @default("[]")
+  /// Blank values never match unless this is on.
+  matchBlank Boolean  @default(false) @map("match_blank")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy  String?  @map("created_by") @db.Uuid
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy  String?  @map("updated_by") @db.Uuid
+  version    Int      @default(1)
+
+  duplicateRules DuplicateRule[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, name])
+  @@map("matching_rule")
+}
+
+enum DuplicateAction {
+  BLOCK
+  ALERT
+
+  @@map("duplicate_action")
+}
+
+/// What happens when a matching rule finds duplicates on create or edit (§7.2).
+model DuplicateRule {
+  tenantId         String          @map("tenant_id") @db.Uuid
+  id               String          @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object           String
+  name             String
+  matchingRuleId   String          @map("matching_rule_id") @db.Uuid
+  action           DuplicateAction @default(ALERT)
+  onCreate         Boolean         @default(true) @map("on_create")
+  onEdit           Boolean         @default(true) @map("on_edit")
+  /// Profiles that may save anyway.
+  bypassProfileIds String[]        @default([]) @map("bypass_profile_ids") @db.Uuid
+  active           Boolean         @default(true)
+  sortOrder        Int             @default(0) @map("sort_order")
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy        String?         @map("created_by") @db.Uuid
+  updatedAt        DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy        String?         @map("updated_by") @db.Uuid
+  version          Int             @default(1)
+
+  matchingRule MatchingRule @relation(fields: [tenantId, matchingRuleId], references: [tenantId, id], onDelete: Restrict)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, name])
+  @@map("duplicate_rule")
+}
+
+/// A tenant-wide duplicate scan (§7.2), on demand or scheduled.
+model DuplicateJob {
+  tenantId       String       @map("tenant_id") @db.Uuid
+  id             String       @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object         String
+  matchingRuleId String       @map("matching_rule_id") @db.Uuid
+  /// null (once), daily or weekly.
+  schedule       String?
+  status         JobRunStatus @default(QUEUED)
+  scanned        Int          @default(0)
+  found          Int          @default(0)
+  startedAt      DateTime?    @map("started_at") @db.Timestamptz(6)
+  finishedAt     DateTime?    @map("finished_at") @db.Timestamptz(6)
+  nextRunAt      DateTime?    @map("next_run_at") @db.Timestamptz(6)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy      String?      @map("created_by") @db.Uuid
+
+  @@id([tenantId, id])
+  @@index([tenantId, nextRunAt])
+  @@map("duplicate_job")
+}
+
+enum DuplicateCandidateStatus {
+  OPEN
+  DISMISSED
+  MERGED
+
+  @@map("duplicate_candidate_status")
+}
+
+/// A group of records a scan found alike, for review (§7.2).
+model DuplicateCandidate {
+  tenantId   String                   @map("tenant_id") @db.Uuid
+  id         String                   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object     String
+  jobId      String?                  @map("job_id") @db.Uuid
+  /// The records, sorted (2–3).
+  recordIds  String[]                 @map("record_ids") @db.Uuid
+  /// recordIds joined, so a group is found once.
+  groupKey   String                   @map("group_key")
+  score      Decimal                  @db.Decimal(5, 4)
+  status     DuplicateCandidateStatus @default(OPEN)
+  createdAt  DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt DateTime?                @map("resolved_at") @db.Timestamptz(6)
+  resolvedBy String?                  @map("resolved_by") @db.Uuid
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, groupKey])
+  @@index([tenantId, object, status, score])
+  @@map("duplicate_candidate")
 }

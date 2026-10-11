@@ -1,5 +1,5 @@
 # Postgres 16 with every extension the spec requires (§3.2):
-# pgcrypto, pg_trgm, citext, btree_gin (contrib), pgvector (base image), pg_partman (apt).
+# pgcrypto, pg_trgm, citext, btree_gin, fuzzystrmatch (contrib), pgvector (base image), pg_partman (apt).
 FROM pgvector/pgvector:pg16
 
 RUN apt-get update \

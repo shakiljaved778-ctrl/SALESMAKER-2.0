@@ -76,3 +76,4 @@ export {
   type ConvertResult,
   type FieldMapping,
 } from './convert.js';
+export { backfillDerivedColumns, DERIVED_BACKFILL_TOPIC, DERIVED_VERSION } from './derived.js';

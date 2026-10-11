@@ -1,6 +1,7 @@
 # P03 — Lead capture, routing and data quality: plan
 
-Status: **DRAFT, awaiting approval** · Weeks 5–6 · Spec: §4.3, §6.5, §7.1–§7.4, §9.15 (Leads: import wizard, queue
+Status: **APPROVED 2026-10-11** (as written, with the §0 assumed answers; the disposable-email check uses the
+hand-made list and a Setup field, not the CC0 list) · Weeks 5–6 · Spec: §4.3, §6.5, §7.1–§7.4, §9.15 (Leads: import wizard, queue
 pick-up, duplicate review, merge; Setup: matching & duplicate rules, assignment rules, SLA policies, scoring models,
 business hours, web forms, email-to-lead, API keys, data import history), §10.1, §11.1 (import throughput) · ADRs:
 0001, 0004, 0007, 0008, 0014, 0022 · Previous: [P02-handoff.md](P02-handoff.md)
