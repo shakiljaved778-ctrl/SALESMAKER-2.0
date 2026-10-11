@@ -233,12 +233,16 @@ const errorsOf = {
   403: { description: 'Not allowed for this record or field' },
   404: { description: 'No such object or record visible to the caller' },
 };
-/** Internal until API keys arrive (P03); then these become the published public API. */
-const route = (spec: Omit<Parameters<typeof defineRoute>[0], 'tags' | 'auth' | 'visibility'>) =>
+type Spec = Omit<Parameters<typeof defineRoute>[0], 'tags' | 'auth' | 'visibility'>;
+/** UI-facing routes: sessions only, never API keys (§10.2). */
+const route = (spec: Spec) =>
   defineRoute({ ...spec, tags: ['records'], auth: 'session', visibility: 'internal' });
+/** The published REST API (§10.1): sessions and API keys alike. */
+const publicRoute = (spec: Spec) =>
+  defineRoute({ ...spec, tags: ['records'], auth: 'session', visibility: 'public-api' });
 
 export const recordRoutes = {
-  listObjects: route({
+  listObjects: publicRoute({
     method: 'get',
     path: '/v1/objects',
     operationId: 'listObjects',
@@ -247,7 +251,7 @@ export const recordRoutes = {
       200: { description: 'Objects', body: z.object({ items: z.array(ObjectSummaryDto) }) },
     },
   }),
-  describeObject: route({
+  describeObject: publicRoute({
     method: 'get',
     path: '/v1/objects/{object}/describe',
     operationId: 'describeObject',
@@ -255,7 +259,7 @@ export const recordRoutes = {
     request: { params: ObjectParam },
     responses: { 200: { description: 'The object', body: DescribedObjectDto }, ...errorsOf },
   }),
-  listRecords: route({
+  listRecords: publicRoute({
     method: 'get',
     path: '/v1/records/{object}',
     operationId: 'listRecords',
@@ -263,7 +267,7 @@ export const recordRoutes = {
     request: { params: ObjectParam, query: ListRecordsQuery },
     responses: { 200: { description: 'A page of records', body: RecordPage }, ...errorsOf },
   }),
-  createRecord: route({
+  createRecord: publicRoute({
     method: 'post',
     path: '/v1/records/{object}',
     operationId: 'createRecord',
@@ -276,7 +280,7 @@ export const recordRoutes = {
       ...errorsOf,
     },
   }),
-  getRecord: route({
+  getRecord: publicRoute({
     method: 'get',
     path: '/v1/records/{object}/{id}',
     operationId: 'getRecord',
@@ -284,7 +288,7 @@ export const recordRoutes = {
     request: { params: RecordParam, query: GetRecordQuery },
     responses: { 200: { description: 'The record', body: RecordDto }, ...errorsOf },
   }),
-  updateRecord: route({
+  updateRecord: publicRoute({
     method: 'patch',
     path: '/v1/records/{object}/{id}',
     operationId: 'updateRecord',
@@ -297,7 +301,7 @@ export const recordRoutes = {
       ...errorsOf,
     },
   }),
-  deleteRecord: route({
+  deleteRecord: publicRoute({
     method: 'delete',
     path: '/v1/records/{object}/{id}',
     operationId: 'deleteRecord',
@@ -305,7 +309,7 @@ export const recordRoutes = {
     request: { params: RecordParam },
     responses: { 204: { description: 'Deleted' }, ...errorsOf },
   }),
-  upsertRecord: route({
+  upsertRecord: publicRoute({
     method: 'put',
     path: '/v1/records/{object}/external/{externalId}',
     operationId: 'upsertRecord',
@@ -318,7 +322,7 @@ export const recordRoutes = {
       ...errorsOf,
     },
   }),
-  query: route({
+  query: publicRoute({
     method: 'post',
     path: '/v1/query',
     operationId: 'query',
@@ -454,7 +458,7 @@ export const PutFieldMappingRequest = z
   .strict();
 
 export const leadRoutes = {
-  convertLead: route({
+  convertLead: publicRoute({
     method: 'post',
     path: '/v1/leads/{id}/convert',
     operationId: 'convertLead',
@@ -551,7 +555,7 @@ export const RecentItemsQuery = z
   .strict();
 
 export const searchRoutes = {
-  search: route({
+  search: publicRoute({
     method: 'get',
     path: '/v1/search',
     operationId: 'search',

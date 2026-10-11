@@ -37,10 +37,28 @@ describe('contracts (golden rule 7, §10.1)', () => {
     );
   });
 
-  it('serves only public-api routes at /v1/openapi.json', async () => {
+  it('serves only public-api routes at /v1/openapi.json: records, query, search and convert', async () => {
     const res = await api.app.inject({ method: 'GET', url: '/v1/openapi.json' });
-    const doc = res.json<{ openapi: string; paths: Record<string, unknown> }>();
+    const doc = res.json<{
+      openapi: string;
+      paths: Record<string, Record<string, { security?: unknown[] }>>;
+    }>();
     expect(doc.openapi).toBe('3.1.0');
-    expect(Object.keys(doc.paths)).toEqual(['/v1/openapi.json']);
+    expect(Object.keys(doc.paths).sort()).toEqual([
+      '/v1/leads/{id}/convert',
+      '/v1/objects',
+      '/v1/objects/{object}/describe',
+      '/v1/openapi.json',
+      '/v1/query',
+      '/v1/records/{object}',
+      '/v1/records/{object}/external/{externalId}',
+      '/v1/records/{object}/{id}',
+      '/v1/search',
+    ]);
+    // Sessions and API keys alike.
+    expect(doc.paths['/v1/query']?.['post']?.security).toEqual([
+      { bearerAuth: [] },
+      { apiKey: [] },
+    ]);
   });
 });

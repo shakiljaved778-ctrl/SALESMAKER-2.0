@@ -40,8 +40,9 @@ export interface SetupFixture {
 export async function setupFixture(
   slug: string,
   deps: Parameters<typeof startTestApi>[1] = {},
+  config: Parameters<typeof startTestApi>[0] = {},
 ): Promise<SetupFixture> {
-  const api = await startTestApi({}, deps);
+  const api = await startTestApi(config, deps);
   const prisma = api.app.get<symbol, CellPrisma>(PRISMA);
   const ids = new Map<string, string>();
   const id = (name: string) => {

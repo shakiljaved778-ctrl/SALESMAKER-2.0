@@ -68,3 +68,27 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   cannot read are pruned for that viewer (empty groups disappear), like its columns and sorts, so the view runs
   instead of failing with 400; the administrator still gets the whole filter. The request's own quick filters stay
   strict (`unknown_field`). Nothing leaks: sharing and FLS still apply to every row.
+
+### T04 — API keys
+
+- **Key format.** `sm_live_` / `sm_test_` + base64url(tenant id ‖ key id ‖ 32 random bytes), 94 characters. The
+  tenant and key ids travel in the key, so a call opens its own tenant's transaction and reads the row by primary key:
+  no cross-tenant lookup, no extra index. Only the secret's SHA-256 is stored (a 256-bit random secret needs no slow
+  hash); comparison is constant-time. The list shows `sm_live_…abcd` (the last four characters).
+- **What a key can do.** It runs as its run-as user, with that user's profile, permission sets, sharing and FLS. The
+  user must be active and hold **API enabled** when the key is created and on every call (401 for a disabled user,
+  403 once the permission is removed). The spec's "integration user" is any active user an administrator picks; a
+  dedicated integration user type (no UI login, no seat) is left to the licensing work in P05.
+- **Where it works.** Only routes published as `public-api`: objects and describe, records CRUD and upsert by
+  external id, SMQ query, search and lead conversion (now in `/v1/openapi.json`, with an `apiKey` security scheme).
+  Every internal route (§10.2) answers 404 to a key, Setup → API keys included.
+- **Failures.** Malformed, tampered, mis-prefixed, revoked, expired or another workspace's keys all get the same
+  401 ("The API key is not valid"), so nothing about a key's existence leaks.
+- **Rate limits.** A token bucket per key (`RATE_LIMIT_API_KEY_BURST` 100, `…_PER_SECOND` 10) on top of the per-IP
+  limit, with `RateLimit-*` headers and `Retry-After` on 429. It fails open like the IP limit. Per-plan limits and
+  the daily quota arrive with billing (P05).
+- **Rotation** issues a new key (`rotated_from_id`) and keeps the old one working for an optional grace period
+  (0–7 days, default 0), recorded as its `revoked_at`. Revocation is immediate and idempotent.
+- **Last used** is written at most once a minute per key, not on every call.
+- **Permissions and audit.** Listing needs `view_setup`; creating, rotating and revoking need `manage_users`,
+  because a key acts as a user. Every change writes a Setup audit entry with the key's preview, never its secret.

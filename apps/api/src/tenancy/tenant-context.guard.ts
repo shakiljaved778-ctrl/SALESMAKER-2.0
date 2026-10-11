@@ -22,6 +22,8 @@ export interface VerifiedCaller {
   /** Cell that issued the credential; must match the cell serving the request. */
   cellId: string;
   sessionId?: string;
+  /** Set when the caller authenticated with an API key (calls run as its run-as user). */
+  apiKeyId?: string;
 }
 
 declare module 'fastify' {

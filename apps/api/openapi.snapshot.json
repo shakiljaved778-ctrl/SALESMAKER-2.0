@@ -3157,7 +3157,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [
           {
             "name": "id",
@@ -3228,6 +3228,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "requestBody": {
@@ -4631,7 +4634,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [],
         "responses": {
           "200": {
@@ -4710,6 +4713,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ]
       }
@@ -4721,7 +4727,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [
           {
             "name": "object",
@@ -4786,6 +4792,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ]
       }
@@ -7792,7 +7801,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [],
         "responses": {
           "200": {
@@ -7848,6 +7857,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "requestBody": {
@@ -8573,7 +8585,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [
           {
             "name": "object",
@@ -8675,6 +8687,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ]
       },
@@ -8684,7 +8699,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [
           {
             "name": "object",
@@ -8766,6 +8781,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "requestBody": {
@@ -8787,7 +8805,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [
           {
             "name": "object",
@@ -8853,6 +8871,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ]
       },
@@ -8862,7 +8883,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [
           {
             "name": "object",
@@ -8944,6 +8965,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ]
       },
@@ -8953,7 +8977,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [
           {
             "name": "object",
@@ -9042,6 +9066,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "requestBody": {
@@ -10160,7 +10187,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [
           {
             "name": "object",
@@ -10248,6 +10275,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "requestBody": {
@@ -10546,7 +10576,7 @@
         "tags": [
           "records"
         ],
-        "x-sm-visibility": "internal",
+        "x-sm-visibility": "public-api",
         "parameters": [
           {
             "name": "q",
@@ -10666,6 +10696,9 @@
         "security": [
           {
             "bearerAuth": []
+          },
+          {
+            "apiKey": []
           }
         ]
       }
@@ -10806,6 +10839,430 @@
             "bearerAuth": []
           }
         ]
+      }
+    },
+    "/v1/setup/api-keys": {
+      "get": {
+        "operationId": "listApiKeys",
+        "summary": "The organisation’s API keys (never their secrets)",
+        "tags": [
+          "setup"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApiKey"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller lacks the required system permission"
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "createApiKey",
+        "summary": "Create an API key; its secret is returned once",
+        "tags": [
+          "setup"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "The key and its secret",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuedApiKey"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller lacks the required system permission"
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "environment": {
+                    "default": "LIVE",
+                    "type": "string",
+                    "enum": [
+                      "LIVE",
+                      "TEST"
+                    ]
+                  },
+                  "runAsUserId": {
+                    "$ref": "#/components/schemas/Uuid"
+                  },
+                  "expiresAt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "runAsUserId"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/setup/api-keys/{id}": {
+      "delete": {
+        "operationId": "revokeApiKey",
+        "summary": "Revoke a key at once",
+        "tags": [
+          "setup"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller lacks the required system permission"
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/setup/api-keys/{id}/rotate": {
+      "post": {
+        "operationId": "rotateApiKey",
+        "summary": "Replace a key with a new secret; the old one stops working after the grace period",
+        "tags": [
+          "setup"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The new key and its secret",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuedApiKey"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller lacks the required system permission"
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The key is revoked or expired"
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "graceMinutes": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10080
+                  },
+                  "expiresAt": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
       }
     },
     "/v1/setup/objects/{object}/compact-layouts": {
@@ -15018,6 +15475,116 @@
         ],
         "additionalProperties": false
       },
+      "ApiKey": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string",
+            "enum": [
+              "LIVE",
+              "TEST"
+            ]
+          },
+          "preview": {
+            "type": "string"
+          },
+          "runAsUser": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "$ref": "#/components/schemas/Uuid"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "additionalProperties": false
+          },
+          "expiresAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lastUsedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revokedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rotatedFromId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "expired",
+              "revoked"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "environment",
+          "preview",
+          "runAsUser",
+          "expiresAt",
+          "lastUsedAt",
+          "revokedAt",
+          "rotatedFromId",
+          "status",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
       "AuditChainStatus": {
         "type": "object",
         "properties": {
@@ -16637,6 +17204,22 @@
           "email",
           "name",
           "profileId"
+        ],
+        "additionalProperties": false
+      },
+      "IssuedApiKey": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "$ref": "#/components/schemas/ApiKey"
+          },
+          "secret": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "secret"
         ],
         "additionalProperties": false
       },
@@ -20746,6 +21329,12 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
+      },
+      "apiKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "sm_live_… / sm_test_…",
+        "description": "An API key from Setup → API keys, sent as `Authorization: Bearer sm_live_…`. Calls run as the key’s run-as user, with its permissions; each key has its own rate limit (RateLimit-* headers)."
       },
       "serviceToken": {
         "type": "http",

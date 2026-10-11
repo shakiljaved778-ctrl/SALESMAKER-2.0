@@ -127,8 +127,12 @@ export function buildOpenApiDocument(
       responses: {},
     };
     if (route.description) operation['description'] = route.description;
-    if (route.auth !== 'public')
-      operation['security'] = [{ [route.auth === 'service' ? 'serviceToken' : 'bearerAuth']: [] }];
+    if (route.auth === 'service') operation['security'] = [{ serviceToken: [] }];
+    else if (route.auth === 'session')
+      operation['security'] =
+        route.visibility === 'public-api'
+          ? [{ bearerAuth: [] }, { apiKey: [] }]
+          : [{ bearerAuth: [] }];
     if (route.request?.body) {
       operation['requestBody'] = {
         required: true,
@@ -170,6 +174,13 @@ export function buildOpenApiDocument(
       schemas: sortedComponents,
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        apiKey: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'sm_live_… / sm_test_…',
+          description:
+            'An API key from Setup → API keys, sent as `Authorization: Bearer sm_live_…`. Calls run as the key’s run-as user, with its permissions; each key has its own rate limit (RateLimit-* headers).',
+        },
         serviceToken: {
           type: 'http',
           scheme: 'bearer',

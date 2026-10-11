@@ -114,7 +114,8 @@ describe('buildOpenApiDocument', () => {
       Record<string, { security?: unknown; responses: Record<string, unknown> }>
     >;
     const getWidget = paths['/v1/widgets/{id}']?.['get'];
-    expect(getWidget?.security).toEqual([{ bearerAuth: [] }]);
+    // A published session route takes a session token or an API key.
+    expect(getWidget?.security).toEqual([{ bearerAuth: [] }, { apiKey: [] }]);
     expect(Object.keys(getWidget?.responses ?? {})).toEqual(
       expect.arrayContaining(['200', '400', '401', '404', '429', '500']),
     );

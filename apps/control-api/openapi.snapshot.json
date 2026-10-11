@@ -1055,6 +1055,12 @@
         "scheme": "bearer",
         "bearerFormat": "JWT"
       },
+      "apiKey": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "sm_live_… / sm_test_…",
+        "description": "An API key from Setup → API keys, sent as `Authorization: Bearer sm_live_…`. Calls run as the key’s run-as user, with its permissions; each key has its own rate limit (RateLimit-* headers)."
+      },
       "serviceToken": {
         "type": "http",
         "scheme": "bearer",

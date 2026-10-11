@@ -14,6 +14,9 @@ export const ApiConfigSchema = z.object({
   RATE_LIMIT_IP_BURST: z.coerce.number().int().positive().default(120),
   RATE_LIMIT_IP_PER_SECOND: z.coerce.number().positive().default(20),
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
+  /** Per API key (§10.1); per-plan limits replace these defaults with billing (P05). */
+  RATE_LIMIT_API_KEY_BURST: z.coerce.number().int().positive().default(100),
+  RATE_LIMIT_API_KEY_PER_SECOND: z.coerce.number().positive().default(10),
   /** Valkey key namespace for rate-limit buckets. */
   RATE_LIMIT_NAMESPACE: z.string().default('rl:api'),
 

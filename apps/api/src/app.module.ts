@@ -8,6 +8,7 @@ import type { Logger } from 'pino';
 import { AuditController } from './audit/audit.controller.js';
 import { AuthEmailService } from './auth/auth-email.service.js';
 import { AuthController } from './auth/auth.controller.js';
+import { ApiKeysService } from './auth/api-keys.service.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthService } from './auth/auth.service.js';
 import { LoginHistoryService } from './auth/login-history.service.js';
@@ -55,6 +56,7 @@ import {
   SharingSetupController,
 } from './setup/setup.controller.js';
 import { SharingSetupService } from './setup/sharing-setup.service.js';
+import { ApiKeysController } from './setup/api-keys.controller.js';
 import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
@@ -109,6 +111,7 @@ export class AppModule {
         UsersController,
         InvitationsController,
         PeopleSetupController,
+        ApiKeysController,
         SharingSetupController,
         CurrencyController,
         MetadataSetupController,
@@ -133,6 +136,7 @@ export class AppModule {
         { provide: RECORD_TABLES, useValue: deps.recordTables ?? defaultRecordTables },
         TenantContextGuard,
         AuthGuard,
+        ApiKeysService,
         TokenService,
         PasswordService,
         LockoutService,
@@ -169,6 +173,7 @@ export class AppModule {
         LOGGER,
         TenantContextGuard,
         AuthGuard,
+        ApiKeysService,
         AuthService,
         PasswordService,
         SessionService,
