@@ -120,3 +120,32 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   accounts queue instead of deadlocking on their share rows. The bulk path also sorts the parent ids it syncs.
 - **Speed.** 1,000 leads with a criteria sharing rule in ~1 s in one call on a small test database (context load
   included); throughput at the 500k seed is measured in T29.
+
+### T06 — matching and duplicate rules
+
+- **Conditions** (`matching_rule.conditions`): `{ field, method, threshold? }`, all of which must hold.
+  `email` (normalised address), `phone` (a phone's last eight digits against both phone and mobile), `company`
+  (normalised name without legal forms; lead company, account name), `email_domain_name` (same domain and same
+  surname sound; leads and contacts), `exact` (case and space insensitive) and `fuzzy` (`pg_trgm` similarity ≥
+  threshold, default 0.8). Blank values never match unless the rule matches blanks.
+- **Candidates through keys.** Every condition on a keyed field (email, phone, mobile, last name, company or
+  account name, website) also requires equal match keys, which the btree indexes resolve under row-level security
+  (0.1 ms for an email rule at the 500k seed). So a fuzzy surname condition compares surnames that sound alike
+  (Double Metaphone) and a fuzzy company condition compares names with the same normalised form. A rule needs at
+  least one keyed condition (`conditionErrors`, used by the Setup API in T07), so no rule ever scans an object;
+  fuzzy matching on arbitrary text waits on Q31.
+- **One SQL builder** compares a probe side (the record or the batch, as a `VALUES` list with keys computed by the
+  same `crm_*_key` functions the triggers use) with a candidate side (stored rows, using the key columns, or other
+  rows of the batch). Score is the mean of the conditions (1 for key and exact matches, the similarity for fuzzy
+  ones); at most ten matches per record, best first. Deleted and merged records never match; nor does the record
+  being edited.
+- **Duplicate rules in RecordService** (built in rather than a hook, so every write path gets them: API, import,
+  forms, email, the worker). On create, or on edit when a compared field changed, per the rule's `on_create` /
+  `on_edit`. **Block** refuses with 409 `duplicate_blocked` whether or not the writer can see the match, naming only
+  the matches they may see; profiles in `bypass_profile_ids` save anyway. **Alert** saves and returns the visible
+  matches on the write result (`duplicates`). `WriteOptions.duplicates: 'skip'` leaves rules out (for merge).
+- **Bulk.** `bulkInsert` checks stored records for the whole batch in one statement per rule, at the same point as
+  the single path (before validation rules), and then compares the rows still being saved with each other, so a
+  row duplicating an earlier row of the same file is handled as if that row had been saved first (Block refuses
+  it; Alert reports `{ batchIndex }`). A row that failed for another reason never counts as an earlier row.
+  `bulkInsert(…, { duplicates: 'skip' })` serves the import's "create anyway" mode.

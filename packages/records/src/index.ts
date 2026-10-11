@@ -78,3 +78,21 @@ export {
   type FieldMapping,
 } from './convert.js';
 export { backfillDerivedColumns, DERIVED_BACKFILL_TOPIC, DERIVED_VERSION } from './derived.js';
+export {
+  batchDuplicates,
+  checkDuplicates,
+  conditionErrors,
+  DEFAULT_FUZZY_THRESHOLD,
+  DUPLICATE_OBJECTS,
+  duplicateRules,
+  findBatchMatches,
+  findMatches,
+  MATCH_METHODS,
+  type DuplicateAlert,
+  type DuplicateMatch,
+  type DuplicateRuleDefinition,
+  type MatchCondition,
+  type MatchingRuleDefinition,
+  type MatchMethod,
+  type Probe,
+} from './duplicates.js';

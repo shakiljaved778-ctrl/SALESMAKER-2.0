@@ -11,6 +11,7 @@ import {
 import { sql } from 'kysely';
 
 import type { RecordContext } from './context.js';
+import { checkDuplicates, type DuplicateAlert } from './duplicates.js';
 import { RecordError, type FieldError } from './errors.js';
 import { syncAfterWrite } from './shares.js';
 import { hasMoney, ident, readStored, toColumns, type StoredRecord } from './storage.js';
@@ -29,6 +30,8 @@ export interface WriteResult {
   recordNumber: string | null;
   /** Fields whose stored value changed (all set fields on create). */
   changed: string[];
+  /** Alert duplicate rules' visible matches (§7.2); absent when there are none. */
+  duplicates?: DuplicateAlert[];
 }
 
 export interface WriteOptions {
@@ -39,6 +42,8 @@ export interface WriteOptions {
    * (`converted_at`, `converted_*_id`) and only together with `conversion`.
    */
   system?: Record<string, unknown>;
+  /** `skip` leaves duplicate rules out (merge writes the surviving record; §7.2). */
+  duplicates?: 'enforce' | 'skip';
 }
 
 export const LOOKUPS = new Set(['lookup', 'master_detail', 'user']);
@@ -400,7 +405,16 @@ async function write(
   if (errors.length) throw new RecordError('unprocessable', errors);
 
   await ctx.hooks?.beforeSave?.(object.apiName, values, isNew);
-  await ctx.hooks?.duplicates?.(object.apiName, values, current?.id ?? null);
+  const duplicates =
+    options.duplicates === 'skip'
+      ? []
+      : await checkDuplicates(
+          tx,
+          ctx,
+          object,
+          values,
+          current ? { id: current.id, changed: changedSet } : null,
+        );
   const ruleErrors = await runValidationRules(tx, ctx, object, values, current?.values ?? null);
   if (ruleErrors.length) throw new RecordError('unprocessable', ruleErrors);
 
@@ -558,7 +572,7 @@ async function write(
       payload: { object: object.apiName, id, changedFields: ['stage'] },
     });
   await outbox.emit(tx, events);
-  return { id, version, recordNumber, changed };
+  return { id, version, recordNumber, changed, ...(duplicates.length ? { duplicates } : {}) };
 }
 
 /** Drop platform-maintained fields from what is written (the pipeline writes those itself). */

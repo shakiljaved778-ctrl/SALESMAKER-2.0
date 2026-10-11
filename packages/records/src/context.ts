@@ -17,12 +17,10 @@ export interface CurrencyConverter {
   isActive(code: string): Promise<boolean>;
 }
 
-/** Extension points that later phases fill (§3.7 steps 4 and 5). No-ops in P02. */
+/** Extension points that later phases fill (§3.7 step 4). Duplicate rules are built in (P03). */
 export interface RecordHooks {
   /** Before-save automation: field updates only, synchronous, bounded (P08). */
   beforeSave?(object: string, values: Record<string, unknown>, isNew: boolean): Promise<void>;
-  /** Duplicate rules: block or warn (P03). Return field errors to block. */
-  duplicates?(object: string, values: Record<string, unknown>, id: string | null): Promise<void>;
 }
 
 /** Who writes, and everything the pipeline needs to decide what they may write. */

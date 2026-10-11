@@ -4,6 +4,7 @@ import { runQuery, type FilterNode } from '@sm/query-engine';
 import { sql, type RawBuilder } from 'kysely';
 
 import type { RecordContext } from './context.js';
+import type { DuplicateAlert } from './duplicates.js';
 import { deleteRecord } from './delete.js';
 import { RecordError, type FieldError } from './errors.js';
 import { createRecord, updateRecord, type WriteInput } from './service.js';
@@ -15,7 +16,7 @@ export const BULK_BATCH = 200;
 export const MASS_JOB_LIMIT = 10_000;
 
 export type RowResult =
-  | { index: number; ok: true; id: string; version?: number }
+  | { index: number; ok: true; id: string; version?: number; duplicates?: DuplicateAlert[] }
   | { index: number; ok: false; id: string | null; status: number; errors: FieldError[] };
 
 /**
@@ -27,7 +28,7 @@ async function eachRow<T>(
   tx: TenantTransaction,
   items: readonly T[],
   idOf: (item: T) => string | null,
-  fn: (item: T) => Promise<{ id: string; version?: number }>,
+  fn: (item: T) => Promise<{ id: string; version?: number; duplicates?: DuplicateAlert[] }>,
 ): Promise<RowResult[]> {
   if (items.length > BULK_BATCH)
     throw new RecordError('invalid', [{ field: '_batch', code: 'batch_too_large' }]);

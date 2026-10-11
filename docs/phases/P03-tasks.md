@@ -7,7 +7,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T03** `feat(metadata): capture and score fields`
 - [x] **T04** `feat(api): API keys`
 - [x] **T05** `feat(records): set-based bulk inserts`
-- [ ] **T06** `feat(dedupe): matching and duplicate rules`
+- [x] **T06** `feat(dedupe): matching and duplicate rules`
 - [ ] **T07** `feat(api): duplicates`
 - [ ] **T08** `feat(records): merge`
 - [ ] **T09** `feat(dedupe): duplicate jobs`

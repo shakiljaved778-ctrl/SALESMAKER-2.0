@@ -6,6 +6,7 @@ import { sql, type RawBuilder } from 'kysely';
 
 import { bulkCreate, type RowResult } from './bulk.js';
 import type { RecordContext } from './context.js';
+import { batchDuplicates } from './duplicates.js';
 import { RecordError, type FieldError } from './errors.js';
 import {
   activeRules,
@@ -170,6 +171,7 @@ export async function bulkInsert(
   ctx: RecordContext,
   objectName: string,
   inputs: readonly WriteInput[],
+  options: { duplicates?: 'enforce' | 'skip' } = {},
 ): Promise<RowResult[]> {
   if (inputs.length > BULK_INSERT_BATCH)
     throw new RecordError('invalid', [{ field: '_batch', code: 'batch_too_large' }]);
@@ -204,10 +206,9 @@ export async function bulkInsert(
     }
   }
 
-  // References, currency, hooks and validation rules.
+  // References, currency and before-save hooks.
   const references = await validReferences(tx, ctx, object, prepared);
-  const shared = new Map<string, Promise<unknown>>();
-  const accepted: (Prepared & { extra: [string, unknown][] })[] = [];
+  const checked: Prepared[] = [];
   for (const row of prepared) {
     try {
       const errors = [...row.errors];
@@ -221,7 +222,23 @@ export async function bulkInsert(
         errors.push({ field: 'currency_code', code: 'inactive_currency' });
       if (errors.length) throw new RecordError('unprocessable', errors);
       await ctx.hooks?.beforeSave?.(object.apiName, row.values, true);
-      await ctx.hooks?.duplicates?.(object.apiName, row.values, null);
+      checked.push(row);
+    } catch (err) {
+      if (!(err instanceof RecordError)) throw err;
+      results.set(row.index, failure(row.index, err));
+    }
+  }
+
+  // Duplicate rules against stored records (one statement per rule), then validation rules.
+  const duplicates = batchDuplicates(tx, ctx, object);
+  const probe = (row: Prepared) => ({ index: row.index, id: null, values: row.values });
+  if (options.duplicates !== 'skip') await duplicates.stored(checked.map(probe));
+  const shared = new Map<string, Promise<unknown>>();
+  let accepted: (Prepared & { extra: [string, unknown][] })[] = [];
+  for (const row of checked) {
+    try {
+      const duplicate = duplicates.errors.get(row.index);
+      if (duplicate) throw duplicate;
       const ruleErrors = await runValidationRules(tx, ctx, object, row.values, null, shared);
       if (ruleErrors.length) throw new RecordError('unprocessable', ruleErrors);
       const extra = money
@@ -232,6 +249,15 @@ export async function bulkInsert(
       if (!(err instanceof RecordError)) throw err;
       results.set(row.index, failure(row.index, err));
     }
+  }
+  // Rows of the batch that duplicate earlier rows being saved (as if those were stored already).
+  if (options.duplicates !== 'skip') {
+    await duplicates.withinBatch(accepted.map(probe));
+    for (const row of accepted) {
+      const duplicate = duplicates.errors.get(row.index);
+      if (duplicate) results.set(row.index, failure(row.index, duplicate));
+    }
+    accepted = accepted.filter((row) => !results.has(row.index));
   }
 
   // Ids (time-ordered, as the column default would draw them) and record numbers, as a block.
@@ -276,8 +302,16 @@ export async function bulkInsert(
   }
 
   await afterInsert(tx, ctx, object, inserted);
-  for (const row of inserted)
-    results.set(row.index, { index: row.index, ok: true, id: row.id, version: 1 });
+  for (const row of inserted) {
+    const alerts = duplicates.alerts.get(row.index);
+    results.set(row.index, {
+      index: row.index,
+      ok: true,
+      id: row.id,
+      version: 1,
+      ...(alerts?.length ? { duplicates: alerts } : {}),
+    });
+  }
   return inputs.map((_, index) => results.get(index) as RowResult);
 }
 

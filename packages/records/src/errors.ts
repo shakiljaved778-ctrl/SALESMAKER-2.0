@@ -32,7 +32,10 @@ export class RecordError extends Error {
   constructor(
     readonly code: RecordErrorCode,
     readonly errors: FieldError[] = [],
-    /** On a version conflict: the record as it is now, so the caller can show what changed. */
+    /**
+     * On a version conflict: the record as it is now, so the caller can show what changed. On a
+     * Block duplicate rule: the rule and the matches the writer may see.
+     */
     readonly current?: Record<string, unknown>,
   ) {
     super(
