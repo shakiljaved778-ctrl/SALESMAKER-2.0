@@ -27,7 +27,7 @@ export {
   type OutboxMessage,
   type QueueName,
 } from './outbox.js';
-export { fieldHistory } from './field-history.js';
+export { fieldHistory, MONTHLY_LOGS, monthlyLogs } from './field-history.js';
 export { loadTenantMetadata } from './metadata.js';
 export { principalsOf, visibility, type Principals } from './sharing.js';
 export {

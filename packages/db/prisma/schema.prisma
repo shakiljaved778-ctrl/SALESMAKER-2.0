@@ -2447,3 +2447,409 @@ model DuplicateCandidate {
   @@index([tenantId, object, status, score])
   @@map("duplicate_candidate")
 }
+
+// ── P03: routing, SLA, scoring and notifications (migration 0023) ───────────────────────────
+
+enum AssignmentMethod {
+  ROUND_ROBIN
+  WEIGHTED
+  LOAD_BALANCED
+  SKILLS_BASED
+  STICKY_ACCOUNT
+  QUEUE
+  SPECIFIC_USER
+
+  @@map("assignment_method")
+}
+
+/// Assignment rules (§7.3): ordered entries; the first whose criteria match decides the owner.
+/// One default rule per object runs on create when a capture path names none.
+model AssignmentRule {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  id        String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object    String
+  name      String
+  active    Boolean  @default(true)
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedBy String?  @map("updated_by") @db.Uuid
+  version   Int      @default(1)
+
+  entries AssignmentRuleEntry[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, name])
+  @@map("assignment_rule")
+}
+
+model AssignmentRuleEntry {
+  tenantId      String           @map("tenant_id") @db.Uuid
+  id            String           @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  ruleId        String           @map("rule_id") @db.Uuid
+  sortOrder     Int              @default(0) @map("sort_order")
+  name          String?
+  /// Filter tree (@sm/query-engine) or a Boolean formula (@sm/formula); neither matches every record.
+  criteria      Json?
+  formula       String?
+  method        AssignmentMethod
+  /// Method options: status categories counted as open (LOAD_BALANCED), required skills
+  /// (SKILLS_BASED), what to do when nobody is available (fallback queue or user).
+  settings      Json             @default("{}")
+  targetUserId  String?          @map("target_user_id") @db.Uuid
+  targetQueueId String?          @map("target_queue_id") @db.Uuid
+  active        Boolean          @default(true)
+
+  rule    AssignmentRule         @relation(fields: [tenantId, ruleId], references: [tenantId, id], onDelete: Cascade)
+  members AssignmentPoolMember[]
+  cursor  RoundRobinCursor?
+
+  @@id([tenantId, id])
+  @@index([tenantId, ruleId, sortOrder])
+  @@map("assignment_rule_entry")
+}
+
+enum PoolMemberType {
+  USER
+  QUEUE
+  ORG_UNIT
+
+  @@map("pool_member_type")
+}
+
+/// Who an entry hands records to: users, a queue's members or an org unit's members.
+model AssignmentPoolMember {
+  tenantId   String         @map("tenant_id") @db.Uuid
+  id         String         @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  entryId    String         @map("entry_id") @db.Uuid
+  memberType PoolMemberType @map("member_type")
+  userId     String?        @map("user_id") @db.Uuid
+  queueId    String?        @map("queue_id") @db.Uuid
+  orgUnitId  String?        @map("org_unit_id") @db.Uuid
+  /// Share for WEIGHTED (any positive number; shares are relative).
+  weight     Int            @default(1)
+
+  entry AssignmentRuleEntry @relation(fields: [tenantId, entryId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@index([tenantId, entryId])
+  @@map("assignment_pool_member")
+}
+
+/// Where round robin and weighted entries left off; locked once per batch so concurrent writers
+/// never hand out the same turn.
+model RoundRobinCursor {
+  tenantId   String   @map("tenant_id") @db.Uuid
+  entryId    String   @map("entry_id") @db.Uuid
+  lastUserId String?  @map("last_user_id") @db.Uuid
+  /// Records handed to each user by this entry: { userId: count } (WEIGHTED).
+  counts     Json     @default("{}")
+  turns      BigInt   @default(0)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  entry AssignmentRuleEntry @relation(fields: [tenantId, entryId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, entryId])
+  @@map("round_robin_cursor")
+}
+
+/// How much a user can take per object (§7.3); null means no limit.
+model UserCapacity {
+  tenantId     String @map("tenant_id") @db.Uuid
+  userId       String @map("user_id") @db.Uuid
+  object       String
+  maxOpen      Int?   @map("max_open")
+  maxNewPerDay Int?   @map("max_new_per_day")
+
+  @@id([tenantId, userId, object])
+  @@map("user_capacity")
+}
+
+/// When a user takes new records: working hours in their time zone and out of office (§7.3).
+model UserAvailability {
+  tenantId     String    @map("tenant_id") @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  /// { mon: [["09:00","17:00"]], … }; null: always available.
+  workingHours Json?     @map("working_hours")
+  outOfOffice  Boolean   @default(false) @map("out_of_office")
+  /// Out of office ends on its own at this instant.
+  oooUntil     DateTime? @map("ooo_until") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([tenantId, userId])
+  @@map("user_availability")
+}
+
+/// Skill tags for SKILLS_BASED assignment (language, product, region).
+model UserSkill {
+  tenantId String @map("tenant_id") @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+  skill    String
+
+  @@id([tenantId, userId, skill])
+  @@index([tenantId, skill])
+  @@map("user_skill")
+}
+
+/// Every assignment decision (§7.3: "Why was this assigned to me?"); append-only, monthly partitions.
+model AssignmentLog {
+  tenantId        String            @map("tenant_id") @db.Uuid
+  id              String            @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  assignedAt      DateTime          @default(now()) @map("assigned_at") @db.Timestamptz(6)
+  object          String
+  recordId        String            @map("record_id") @db.Uuid
+  ruleId          String?           @map("rule_id") @db.Uuid
+  entryId         String?           @map("entry_id") @db.Uuid
+  method          AssignmentMethod?
+  /// USER or QUEUE.
+  ownerType       String            @map("owner_type")
+  ownerId         String            @map("owner_id") @db.Uuid
+  previousOwnerId String?           @map("previous_owner_id") @db.Uuid
+  /// [{ userId, skipped?: reason }]
+  candidates      Json              @default("[]")
+  reason          String
+  /// create, import, form, email, api, run, sla, recycle, take_next, accept.
+  source          String
+  actorId         String?           @map("actor_id") @db.Uuid
+
+  @@id([tenantId, assignedAt, id])
+  @@index([tenantId, object, recordId, assignedAt])
+  @@map("assignment_log")
+}
+
+/// A working calendar (§7.3 SLAs): weekly hours in a time zone, plus holidays.
+model BusinessHours {
+  tenantId  String   @map("tenant_id") @db.Uuid
+  id        String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  name      String
+  timezone  String
+  /// { mon: [["08:00","17:00"]], …, sun: [] }
+  hours     Json
+  isDefault Boolean  @default(false) @map("is_default")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy String?  @map("created_by") @db.Uuid
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int      @default(1)
+
+  holidays Holiday[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, name])
+  @@map("business_hours")
+}
+
+model Holiday {
+  tenantId        String   @map("tenant_id") @db.Uuid
+  id              String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  businessHoursId String   @map("business_hours_id") @db.Uuid
+  date            DateTime @db.Date
+  name            String
+  /// Every year on the same day and month.
+  recurring       Boolean  @default(false)
+
+  businessHours BusinessHours @relation(fields: [tenantId, businessHoursId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, businessHoursId, date])
+  @@map("holiday")
+}
+
+enum SlaMetric {
+  FIRST_TOUCH
+  QUALIFY
+
+  @@map("sla_metric")
+}
+
+/// A service-level target on records (§7.3), with its escalation ladder.
+model SlaPolicy {
+  tenantId          String    @map("tenant_id") @db.Uuid
+  id                String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object            String    @default("lead")
+  name              String
+  metric            SlaMetric
+  targetMinutes     Int       @map("target_minutes")
+  /// Count only working time on this calendar; null counts every minute.
+  businessHoursId   String?   @map("business_hours_id") @db.Uuid
+  /// Use the owner's time zone instead of the calendar's.
+  ownerTimezone     Boolean   @default(false) @map("owner_timezone")
+  /// Which records it applies to (filter tree); null: all.
+  criteria          Json?
+  /// Percent of the target at which to notify the owner, the manager, and reassign (null: never).
+  warnAtPercent     Int?      @default(50) @map("warn_at_percent")
+  managerAtPercent  Int?      @default(100) @map("manager_at_percent")
+  reassignAtPercent Int?      @map("reassign_at_percent")
+  reassignRuleId    String?   @map("reassign_rule_id") @db.Uuid
+  active            Boolean   @default(true)
+  sortOrder         Int       @default(0) @map("sort_order")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy         String?   @map("created_by") @db.Uuid
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version           Int       @default(1)
+
+  timers SlaTimer[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, name])
+  @@map("sla_policy")
+}
+
+enum SlaStatus {
+  RUNNING
+  MET
+  BREACHED
+  CANCELLED
+
+  @@map("sla_status")
+}
+
+/// One policy's clock on one record, from assignment to the touch or qualification.
+model SlaTimer {
+  tenantId     String    @map("tenant_id") @db.Uuid
+  id           String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  policyId     String    @map("policy_id") @db.Uuid
+  object       String
+  recordId     String    @map("record_id") @db.Uuid
+  ownerId      String    @map("owner_id") @db.Uuid
+  startedAt    DateTime  @map("started_at") @db.Timestamptz(6)
+  /// UTC instants computed with business-time arithmetic at start.
+  warnAt       DateTime? @map("warn_at") @db.Timestamptz(6)
+  dueAt        DateTime  @map("due_at") @db.Timestamptz(6)
+  reassignAt   DateTime? @map("reassign_at") @db.Timestamptz(6)
+  /// The next instant the worker must act at (null when finished).
+  nextActionAt DateTime? @map("next_action_at") @db.Timestamptz(6)
+  status       SlaStatus @default(RUNNING)
+  /// Ladder steps already taken (warn, manager, reassign): each acts once.
+  stepsDone    String[]  @default([]) @map("steps_done")
+  metAt        DateTime? @map("met_at") @db.Timestamptz(6)
+  breachedAt   DateTime? @map("breached_at") @db.Timestamptz(6)
+  version      Int       @default(1)
+
+  policy SlaPolicy @relation(fields: [tenantId, policyId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@index([tenantId, object, recordId])
+  @@index([tenantId, status, nextActionAt])
+  @@index([tenantId, ownerId, status])
+  @@map("sla_timer")
+}
+
+/// Lead recycling (§7.3): records in these status categories go back to a new status after N days.
+model RecycleRule {
+  tenantId         String   @map("tenant_id") @db.Uuid
+  id               String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object           String   @default("lead")
+  name             String
+  active           Boolean  @default(true)
+  /// System categories that recycle (UNQUALIFIED, NURTURE).
+  fromCategories   String[] @map("from_categories")
+  afterDays        Int      @map("after_days")
+  /// Further conditions (filter tree); null: all.
+  criteria         Json?
+  /// The picklist value set on recycle (an OPEN-category status).
+  targetStatus     String   @map("target_status")
+  assignmentRuleId String?  @map("assignment_rule_id") @db.Uuid
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy        String?  @map("created_by") @db.Uuid
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version          Int      @default(1)
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, name])
+  @@map("recycle_rule")
+}
+
+/// A rules-based scoring model (§7.4); the primary model writes the lead's score fields.
+model ScoringModel {
+  tenantId               String   @map("tenant_id") @db.Uuid
+  id                     String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  object                 String   @default("lead")
+  name                   String
+  active                 Boolean  @default(true)
+  isPrimary              Boolean  @default(false) @map("is_primary")
+  /// Weight of fit in the combined score, percent (engagement gets the rest).
+  fitWeight              Int      @default(60) @map("fit_weight")
+  engagementHalfLifeDays Int      @default(14) @map("engagement_half_life_days")
+  /// Lowest fit for each grade: { A: 75, B: 50, C: 25 } (below C is D).
+  gradeBands             Json     @default("{\"A\":75,\"B\":50,\"C\":25}") @map("grade_bands")
+  createdAt              DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy              String?  @map("created_by") @db.Uuid
+  updatedAt              DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version                Int      @default(1)
+
+  rules ScoringRule[]
+
+  @@id([tenantId, id])
+  @@unique([tenantId, object, name])
+  @@map("scoring_model")
+}
+
+enum ScoringRuleKind {
+  FIT
+  ENGAGEMENT
+
+  @@map("scoring_rule_kind")
+}
+
+model ScoringRule {
+  tenantId  String          @map("tenant_id") @db.Uuid
+  id        String          @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  modelId   String          @map("model_id") @db.Uuid
+  kind      ScoringRuleKind
+  name      String
+  /// FIT: a Boolean formula over the record.
+  formula   String?
+  /// ENGAGEMENT: the event counted (form_submission, inbound_email; activities from P04).
+  event     String?
+  points    Int
+  active    Boolean         @default(true)
+  sortOrder Int             @default(0) @map("sort_order")
+
+  model ScoringModel @relation(fields: [tenantId, modelId], references: [tenantId, id], onDelete: Cascade)
+
+  @@id([tenantId, id])
+  @@index([tenantId, modelId])
+  @@map("scoring_rule")
+}
+
+/// Score changes (§7.4); append-only, monthly partitions.
+model ScoreHistory {
+  tenantId   String   @map("tenant_id") @db.Uuid
+  id         String   @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  changedAt  DateTime @default(now()) @map("changed_at") @db.Timestamptz(6)
+  object     String
+  recordId   String   @map("record_id") @db.Uuid
+  modelId    String   @map("model_id") @db.Uuid
+  fit        Int
+  engagement Int
+  score      Int
+  grade      String
+  /// What moved it: rule names and events.
+  reason     Json     @default("[]")
+
+  @@id([tenantId, changedAt, id])
+  @@index([tenantId, object, recordId, changedAt])
+  @@map("score_history")
+}
+
+/// In-app notifications (§7.18, minimal until P04): assignment and SLA events for a user.
+model Notification {
+  tenantId  String    @map("tenant_id") @db.Uuid
+  id        String    @default(dbgenerated("uuid_generate_v7()")) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  /// assignment, sla_warning, sla_breach, sla_reassigned, …
+  kind      String
+  /// i18n parameters for the message (record name, policy, minutes).
+  params    Json      @default("{}")
+  object    String?
+  recordId  String?   @map("record_id") @db.Uuid
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  readAt    DateTime? @map("read_at") @db.Timestamptz(6)
+
+  @@id([tenantId, id])
+  @@index([tenantId, userId, readAt, createdAt])
+  @@map("notification")
+}

@@ -2,6 +2,7 @@ import {
   audit,
   fieldHistory,
   loadTenantMetadata,
+  monthlyLogs,
   outbox,
   withTenant,
   type CellPrisma,
@@ -174,14 +175,21 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
         const result = await outbox.maintainPartitions(prisma);
         const auditMade = await audit.maintainPartitions(prisma);
         const historyMade = await fieldHistory.maintainPartitions(prisma);
+        const logsMade = await monthlyLogs.maintainPartitions(prisma);
         if (
           result.created.length ||
           result.dropped.length ||
           auditMade.length ||
-          historyMade.length
+          historyMade.length ||
+          logsMade.length
         )
           logger.info(
-            { ...result, auditCreated: auditMade, fieldHistoryCreated: historyMade },
+            {
+              ...result,
+              auditCreated: auditMade,
+              fieldHistoryCreated: historyMade,
+              logsCreated: logsMade,
+            },
             'partitions maintained',
           );
         return;

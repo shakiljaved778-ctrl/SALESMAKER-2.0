@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 
 import { createCellPrisma, disposeCellPrisma, type CellPrisma } from '../src/client.js';
-import { fieldHistory } from '../src/field-history.js';
+import { fieldHistory, MONTHLY_LOGS, monthlyLogs } from '../src/field-history.js';
 import { withTenant, type TenantTransaction } from '../src/tenant.js';
 import { createTestCellDatabase, type TestCellDatabase } from '../src/testing/cell-database.js';
 
@@ -74,6 +74,47 @@ describe('field history (§7.17)', () => {
       inTenant(TENANT, ({ prisma: p }) => p.fieldHistory.deleteMany()),
     ).rejects.toThrow();
     expect(await inTenant(OTHER, ({ prisma: p }) => p.fieldHistory.count())).toBe(0);
+  });
+});
+
+describe('monthly logs (P03: assignment log, score history)', () => {
+  it('keep monthly partitions ahead, idempotently, and only for allow-listed logs', async () => {
+    expect(await monthlyLogs.maintainPartitions(prisma)).toEqual([]);
+    for (const parent of MONTHLY_LOGS) {
+      const parts = await prisma.$queryRawUnsafe<{ name: string }[]>(
+        `SELECT c.relname AS name FROM pg_inherits i JOIN pg_class c ON c.oid = i.inhrelid
+          WHERE i.inhparent = '${parent}'::regclass ORDER BY 1`,
+      );
+      expect(parts.length).toBeGreaterThanOrEqual(4);
+      expect(parts[0]?.name).toMatch(new RegExp(`^${parent}_p\\d{6}$`));
+    }
+    await expect(prisma.$queryRaw`SELECT maintain_monthly_partitions('lead')`).rejects.toThrow(
+      /not a partitioned log/,
+    );
+  });
+
+  it('are append-only for the runtime role', async () => {
+    await inTenant(TENANT, ({ prisma: p }) =>
+      p.assignmentLog.create({
+        data: {
+          tenantId: TENANT,
+          object: 'lead',
+          recordId: RECORD,
+          ownerType: 'USER',
+          ownerId: USER,
+          reason: 'round robin',
+          source: 'create',
+        },
+      }),
+    );
+    expect(await inTenant(TENANT, ({ prisma: p }) => p.assignmentLog.count())).toBe(1);
+    await expect(
+      inTenant(TENANT, ({ prisma: p }) => p.assignmentLog.updateMany({ data: { reason: 'x' } })),
+    ).rejects.toThrow();
+    await expect(
+      inTenant(TENANT, ({ prisma: p }) => p.scoreHistory.deleteMany()),
+    ).rejects.toThrow();
+    expect(await inTenant(OTHER, ({ prisma: p }) => p.assignmentLog.count())).toBe(0);
   });
 });
 

@@ -32,3 +32,21 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   avoid any cross-tenant lookup, the tenant id is part of the key (T04) and of the inbound address
   (`leads-{tenant}-{token}@…`, T21), and a form's URL carries the workspace (T19/T20), so each request opens the right
   tenant transaction before reading anything.
+
+### T02 — routing, SLA and scoring schema
+
+- **Migration 0023.** `assignment_rule` (one default per object, a partial unique index) with ordered
+  `assignment_rule_entry` rows (criteria as a filter tree or a formula; one of the seven methods; `settings` for
+  method options and the fallback when nobody is available), `assignment_pool_member` (users, a queue's members or an
+  org unit's members, with weights), `round_robin_cursor` (last user, per-user counts for WEIGHTED, turns),
+  `user_capacity`, `user_availability` (working hours, out of office with an end), `user_skill`, `assignment_log`,
+  `business_hours` (one default) and `holiday`, `sla_policy` (metric, target minutes, optional calendar and owner
+  time zone, ladder percentages, reassign rule) and `sla_timer` (instants precomputed at start, `next_action_at` for
+  the worker, `steps_done` so each ladder step acts once), `recycle_rule`, `scoring_model` (one primary per object,
+  fit weight, half-life, grade bands) and `scoring_rule`, `score_history`, `notification`. Checks keep the shapes
+  honest (a SPECIFIC_USER entry has a user, a pool member names exactly one kind, ladders in range, recycle only from
+  UNQUALIFIED/NURTURE, scoring points in −100…100).
+- **Partitioned logs.** `assignment_log` and `score_history` are append-only (no UPDATE, DELETE or TRUNCATE for
+  `sm_app`) and partitioned by month. One SQL function, `maintain_monthly_partitions(parent)`, keeps any
+  allow-listed log three months ahead with forced RLS on each partition; the worker's hourly partition job calls it
+  through `monthlyLogs.maintainPartitions` (`field_history` and `audit_log` keep their own functions).
