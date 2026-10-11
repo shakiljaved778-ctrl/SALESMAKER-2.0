@@ -50,3 +50,21 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   `sm_app`) and partitioned by month. One SQL function, `maintain_monthly_partitions(parent)`, keeps any
   allow-listed log three months ahead with forced RLS on each partition; the worker's hourly partition job calls it
   through `monthlyLogs.maintainPartitions` (`field_history` and `audit_log` keep their own functions).
+
+### T03 — capture and score fields
+
+- **Catalogue v3 (migration 0024).** Lead gains `lead_source_detail`, `captured_via` (picklist: entered by hand,
+  import, web form, email, API; defaults to `manual`), `utm_source`, `utm_medium`, `utm_campaign`, `utm_term`,
+  `utm_content`, `referrer`, `landing_page`, `gclid`, `fbclid`, and the read-only system fields `fit_score`,
+  `engagement_score`, `score` (0–100, checked) and `grade` (picklist A–D), with sort indexes for score and grade.
+  Capture fields are writable so forms, imports and integrations can set them; scores refuse writes (400
+  `read_only`) and are written only by the scoring engine (T16). `CATALOGUE_VERSION` 3 syncs the fields and values to
+  existing organisations.
+- **Layouts.** New organisations' lead layout gets a "Score" section and a "Source and tracking" section; capture
+  fields stay out of Details. Existing organisations keep their layouts (sync only inserts): admins add the sections
+  in the layout editor.
+- **Cleanup.** The unqualified-reason value set listed "other" twice; fixed.
+- **Saved view filters on hidden fields (P02 carry-over).** A shared view's saved conditions on fields the viewer
+  cannot read are pruned for that viewer (empty groups disappear), like its columns and sorts, so the view runs
+  instead of failing with 400; the administrator still gets the whole filter. The request's own quick filters stay
+  strict (`unknown_field`). Nothing leaks: sharing and FLS still apply to every row.

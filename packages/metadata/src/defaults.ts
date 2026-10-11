@@ -5,7 +5,7 @@ import type { StandardObjectApiName } from './types.js';
  * Revision of the standard metadata a tenant is provisioned with (P02). Bump it whenever the
  * catalogue or these defaults change what is synced; tenants behind it are synced on next use.
  */
-export const CATALOGUE_VERSION = 2;
+export const CATALOGUE_VERSION = 3;
 
 /** Standard objects whose tables and metadata exist so far; later phases add theirs. */
 export const METADATA_OBJECTS: readonly StandardObjectApiName[] = [
@@ -74,6 +74,8 @@ const VALUE_SETS = {
     'other',
   ],
   campaignStatus: ['planned', 'in_progress', 'completed', 'aborted'],
+  capturedVia: ['manual', 'import', 'web_form', 'email', 'api'],
+  grade: ['a', 'b', 'c', 'd'],
 } as const;
 export type ValueSetName = keyof typeof VALUE_SETS;
 
@@ -85,6 +87,8 @@ const PICKLIST_SETS: Partial<Record<StandardObjectApiName, Record<string, ValueS
     rating: 'rating',
     lead_source: 'leadSource',
     industry: 'industry',
+    captured_via: 'capturedVia',
+    grade: 'grade',
   },
   account: { type: 'accountType', industry: 'industry', rating: 'rating' },
   contact: { lead_source: 'leadSource' },
@@ -123,7 +127,9 @@ export function defaultPicklistValues(
     apiValue,
     labelKey: `picklists.${set}.${camelCase(apiValue)}`,
     ...(CATEGORY_SETS.has(set) ? { category: apiValue.toUpperCase() } : {}),
-    isDefault: i === 0 && (set === 'leadStatus' || set === 'forecastCategory'),
+    // A new lead is "New" and was entered by hand unless a capture path says otherwise.
+    isDefault:
+      i === 0 && (set === 'leadStatus' || set === 'forecastCategory' || set === 'capturedVia'),
   }));
 }
 
@@ -162,6 +168,21 @@ export interface LayoutSection {
 
 const ADDRESS = /(^|_)(street|city|state|postal_code|country)$/;
 const SYSTEM_SECTION = ['record_number', 'created_by', 'created_at', 'updated_by', 'updated_at'];
+/** Where a lead came from (§7.1) and its score (§7.4): own sections, out of Details. */
+const TRACKING_SECTION = [
+  'captured_via',
+  'lead_source_detail',
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_term',
+  'utm_content',
+  'referrer',
+  'landing_page',
+  'gclid',
+  'fbclid',
+];
+const SCORE_SECTION = ['score', 'grade', 'fit_score', 'engagement_score'];
 
 /**
  * The page layout every standard object starts with: details, address, description and system
@@ -176,8 +197,11 @@ export function defaultLayoutSections(
       !f.system &&
       !ADDRESS.test(f.apiName) &&
       f.type !== 'long_text' &&
-      f.apiName !== 'external_id',
+      f.apiName !== 'external_id' &&
+      !TRACKING_SECTION.includes(f.apiName),
   );
+  const tracking = TRACKING_SECTION.filter((name) => shown.some((f) => f.apiName === name));
+  const score = SCORE_SECTION.filter((name) => shown.some((f) => f.apiName === name));
   const address = shown.filter((f) => ADDRESS.test(f.apiName));
   const text = shown.filter((f) => f.type === 'long_text');
   const system = SYSTEM_SECTION.filter((name) => shown.some((f) => f.apiName === name));
@@ -211,6 +235,8 @@ export function defaultLayoutSections(
           ),
         ]
       : []),
+    ...(score.length ? [section('score', 2, score)] : []),
+    ...(tracking.length ? [section('tracking', 2, tracking)] : []),
     section('system', 2, system),
   ];
 }

@@ -1397,6 +1397,22 @@ model Lead {
   campaignId             String?                  @map("campaign_id") @db.Uuid
   doNotCall              Boolean                  @default(false) @map("do_not_call")
   emailOptOut            Boolean                  @default(false) @map("email_opt_out")
+  leadSourceDetail       String?                  @map("lead_source_detail")
+  capturedVia            String?                  @map("captured_via")
+  utmSource              String?                  @map("utm_source")
+  utmMedium              String?                  @map("utm_medium")
+  utmCampaign            String?                  @map("utm_campaign")
+  utmTerm                String?                  @map("utm_term")
+  utmContent             String?                  @map("utm_content")
+  referrer               String?
+  landingPage            String?                  @map("landing_page")
+  gclid                  String?
+  fbclid                 String?
+  /// Written by the primary scoring model (§7.4).
+  fitScore               Int?                     @map("fit_score")
+  engagementScore        Int?                     @map("engagement_score")
+  score                  Int?
+  grade                  String?
   convertedAt            DateTime?                @map("converted_at") @db.Timestamptz(6)
   convertedAccountId     String?                  @map("converted_account_id") @db.Uuid
   convertedContactId     String?                  @map("converted_contact_id") @db.Uuid
@@ -1446,6 +1462,10 @@ model Lead {
   @@index([tenantId, matchMobile])
   @@index([tenantId, matchNameKey])
   @@index([tenantId, matchCompanyKey])
+  @@index([tenantId, score, id])
+  @@index([tenantId, ownerId, score, id])
+  @@index([tenantId, grade, id])
+  @@index([tenantId, ownerId, grade, id])
   @@map("lead")
 }
 

@@ -31,6 +31,29 @@ const SHARED_PERMISSION = 'customize_application';
  * customize_application (shared views are audited). Views are checked by compiling them as their
  * author, and run as the viewer, so sharing and FLS apply to every row and column.
  */
+/**
+ * The filter without conditions on fields `readable` rejects; groups left empty disappear. No
+ * data leaks either way (sharing and FLS still apply to every row); the view just narrows less.
+ */
+export function pruneFilter(
+  node: FilterNode,
+  readable: (path: string) => boolean,
+): FilterNode | undefined {
+  if ('and' in node || 'or' in node) {
+    const kids = ('and' in node ? node.and : node.or)
+      .map((child) => pruneFilter(child, readable))
+      .filter((child): child is FilterNode => child !== undefined);
+    if (kids.length === 0) return undefined;
+    if (kids.length === 1) return kids[0];
+    return 'and' in node ? { and: kids } : { or: kids };
+  }
+  if ('not' in node) {
+    const inner = pruneFilter(node.not, readable);
+    return inner ? { not: inner } : undefined;
+  }
+  return readable(node.field) ? node : undefined;
+}
+
 @Injectable()
 export class ListViewsService {
   constructor(private readonly records: RecordsService) {}
@@ -285,7 +308,10 @@ export class ListViewsService {
     const fields = [...new Set([...names, ...columns])].filter(readable);
     if (fields.length === 0) fields.push('id');
     const conditions: FilterNode[] = [];
-    if (row.filter) conditions.push(row.filter as FilterNode);
+    // A shared view's own conditions on fields this viewer cannot read are dropped, like its
+    // columns and sorts; the request's quick filters are the viewer's own and stay strict.
+    const saved = row.filter ? pruneFilter(row.filter as FilterNode, readable) : undefined;
+    if (saved) conditions.push(saved);
     if (body.where) conditions.push(body.where as FilterNode);
     if (body.search && readable(object.nameField))
       conditions.push({ field: object.nameField, op: 'contains', value: body.search });

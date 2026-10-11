@@ -83,7 +83,14 @@ describe('standard metadata sync (P02 T01)', () => {
       const layout = await p.pageLayout.findFirstOrThrow({ where: { objectId: leadId } });
       expect(layout).toMatchObject({ name: 'Lead layout', isDefault: true });
       const sections = layout.sections as { key: string; fields: { field: string }[] }[];
-      expect(sections.map((s) => s.key)).toEqual(['details', 'address', 'description', 'system']);
+      expect(sections.map((s) => s.key)).toEqual([
+        'details',
+        'address',
+        'description',
+        'score',
+        'tracking',
+        'system',
+      ]);
       expect(sections[0]?.fields.map((f) => f.field)).toContain('company');
       expect(sections[0]?.fields.map((f) => f.field)).not.toContain('created_at');
       const compact = await p.compactLayout.findFirstOrThrow({ where: { objectId: leadId } });

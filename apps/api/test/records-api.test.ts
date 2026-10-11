@@ -341,6 +341,33 @@ describe('field-level security (§6.5)', () => {
   });
 });
 
+describe('capture and score fields (catalogue v3, P03)', () => {
+  it('records how a lead arrived, takes tracking fields, and keeps scores read-only', async () => {
+    const created = json(
+      await as(
+        'rep',
+        'POST',
+        '/v1/records/lead',
+        lead({ utm_source: 'newsletter', lead_source_detail: 'October issue' }),
+      ),
+    );
+    expect(created).toMatchObject({
+      captured_via: 'manual',
+      utm_source: 'newsletter',
+      lead_source_detail: 'October issue',
+    });
+    const scored = await as('rep', 'PATCH', `/v1/records/lead/${String(created['id'])}`, {
+      fields: { score: 90, grade: 'a' },
+    });
+    expect(scored.statusCode).toBe(400);
+    expect(json(scored)['errors']).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'score', code: 'read_only' }),
+      ]) as unknown,
+    );
+  });
+});
+
 describe('another workspace (cross-tenant denial)', () => {
   const objects: [string, Json][] = [
     ['lead', { last_name: 'Tenant', company: 'A' }],

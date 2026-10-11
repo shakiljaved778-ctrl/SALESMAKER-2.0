@@ -250,4 +250,27 @@ describe('field-level security in list views (§6.5)', () => {
     });
     expect(filtered.statusCode).toBe(400);
   });
+
+  it('drops saved conditions on a hidden field for that viewer instead of failing the view', async () => {
+    // Title is hidden from Standard Users by the test above.
+    const created = await f.call('admin', 'POST', base, {
+      name: 'Aurelia CTOs',
+      visibility: 'ALL',
+      columns: ['last_name', 'company'],
+      filter: {
+        and: [
+          { field: 'company', op: 'eq', value: 'Aurelia Bank' },
+          { field: 'title', op: 'eq', value: 'CTO' },
+        ],
+      },
+    });
+    expect(created.statusCode).toBe(201);
+    const results = `${base}/${String(json(created)['id'])}/results`;
+    // The administrator gets the whole filter: nobody has that title.
+    expect(items(await f.call('admin', 'POST', results, {}))).toEqual([]);
+    // The rep runs it without the title condition: their Aurelia Bank leads.
+    const rep = await f.call('rep', 'POST', results, {});
+    expect(rep.statusCode).toBe(200);
+    expect(items(rep).map((r) => r['last_name'])).toEqual(['Haddad']);
+  });
 });

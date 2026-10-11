@@ -344,7 +344,22 @@
         "convertedAt": "Converted at",
         "convertedAccountId": "Converted account",
         "convertedContactId": "Converted contact",
-        "convertedOpportunityId": "Converted opportunity"
+        "convertedOpportunityId": "Converted opportunity",
+        "leadSourceDetail": "Lead source detail",
+        "capturedVia": "Captured via",
+        "utmSource": "UTM source",
+        "utmMedium": "UTM medium",
+        "utmCampaign": "UTM campaign",
+        "utmTerm": "UTM term",
+        "utmContent": "UTM content",
+        "referrer": "Referrer",
+        "landingPage": "Landing page",
+        "gclid": "Google click ID",
+        "fbclid": "Meta click ID",
+        "fitScore": "Fit score",
+        "engagementScore": "Engagement score",
+        "score": "Score",
+        "grade": "Grade"
       }
     },
     "account": {
@@ -1327,6 +1342,19 @@
       "inProgress": "In progress",
       "completed": "Completed",
       "aborted": "Aborted"
+    },
+    "capturedVia": {
+      "manual": "Entered by hand",
+      "import": "Import",
+      "webForm": "Web form",
+      "email": "Email",
+      "api": "API"
+    },
+    "grade": {
+      "a": "A",
+      "b": "B",
+      "c": "C",
+      "d": "D"
     }
   },
   "layouts": {
@@ -1334,7 +1362,9 @@
       "details": "Details",
       "address": "Address",
       "description": "Description",
-      "system": "System information"
+      "system": "System information",
+      "score": "Score",
+      "tracking": "Source and tracking"
     }
   },
   "metadata": {

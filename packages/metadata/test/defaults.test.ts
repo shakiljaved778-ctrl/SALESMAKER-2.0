@@ -56,14 +56,25 @@ describe('standard metadata defaults', () => {
     }
   });
 
-  it('lays out details, address, description and system information', () => {
+  it('lays out details, address, description, score, tracking and system information', () => {
     const lead = standardObject('lead');
     const sections = defaultLayoutSections(lead?.fields ?? []);
     expect(sections.map((s) => [s.key, s.columns, s.labelKey])).toEqual([
       ['details', 2, 'layouts.sections.details'],
       ['address', 2, 'layouts.sections.address'],
       ['description', 1, 'layouts.sections.description'],
+      ['score', 2, 'layouts.sections.score'],
+      ['tracking', 2, 'layouts.sections.tracking'],
       ['system', 2, 'layouts.sections.system'],
+    ]);
+    // Capture fields have their own section, out of Details.
+    const details = sections.find((s) => s.key === 'details')?.fields.map((f) => f.field) ?? [];
+    expect(details).not.toContain('utm_source');
+    expect(sections.find((s) => s.key === 'score')?.fields.map((f) => f.field)).toEqual([
+      'score',
+      'grade',
+      'fit_score',
+      'engagement_score',
     ]);
     const names = sections.flatMap((s) => s.fields.map((f) => f.field));
     expect(names).not.toContain('id');
