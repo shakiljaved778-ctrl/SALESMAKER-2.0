@@ -12,6 +12,7 @@ export * from './routes/sessions.js';
 export * from './routes/users.js';
 export * from './routes/setup.js';
 export * from './routes/api-keys.js';
+export * from './routes/duplicates.js';
 export * from './routes/currency.js';
 export * from './routes/list-views.js';
 export * from './routes/record-page.js';

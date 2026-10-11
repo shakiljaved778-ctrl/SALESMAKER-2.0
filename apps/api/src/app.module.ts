@@ -57,6 +57,10 @@ import {
 } from './setup/setup.controller.js';
 import { SharingSetupService } from './setup/sharing-setup.service.js';
 import { ApiKeysController } from './setup/api-keys.controller.js';
+import { DedupeSetupController } from './setup/dedupe-setup.controller.js';
+import { DedupeSetupService } from './setup/dedupe-setup.service.js';
+import { DuplicatesController } from './records/duplicates.controller.js';
+import { DuplicatesService } from './records/duplicates.service.js';
 import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
@@ -112,6 +116,8 @@ export class AppModule {
         InvitationsController,
         PeopleSetupController,
         ApiKeysController,
+        DedupeSetupController,
+        DuplicatesController,
         SharingSetupController,
         CurrencyController,
         MetadataSetupController,
@@ -164,6 +170,8 @@ export class AppModule {
         RecordsService,
         ListViewsService,
         RecordPageService,
+        DuplicatesService,
+        DedupeSetupService,
         SystemPermissionGuard,
       ],
       exports: [

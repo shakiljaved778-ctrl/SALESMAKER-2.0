@@ -13,7 +13,7 @@ import {
   type RowResult,
   type WriteInput,
 } from '../src/index.js';
-import { startHarness, type Harness } from './support.js';
+import { allFields, startHarness, type Harness } from './support.js';
 
 const T = '01920000-0000-7000-8000-000000000d09';
 let h: Harness;
@@ -288,6 +288,47 @@ describe('duplicate rules on single writes (§7.2)', () => {
     );
     const withBlank = await create('rep', 'lead', { last_name: 'Blank3', company });
     expect(withBlank.duplicates?.[0]?.matches).toHaveLength(2);
+  });
+
+  it('never shows matches of a rule comparing a field the writer cannot read (§6.5)', async () => {
+    const company = fresh();
+    const email = `hidden@${company}.example`;
+    await create('rep', 'lead', { last_name: 'H', company, email });
+    // Matches the next lead (same company, both emails blank) under the matchBlank rule.
+    await create('rep', 'lead', { last_name: 'H0', company });
+    const hiddenEmail = (fn: (tx: TenantTransaction, ctx: RecordContext) => Promise<unknown>) =>
+      h.inTenant(async (tx) =>
+        fn(tx, await h.context(tx, users['rep'] ?? '', { fields: allFields({ lead: ['email'] }) })),
+      );
+    // The rule compares email and company; rep cannot read email but writes company.
+    await rule(
+      'lead',
+      [
+        { field: 'company', method: 'company' },
+        { field: 'email', method: 'email' },
+      ],
+      { matchBlank: true },
+    );
+    const alerted = (await hiddenEmail((tx, ctx) =>
+      createRecord(tx, ctx, 'lead', { fields: { last_name: 'H2', company } }),
+    )) as { duplicates?: unknown };
+    expect(alerted.duplicates).toBeUndefined();
+    // With email readable, the same write is alerted.
+    expect((await create('rep', 'lead', { last_name: 'H1', company })).duplicates).toHaveLength(1);
+    await rule(
+      'lead',
+      [
+        { field: 'company', method: 'company' },
+        { field: 'email', method: 'email' },
+      ],
+      { action: 'BLOCK', matchBlank: true },
+    );
+    const err = await refused(
+      hiddenEmail((tx, ctx) =>
+        createRecord(tx, ctx, 'lead', { fields: { last_name: 'H3', company } }),
+      ),
+    );
+    expect(err.current).toEqual({ rule: 'lead BLOCK', matches: [] });
   });
 
   it('skips duplicate rules when asked (merge writes the survivor)', async () => {

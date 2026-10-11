@@ -149,3 +149,20 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   row duplicating an earlier row of the same file is handled as if that row had been saved first (Block refuses
   it; Alert reports `{ batchIndex }`). A row that failed for another reason never counts as an earlier row.
   `bulkInsert(…, { duplicates: 'skip' })` serves the import's "create anyway" mode.
+
+### T07 — duplicates API
+
+- **Live check** `POST /v1/records/{object}/duplicates/check` (`fields` as typed, optional `id` when editing): runs
+  the rules that apply to a create (or an edit), returns `blocked` (a Block rule would refuse the save, whether or
+  not its matches are visible to the caller) and, per rule, the matches the caller can see with their names (read
+  through the Query Engine, so sharing and FLS apply again). Unknown or unreadable typed fields are ignored.
+- **Potential duplicates** `GET /v1/records/{object}/{id}/duplicates` for the record page: every active duplicate
+  rule's matching rule (each matching rule once), visible matches only.
+- **FLS.** A rule that compares a field the caller cannot read never shows matches, here or in a save's alerts
+  (otherwise typing values would reveal a hidden field's contents); a Block still applies, without names.
+- **Setup** `…/setup/matching-rules` and `…/setup/duplicate-rules` (CRUD, optimistic versions, Setup audit;
+  `view_setup` reads, `customize_application` changes). Conditions are checked with `conditionErrors` (known
+  field, a method that fits it, at least one keyed condition); a duplicate rule needs a matching rule of the same
+  object, existing bypass profiles and at least one of create/edit; a matching rule in use cannot be deleted (409).
+  `POST …/matching-rules/{id}/test` previews a rule for a record or typed values.
+- These routes are internal (UI); the published API reports a Block as 409 `duplicate_blocked` on writes.

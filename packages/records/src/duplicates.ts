@@ -1,5 +1,6 @@
 import type { TenantTransaction } from '@sm/db';
 import type { FieldMeta, ObjectMeta } from '@sm/metadata';
+import { fieldAccess } from '@sm/permissions';
 import { sharingPredicate } from '@sm/query-engine';
 import { sql, type RawBuilder } from 'kysely';
 
@@ -440,22 +441,45 @@ function profileOf(tx: TenantTransaction, ctx: RecordContext): Promise<string | 
   return found;
 }
 
-const blocked = (rule: DuplicateRuleDefinition, matches: readonly DuplicateMatch[]) =>
+/**
+ * Whether the writer may read every field the rule compares. Matches of a rule that compares a
+ * hidden field are never shown (they would reveal that field's values, §6.5); a Block still
+ * applies, without naming them.
+ */
+export function ruleReadable(
+  ctx: RecordContext,
+  object: ObjectMeta,
+  rule: MatchingRuleDefinition,
+): boolean {
+  return rule.conditions.every((c) => {
+    const f = object.fields.find((x) => x.apiName === c.field);
+    return f !== undefined && fieldAccess(ctx.permissions, object.apiName, c.field, f).read;
+  });
+}
+
+const blocked = (
+  rule: DuplicateRuleDefinition,
+  matches: readonly DuplicateMatch[],
+  readable: boolean,
+) =>
   new RecordError(
     'conflict',
     [{ field: '_record', code: 'duplicate_blocked', message: rule.name }],
     {
       rule: rule.name,
       // Only what the writer may see; a Block applies to records they cannot see too.
-      matches: matches.filter((m) => m.visible).map((m) => m.id ?? `#${String(m.batchIndex)}`),
+      matches: readable
+        ? matches.filter((m) => m.visible).map((m) => m.id ?? `#${String(m.batchIndex)}`)
+        : [],
     },
   );
 
 const alertOf = (
   rule: DuplicateRuleDefinition,
   matches: readonly DuplicateMatch[],
+  readable: boolean,
 ): DuplicateAlert | null => {
-  const shown = matches.filter((m) => m.visible);
+  const shown = readable ? matches.filter((m) => m.visible) : [];
   return shown.length
     ? {
         ruleId: rule.id,
@@ -508,9 +532,10 @@ export async function checkDuplicates(
     if (matches.length === 0) continue;
     if (rule.action === 'BLOCK') {
       const profile = rule.bypassProfileIds.length ? await profileOf(tx, ctx) : null;
-      if (!profile || !rule.bypassProfileIds.includes(profile)) throw blocked(rule, matches);
+      if (!profile || !rule.bypassProfileIds.includes(profile))
+        throw blocked(rule, matches, ruleReadable(ctx, object, rule.matchingRule));
     }
-    const alert = alertOf(rule, matches);
+    const alert = alertOf(rule, matches, ruleReadable(ctx, object, rule.matchingRule));
     if (alert) alerts.push(alert);
   }
   return alerts;
@@ -547,8 +572,8 @@ export function batchDuplicates(tx: TenantTransaction, ctx: RecordContext, objec
         );
         for (const [index, matches] of found) {
           if (rule.action === 'BLOCK' && !(await bypassed(rule)))
-            errors.set(index, blocked(rule, matches));
-          else note(index, alertOf(rule, matches));
+            errors.set(index, blocked(rule, matches, ruleReadable(ctx, object, rule.matchingRule)));
+          else note(index, alertOf(rule, matches, ruleReadable(ctx, object, rule.matchingRule)));
         }
       }
     },
@@ -563,8 +588,12 @@ export function batchDuplicates(tx: TenantTransaction, ctx: RecordContext, objec
             (m) => m.batchIndex !== undefined && !errors.has(m.batchIndex),
           );
           if (matches.length === 0) continue;
-          if (block) errors.set(p.index, blocked(rule, matches));
-          else note(p.index, alertOf(rule, matches));
+          if (block)
+            errors.set(
+              p.index,
+              blocked(rule, matches, ruleReadable(ctx, object, rule.matchingRule)),
+            );
+          else note(p.index, alertOf(rule, matches, ruleReadable(ctx, object, rule.matchingRule)));
         }
       }
     },

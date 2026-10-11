@@ -310,7 +310,7 @@ const idParam = SetupIdParam;
 const forbidden = { 403: { description: 'The caller lacks the required system permission' } };
 const list = <T extends z.ZodType>(item: T) => z.object({ items: z.array(item) });
 
-interface CrudNames {
+export interface CrudNames {
   list: string;
   get: string;
   create: string;
@@ -318,7 +318,7 @@ interface CrudNames {
   remove: string;
 }
 
-function crud<const N extends CrudNames>(
+export function setupCrud<const N extends CrudNames>(
   base: string,
   tag: string,
   noun: string,
@@ -411,7 +411,7 @@ const grantsRoute = (base: string, operationId: string, noun: string, detail: z.
 
 /** Setup → hierarchy, permissions, groups, queues and sharing (§6.2–6.4). */
 export const setupRoutes = {
-  ...crud(
+  ...setupCrud(
     '/v1/org-units',
     'setup',
     'org unit',
@@ -429,7 +429,7 @@ export const setupRoutes = {
       update: UpdateOrgUnitRequest,
     },
   ),
-  ...crud(
+  ...setupCrud(
     '/v1/profiles',
     'setup',
     'profile',
@@ -448,7 +448,7 @@ export const setupRoutes = {
     },
   ),
   putProfileGrants: grantsRoute('/v1/profiles', 'putProfileGrants', 'profile', ProfileDetail),
-  ...crud(
+  ...setupCrud(
     '/v1/permission-sets',
     'setup',
     'permission set',
@@ -472,7 +472,7 @@ export const setupRoutes = {
     'permission set',
     PermissionSetDetail,
   ),
-  ...crud(
+  ...setupCrud(
     '/v1/permission-set-groups',
     'setup',
     'permission set group',
@@ -490,7 +490,7 @@ export const setupRoutes = {
       update: UpdatePermissionSetGroupRequest,
     },
   ),
-  ...crud(
+  ...setupCrud(
     '/v1/groups',
     'setup',
     'public group',
@@ -508,7 +508,7 @@ export const setupRoutes = {
       update: UpdateGroupRequest,
     },
   ),
-  ...crud(
+  ...setupCrud(
     '/v1/queues',
     'setup',
     'queue',
@@ -548,7 +548,7 @@ export const setupRoutes = {
       ...forbidden,
     },
   }),
-  ...crud(
+  ...setupCrud(
     '/v1/sharing/rules',
     'setup',
     'sharing rule',

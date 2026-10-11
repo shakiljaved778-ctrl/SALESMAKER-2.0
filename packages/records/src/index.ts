@@ -2,6 +2,7 @@ export type { CurrencyConverter, RecordContext, RecordHooks } from './context.js
 export { RecordError, type FieldError, type RecordErrorCode } from './errors.js';
 export {
   createRecord,
+  hasAccess,
   updateRecord,
   type WriteInput,
   type WriteOptions,
@@ -81,6 +82,7 @@ export { backfillDerivedColumns, DERIVED_BACKFILL_TOPIC, DERIVED_VERSION } from 
 export {
   batchDuplicates,
   checkDuplicates,
+  ruleReadable,
   conditionErrors,
   DEFAULT_FUZZY_THRESHOLD,
   DUPLICATE_OBJECTS,
