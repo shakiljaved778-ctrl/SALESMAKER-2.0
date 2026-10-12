@@ -54,6 +54,7 @@ import {
   type RecordRow,
 } from './fields';
 import { ColumnChooser, MassActionDialog, SaveViewDialog, type MassKind } from './list-dialogs';
+import { IMPORTABLE } from '../imports/types';
 import { RecordEditor } from './record-editor';
 import { RecordPreview } from './record-preview';
 import { useRecordLabels } from './use-record-labels';
@@ -425,6 +426,18 @@ export function ObjectList({ object, section }: { object: string; section: strin
   };
 
   const menu: MenuEntry[] = [
+    ...(describe?.access.create && IMPORTABLE.has(object)
+      ? [
+          {
+            type: 'item' as const,
+            label: t('import'),
+            onSelect: () => {
+              router.push(`/${section}/import`);
+            },
+          },
+          { type: 'separator' as const },
+        ]
+      : []),
     ...(view && pinnedId !== view.id
       ? [{ type: 'item' as const, label: t('pin'), onSelect: () => void pin() }]
       : []),

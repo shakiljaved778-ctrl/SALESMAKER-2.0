@@ -96,6 +96,7 @@ export {
   type HighlightsPanelProps,
 } from './components/highlights-panel.js';
 export { Path, type PathLabels, type PathProps, type PathStage } from './components/path.js';
+export { Stepper, type StepperProps, type StepperStep } from './components/stepper.js';
 export {
   FormSection,
   FormSpan,

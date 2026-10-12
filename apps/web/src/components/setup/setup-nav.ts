@@ -16,8 +16,9 @@ export type SetupItemKey =
   | 'loginHistory'
   | 'setupAudit'
   | 'objects'
-  | 'currencies';
-export type SetupGroupKey = 'usersAccess' | 'sharing' | 'customize' | 'security';
+  | 'currencies'
+  | 'dataImport';
+export type SetupGroupKey = 'usersAccess' | 'sharing' | 'customize' | 'data' | 'security';
 
 export interface SetupItem {
   key: SetupItemKey;
@@ -54,6 +55,10 @@ export const SETUP_TREE: SetupGroup[] = [
       { key: 'objects', href: '/setup/objects' },
       { key: 'currencies', href: '/setup/currencies' },
     ],
+  },
+  {
+    key: 'data',
+    items: [{ key: 'dataImport', href: '/setup/data-import' }],
   },
   {
     key: 'security',

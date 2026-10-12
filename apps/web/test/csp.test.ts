@@ -33,3 +33,22 @@ describe('contentSecurityPolicy for hosted web forms', () => {
     expect(contentSecurityPolicy('n', { dev: false, https: true })).not.toContain('challenges');
   });
 });
+
+describe('contentSecurityPolicy and object storage', () => {
+  it('lets the app reach the storage origin for pre-signed uploads, not form pages', () => {
+    const csp = contentSecurityPolicy('n', {
+      dev: false,
+      https: true,
+      storageOrigin: 'https://files.example',
+    });
+    expect(csp).toContain("connect-src 'self' https://files.example");
+    expect(
+      contentSecurityPolicy('n', {
+        dev: false,
+        https: true,
+        embeddable: true,
+        storageOrigin: 'https://files.example',
+      }),
+    ).not.toContain('files.example');
+  });
+});

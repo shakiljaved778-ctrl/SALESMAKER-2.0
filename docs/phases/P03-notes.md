@@ -498,3 +498,28 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **On records:** `GET /v1/records/{lead|contact}/{id}/inbound-emails` (and `/{emailId}` with the text, parsed
   from the stored original) for callers who can see the record (404 otherwise) and read its email field (else an
   empty list).
+
+### T22 — import wizard (T6)
+
+- **Route** `/{leads|accounts|contacts}/import` (More list actions → Import; the API decides who may import), with
+  `?job=` so a reload resumes the job where it left off; `/{section}/import/history` lists the caller's imports and
+  Setup → **Data import history** (`/setup/data-import`, new "Data management" group) everyone's.
+- **Template T6:** centred 720 px column, `Stepper` on top (new in `@sm/ui`, with stories and a test: done steps
+  jade with a check, `aria-current="step"`), one decision per step, Back/Next in a sticky footer, a preview panel
+  on the mapping step. Steps: **Upload** (drop zone or picker, CSV/XLSX, upload progress) → **Headers** (sheet for
+  XLSX, header row, the first rows) → **Map fields** (column, example, field among the ones the caller can edit or
+  the row currency; date format, phone country code, owner by email/name/id, picklist value mapping in a dialog;
+  apply or save a mapping template) → **Duplicates** (skip/update/create with a matching rule; assignment rules,
+  default or chosen) → **Review** (summary and the 100-row test with its counts and problem rows) → **Import**
+  (live counts while the worker runs it, results download, failed rows, undo with confirmation).
+- **Uploads go straight to object storage** through the pre-signed PUT (§3.12), with progress. Two fixes made it
+  work: the S3 client now computes checksums only when S3 requires them (`requestChecksumCalculation:
+'WHEN_REQUIRED'`), since a pre-signed URL carrying the SDK's CRC32 of an empty body is refused with BadDigest; and
+  the app's CSP lets it reach the storage origin (`STORAGE_PUBLIC_ORIGIN`, connect-src; never on form pages). The
+  store must allow the web origins by CORS: `pnpm storage:setup` creates the local/CI bucket with CORS for the apex
+  and `*.{WEB_BASE_DOMAIN}`; cells get theirs from Terraform.
+- **Rules lists:** matching and assignment rules are listed for the choice only when the caller can read Setup; an
+  importer without view_setup can still import, creating every row.
+- **CI e2e** now starts SeaweedFS (`s3`), runs `pnpm storage:setup`, and starts the **worker** (imports, dry runs
+  and undo run there). New journey `e2e/imports.spec.ts`: upload, auto-mapping, skip a duplicate by a matching rule,
+  the test run's counts, the run (2 created, 1 skipped, 1 failed), failed rows, undo, history, axe on each screen.

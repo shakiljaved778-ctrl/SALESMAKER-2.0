@@ -1,8 +1,11 @@
 import { Readable } from 'node:stream';
 
 import {
+  CreateBucketCommand,
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
+  PutBucketCorsCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -76,11 +79,42 @@ export class S3StorageProvider implements StorageProvider {
       region: options.region,
       ...(options.endpoint ? { endpoint: options.endpoint } : {}),
       forcePathStyle: options.forcePathStyle ?? Boolean(options.endpoint),
+      // Checksums only when S3 requires them: a pre-signed PUT must not carry one computed
+      // over an empty body (the browser sends the file; the store would answer BadDigest).
+      requestChecksumCalculation: 'WHEN_REQUIRED',
       credentials: {
         accessKeyId: options.accessKeyId,
         secretAccessKey: options.secretAccessKey,
       },
     });
+  }
+
+  /**
+   * Development and CI only (cells are provisioned by Terraform): create the bucket if it is
+   * missing and let these web origins upload and download through pre-signed URLs.
+   */
+  async ensureBucket(origins: string[]): Promise<void> {
+    const Bucket = this.options.bucket;
+    try {
+      await this.client.send(new HeadBucketCommand({ Bucket }));
+    } catch {
+      await this.client.send(new CreateBucketCommand({ Bucket }));
+    }
+    await this.client.send(
+      new PutBucketCorsCommand({
+        Bucket,
+        CORSConfiguration: {
+          CORSRules: [
+            {
+              AllowedOrigins: origins,
+              AllowedMethods: ['PUT', 'GET'],
+              AllowedHeaders: ['*'],
+              MaxAgeSeconds: 3000,
+            },
+          ],
+        },
+      }),
+    );
   }
 
   presignPut(key: string, contentType: string, maxBytes: number, expiresInSeconds: number) {

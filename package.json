@@ -1,7 +1,7 @@
 {
   "name": "salesmaker",
   "private": true,
-  "description": "SalesMaker 2.0 — multi-tenant, AI-native CRM and sales-execution platform",
+  "description": "SalesMaker 2.0 \u2014 multi-tenant, AI-native CRM and sales-execution platform",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22.12"
@@ -21,6 +21,7 @@
     "db:rls-audit": "turbo run build --filter=@sm/db && pnpm --filter @sm/db db:rls-audit",
     "setup:dev": "node scripts/setup-dev.mjs",
     "db:setup": "node --env-file=.env scripts/db-setup.mjs",
+    "storage:setup": "node --env-file=.env scripts/storage-setup.mjs",
     "db:seed": "node --env-file=.env scripts/db-seed.mjs"
   },
   "devDependencies": {

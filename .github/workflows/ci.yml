@@ -124,18 +124,21 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Start Postgres (project image), Valkey and Mailpit
-        run: docker compose up -d --wait postgres valkey mailpit
+      - name: Start Postgres (project image), Valkey, Mailpit and object storage
+        run: docker compose up -d --wait postgres valkey mailpit s3
       - run: pnpm setup:dev
       - run: pnpm db:setup
       - run: pnpm turbo run build
-      - name: Start fakes, control-api, api and web
+      - run: pnpm storage:setup
+      - name: Start fakes, control-api, api, worker and web
         run: |
           (cd apps/fakes && nohup node --env-file=../../.env dist/main.js > ../../fakes.log 2>&1 &)
           (cd apps/control-api && nohup node --env-file=../../.env dist/main.js > ../../control-api.log 2>&1 &)
           (cd apps/api && nohup node --env-file=../../.env dist/main.js > ../../api.log 2>&1 &)
+          (cd apps/worker && nohup node --env-file=../../.env dist/main.js > ../../worker.log 2>&1 &)
           (cd apps/web && CONTROL_API_BASE_URL=http://localhost:4100 WEB_BASE_DOMAIN=localhost:3000 \
-            WEB_URL_SCHEME=http nohup pnpm start > ../../web.log 2>&1 &)
+            WEB_URL_SCHEME=http STORAGE_PUBLIC_ORIGIN=http://localhost:9000 \
+            nohup pnpm start > ../../web.log 2>&1 &)
           for url in localhost:4200/health localhost:4100/health localhost:4000/health localhost:3000/api/health; do
             for i in $(seq 1 60); do curl -sf "http://$url" > /dev/null && break; sleep 1; done
             curl -sf "http://$url" > /dev/null || { echo "$url did not come up"; exit 1; }

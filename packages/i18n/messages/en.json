@@ -572,7 +572,8 @@
       "usersAccess": "Users & access",
       "security": "Security",
       "sharing": "Sharing",
-      "customize": "Customize"
+      "customize": "Customize",
+      "data": "Data management"
     },
     "items": {
       "users": "Users",
@@ -587,7 +588,8 @@
       "loginHistory": "Login history",
       "setupAudit": "Setup audit trail",
       "objects": "Object manager",
-      "currencies": "Currencies & rates"
+      "currencies": "Currencies & rates",
+      "dataImport": "Data import history"
     },
     "forbidden": {
       "title": "Setup is for administrators",
@@ -1174,6 +1176,10 @@
       "rateInputHelp": "How many {code} make 1 {corporate}, up to 8 decimal places.",
       "rateInvalid": "Enter a positive number with up to 8 decimal places.",
       "recalculating": "Saved. Converted amounts are being recalculated."
+    },
+    "dataImport": {
+      "title": "Data import history",
+      "description": "Every import in this workspace. Open one to see its results or undo it."
     }
   },
   "settings": {
@@ -1460,7 +1466,8 @@
       "conflict": "Someone else changed this record. Reload to see their changes.",
       "saveFailed": "Couldn't save {field}.",
       "keyboardHint": "J and K move, X selects, E edits, Enter opens",
-      "name": "Name"
+      "name": "Name",
+      "import": "Import"
     },
     "views": {
       "saveTitle": "Save list view",
@@ -1670,6 +1677,178 @@
       "captchaFailed": "Please complete the security check again.",
       "rateLimited": "Too many submissions from your network. Please try again later.",
       "generic": "Something went wrong. Please try again."
+    }
+  },
+  "imports": {
+    "pageTitle": "Import",
+    "backTo": "Back to {objects}",
+    "stepsLabel": "Import steps",
+    "stepDone": "done",
+    "stepCurrent": "current step",
+    "steps": {
+      "upload": "Upload",
+      "headers": "Headers",
+      "mapping": "Map fields",
+      "duplicates": "Duplicates",
+      "review": "Review",
+      "run": "Import"
+    },
+    "titles": {
+      "upload": "Import {objects}",
+      "headers": "Check the headers",
+      "mapping": "Match columns to fields",
+      "duplicates": "Duplicates and routing",
+      "review": "Review and test",
+      "run": "Importing"
+    },
+    "actions": {
+      "upload": "Upload",
+      "next": "Next",
+      "back": "Back",
+      "start": "Start import"
+    },
+    "upload": {
+      "wrongType": "Choose a CSV or Excel (.xlsx) file.",
+      "noStorage": "File uploads are not available in this region yet.",
+      "failed": "The file could not be uploaded. Try again.",
+      "drop": "Drop a CSV or Excel file here",
+      "limits": "CSV up to 500 MB, Excel (.xlsx) up to 100 MB",
+      "choose": "Choose a file",
+      "chosen": "{name} ({size} KB)",
+      "uploading": "Uploading"
+    },
+    "headers": {
+      "sheet": "Sheet",
+      "headerRow": "Header row",
+      "headerRowHelp": "The row that names the columns.",
+      "sample": "The first rows of your file"
+    },
+    "mapping": {
+      "intro": "Columns matching a field are already chosen. Leave out the ones you do not need.",
+      "none": "Choose a field for at least one column.",
+      "template": "Use a saved mapping",
+      "templatePlaceholder": "Choose a mapping",
+      "saveTemplate": "Save this mapping as",
+      "saveTemplateAction": "Save mapping",
+      "templateSaved": "Mapping saved",
+      "templateTaken": "A mapping with that name already exists.",
+      "reread": "Read the file again",
+      "caption": "Columns and the fields they fill",
+      "column": "Column",
+      "example": "Example",
+      "field": "Field",
+      "skip": "Don’t import",
+      "currency": "Currency (ISO code)",
+      "untitled": "Column {n}",
+      "fieldFor": "Field for {column}",
+      "dateOrder": "Date format",
+      "dateIso": "As written (2026-03-31)",
+      "dateDmy": "Day/month/year",
+      "dateMdy": "Month/day/year",
+      "dateYmd": "Year/month/day",
+      "phoneCountry": "Country code for numbers without one",
+      "phoneCountryPlaceholder": "+974",
+      "ownerBy": "Find the owner by",
+      "ownerByEmail": "Email",
+      "ownerByName": "Name",
+      "ownerById": "User ID",
+      "mapValues": "{n, plural, =0 {Map values} other {Map values (#)}}",
+      "preview": "Preview",
+      "previewHint": "The first row as it will be imported.",
+      "valuesTitle": "Values in {column}",
+      "valuesHint": "Values that already match a choice by name need nothing here.",
+      "valueAsWritten": "As written",
+      "valueFor": "Value for {value}",
+      "otherValue": "Another value in the file",
+      "addValue": "Add"
+    },
+    "duplicates": {
+      "needRule": "Choose a matching rule, or create every row.",
+      "mode": "When a row matches an existing record",
+      "skip": "Skip the row",
+      "update": "Update the existing record",
+      "create": "Create a new record anyway",
+      "noRules": "There are no matching rules you can use, so every row is created.",
+      "rule": "Matching rule",
+      "rulePlaceholder": "Choose a rule",
+      "assign": "Run assignment rules",
+      "assignRule": "Assignment rule",
+      "assignRuleHelp": "Records without an owner in the file are routed by this rule.",
+      "defaultRule": "The default rule"
+    },
+    "review": {
+      "file": "File",
+      "columns": "Columns",
+      "columnsValue": "{n} of {of} imported",
+      "duplicates": "Duplicates",
+      "assignment": "Assignment rules",
+      "yes": "Run",
+      "no": "Not run",
+      "dryRun": "Test run",
+      "dryRunHint": "Runs the first 100 rows without saving anything.",
+      "dryRunning": "Testing",
+      "dryRunAgain": "Test again",
+      "dryRunAction": "Test the first 100 rows",
+      "dryRunResult": "{rows, plural, one {# row} other {# rows}} tested: {created} would be created, {updated} updated, {skipped} skipped and {failed} would fail.",
+      "problems": "Rows that would not import",
+      "row": "Row",
+      "outcome": "Outcome",
+      "reasons": "Reasons",
+      "failed": "Fails",
+      "skipped": "Skipped"
+    },
+    "run": {
+      "resultsUnavailable": "The results file is not available.",
+      "undoStarted": "Undoing the import",
+      "undoRefused": "This import can no longer be undone.",
+      "progress": "{done} of {total} rows",
+      "undoing": "Moving the imported records to the recycle bin…",
+      "processed": "{done, plural, one {# row} other {# rows}} imported so far",
+      "counts": {
+        "created": "Created",
+        "updated": "Updated",
+        "skipped": "Skipped",
+        "failed": "Failed"
+      },
+      "jobFailed": "The import stopped: {error}",
+      "download": "Download results",
+      "showFailed": "Show failed rows",
+      "undo": "Undo import",
+      "toList": "Go to the list",
+      "failedRows": "Failed rows",
+      "row": "Row",
+      "reasons": "Reasons",
+      "undoTitle": "Undo this import?",
+      "undoBody": "{n, plural, one {The record it created moves} other {The # records it created move}} to the recycle bin. Records it updated keep their changes."
+    },
+    "status": {
+      "uploaded": "Draft",
+      "ready": "Tested",
+      "queued": "Queued",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled",
+      "undoing": "Undoing",
+      "undone": "Undone"
+    },
+    "history": {
+      "link": "Import history",
+      "title": "Import history",
+      "newImport": "New import",
+      "unavailable": "Import history is not available.",
+      "emptyTitle": "No imports yet",
+      "emptyBody": "Imports you start appear here, with their results.",
+      "caption": "Imports, newest first",
+      "columns": {
+        "file": "File",
+        "status": "Status",
+        "created": "Created",
+        "updated": "Updated",
+        "failed": "Failed",
+        "by": "By",
+        "when": "Started"
+      }
     }
   }
 }

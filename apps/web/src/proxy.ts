@@ -5,6 +5,17 @@ import { contentSecurityPolicy } from './server/csp';
 /** `forms.{base}/{slug}/{formId}`: the cells' short form address (§7.1). */
 const SHORT_FORM_PATH = /^\/([a-z0-9][a-z0-9-]{0,62})\/([0-9a-f]{8}-[0-9a-f-]{27})\/?$/i;
 
+/** The configured object-storage origin, when it is a plain http(s) origin. */
+function storageOrigin(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw);
+    return /^https?:$/.test(url.protocol) ? url.origin : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Per-request CSP nonce (every page renders dynamically, so each gets its own). */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -21,6 +32,7 @@ export function proxy(request: NextRequest) {
     dev: process.env.NODE_ENV === 'development',
     https: process.env.WEB_URL_SCHEME !== 'http',
     embeddable: pathname.startsWith('/f/'),
+    storageOrigin: storageOrigin(process.env.STORAGE_PUBLIC_ORIGIN),
   });
   const headers = new Headers(request.headers);
   headers.set('x-nonce', nonce);
