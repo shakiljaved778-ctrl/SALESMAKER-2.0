@@ -288,3 +288,14 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Found on the way:** the automation consumer rejected `automation.lead_converted` (P02) and would have rejected
   `automation.record_merged` (T08), sending them to the dead-letter queue. Both are acknowledged now, and a test
   checks every `automation.*` topic RecordService emits against the consumer.
+
+### T14 — in-app notifications
+
+- **Writes** come from RecordService (`notify`, T13): `assignment` for a new owner who did not assign themselves,
+  `sla_warning`, `sla_breach` and `sla_escalation`. Each kind carries parameters, never field values, so a
+  notification never shows a field the reader could not see (§6.5); the UI words them per kind.
+- **API.** `GET /v1/notifications` (the caller's own, latest first, keyset cursor, `unread=true`, with the unread
+  count) and `POST /v1/notifications/read` (`ids` or `all`). Another user's ids are simply not updated.
+- **Realtime.** Every write emits `automation.notification_created` per user (acknowledged by the automation
+  consumer). The WebSocket gateway (`apps/realtime`, not built yet) will turn it into the "refresh your bell"
+  invalidation; until then the bell refreshes when fetched.

@@ -9,6 +9,7 @@ import { AuditController } from './audit/audit.controller.js';
 import { AuthEmailService } from './auth/auth-email.service.js';
 import { AuthController } from './auth/auth.controller.js';
 import { ApiKeysService } from './auth/api-keys.service.js';
+import { NotificationsController } from './auth/notifications.controller.js';
 import { AuthGuard } from './auth/auth.guard.js';
 import { AuthService } from './auth/auth.service.js';
 import { LoginHistoryService } from './auth/login-history.service.js';
@@ -141,6 +142,7 @@ export class AppModule {
         QueuesController,
         SlaPoliciesController,
         SlaController,
+        NotificationsController,
         SharingSetupController,
         CurrencyController,
         MetadataSetupController,

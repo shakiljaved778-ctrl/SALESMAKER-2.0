@@ -15,7 +15,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T11** `feat(routing): business hours and availability`
 - [x] **T12** `feat(routing): queue pick-up`
 - [x] **T13** `feat(sla): SLA policies and timers`
-- [ ] **T14** `feat(notifications): in-app notifications`
+- [x] **T14** `feat(notifications): in-app notifications`
 - [ ] **T15** `feat(routing): lead recycling`
 - [ ] **T16** `feat(scoring): rules-based scoring`
 - [ ] **T17** `feat(import): import engine`
