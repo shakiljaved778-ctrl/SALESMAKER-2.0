@@ -8,6 +8,7 @@ import { bulkCreate, type RowResult } from './bulk.js';
 import type { RecordContext } from './context.js';
 import { assignRecords, type AssignmentOutcome } from './assignment.js';
 import { batchDuplicates } from './duplicates.js';
+import { scoreRecords } from './scoring.js';
 import { RecordError, type FieldError } from './errors.js';
 import {
   activeRules,
@@ -308,6 +309,13 @@ export async function bulkInsert(
   }
 
   await afterInsert(tx, ctx, object, inserted);
+  if (object.apiName === 'lead')
+    await scoreRecords(
+      tx,
+      { metadata: ctx.metadata, timezone: ctx.timezone, ...(ctx.now ? { now: ctx.now } : {}) },
+      'lead',
+      inserted.map((r) => r.id),
+    );
   const assigned = options.assign
     ? new Map(
         (

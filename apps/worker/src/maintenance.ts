@@ -21,6 +21,9 @@ import {
   assignRecords,
   LEAD_RECYCLE_TOPIC,
   recycleLeads,
+  rescoreAll,
+  SCORE_NIGHTLY_TOPIC,
+  SCORE_RECALC_TOPIC,
   runDueDuplicateJobs,
   runDuplicateJob,
   runSlaTick,
@@ -313,6 +316,30 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
         else await eachTenant(deps, tick);
         return;
       }
+      case SCORE_RECALC_TOPIC:
+      case SCORE_NIGHTLY_TOPIC: {
+        const rescore = async (tenantId: string) => {
+          const inTenant = <T>(fn: (tx: TenantTransaction) => Promise<T>) =>
+            withTenant(prisma, { tenantId }, fn, { timeoutMs: 60_000, statementTimeoutMs: 30_000 });
+          const env = await inTenant(async (tx) => {
+            const settings = await tx.prisma.tenantSettings.findUnique({ where: { tenantId } });
+            const model = await tx.prisma.scoringModel.count({
+              where: { isPrimary: true, active: true },
+            });
+            if (!settings || model === 0) return null;
+            return {
+              metadata: new MetadataIndex(await loadTenantMetadata(tx, settings.metadataVersion)),
+              timezone: settings.defaultTimezone,
+            };
+          });
+          if (!env) return;
+          const changed = await rescoreAll(inTenant, env);
+          if (changed) logger.info({ tenantId, changed }, 'lead scores recalculated');
+        };
+        if (envelope.tenantId) await rescore(envelope.tenantId);
+        else await eachTenant(deps, rescore);
+        return;
+      }
       case LEAD_RECYCLE_TOPIC: {
         const recycle = async (tenantId: string) => {
           const inTenant = <T>(fn: (tx: TenantTransaction) => Promise<T>) =>
@@ -405,6 +432,11 @@ export async function scheduleMaintenance(queues: QueueSet): Promise<void> {
     LEAD_RECYCLE_TOPIC,
     { pattern: '23 3 * * *' },
     system(LEAD_RECYCLE_TOPIC),
+  );
+  await q.upsertJobScheduler(
+    SCORE_NIGHTLY_TOPIC,
+    { pattern: '7 2 * * *' },
+    system(SCORE_NIGHTLY_TOPIC),
   );
   await q.upsertJobScheduler(SLA_TICK_TOPIC, { every: 60_000 }, system(SLA_TICK_TOPIC));
   await q.upsertJobScheduler(

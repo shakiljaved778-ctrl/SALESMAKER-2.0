@@ -1,4 +1,4 @@
-import { LEAD_RECYCLE_TOPIC, SLA_TICK_TOPIC } from '@sm/records';
+import { LEAD_RECYCLE_TOPIC, SCORE_NIGHTLY_TOPIC, SLA_TICK_TOPIC } from '@sm/records';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createMaintenanceHandler } from '../src/maintenance.js';
@@ -87,10 +87,26 @@ describe('SLA tick on the maintenance queue (§7.3)', () => {
     const schedulers = await w.queues.get('maintenance').getJobSchedulers();
     expect(schedulers.map((s) => s.key)).toContain(SLA_TICK_TOPIC);
     expect(schedulers.map((s) => s.key)).toContain(LEAD_RECYCLE_TOPIC);
+    expect(schedulers.map((s) => s.key)).toContain(SCORE_NIGHTLY_TOPIC);
   });
 
-  it('recycles nothing for tenants without recycle rules', async () => {
+  it('recycles and rescores nothing for tenants without rules or models', async () => {
     const handler = createMaintenanceHandler({ controlPlane: w.controlPlane });
+    for (const topic of [SCORE_NIGHTLY_TOPIC])
+      await expect(
+        handler(
+          {
+            eventId: topic,
+            tenantId: null,
+            topic,
+            aggregateType: null,
+            aggregateId: null,
+            payload: {},
+            createdAt: new Date().toISOString(),
+          },
+          { prisma: w.prisma, logger: w.logger, job: undefined as never },
+        ),
+      ).resolves.toBeUndefined();
     await expect(
       handler(
         {

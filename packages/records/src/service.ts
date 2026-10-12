@@ -13,6 +13,7 @@ import { sql } from 'kysely';
 import type { RecordContext } from './context.js';
 import { assignRecords, type AssignmentEnv, type AssignmentOutcome } from './assignment.js';
 import { checkDuplicates, type DuplicateAlert } from './duplicates.js';
+import { scoreRecords } from './scoring.js';
 import { cancelSlaTimers, meetSlaTimers } from './sla.js';
 import { RecordError, type FieldError } from './errors.js';
 import { syncAfterWrite } from './shares.js';
@@ -581,6 +582,14 @@ async function write(
       payload: { object: object.apiName, id, changedFields: ['stage'] },
     });
   await outbox.emit(tx, events);
+  // Scores follow the record (§7.4): derived columns, no version bump.
+  if (object.apiName === 'lead')
+    await scoreRecords(
+      tx,
+      { metadata: ctx.metadata, timezone: ctx.timezone, ...(ctx.now ? { now: ctx.now } : {}) },
+      'lead',
+      [id],
+    );
   // Lead lifecycle and SLA (§7.3): qualifying or converting meets the QUALIFY clock; a lead
   // marked unqualified leaves play and its clocks stop.
   if (object.apiName === 'lead' && changedSet.has('status')) {

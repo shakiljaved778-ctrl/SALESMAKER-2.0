@@ -68,6 +68,8 @@ import { RoutingSetupService } from './setup/routing-setup.service.js';
 import { AssignmentController, AssignmentRulesController } from './setup/assignment.controller.js';
 import { AssignmentSetupService } from './setup/assignment-setup.service.js';
 import { RecycleSetupService } from './setup/recycle-setup.service.js';
+import { ScoreHistoryController, ScoringModelsController } from './setup/scoring.controller.js';
+import { ScoringSetupService } from './setup/scoring-setup.service.js';
 import {
   RecycleRulesController,
   SlaController,
@@ -149,6 +151,8 @@ export class AppModule {
         SlaController,
         NotificationsController,
         RecycleRulesController,
+        ScoringModelsController,
+        ScoreHistoryController,
         SharingSetupController,
         CurrencyController,
         MetadataSetupController,
@@ -207,6 +211,7 @@ export class AppModule {
         AssignmentSetupService,
         SlaSetupService,
         RecycleSetupService,
+        ScoringSetupService,
         SystemPermissionGuard,
       ],
       exports: [

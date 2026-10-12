@@ -312,3 +312,22 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Worker** `maintenance.lead_recycle` nightly (03:23 UTC), every tenant with active rules, until nothing is left.
 - **Setup → Lead recycling** CRUD (`/v1/setup/recycle-rules`): the target must be an open lead status, criteria must
   compile, the assignment rule must be a lead rule; clearing criteria applies the rule to every lead.
+
+### T16 — rules-based scoring
+
+- **Model.** One primary model per object (leads in P03) with FIT rules (a Boolean formula worth −100…100 points)
+  and ENGAGEMENT rules (points per `form_submission` or `inbound_email`; activities join in P04). Fit is the sum of
+  matched rules capped 0–100 and decides the grade (bands A/B/C, below C is D); engagement sums each event's points
+  halved every `engagement_half_life_days`, capped 0–100; score = fit and engagement weighted by `fit_weight`, 1–100.
+- **One statement per batch.** FIT formulas compile to SQL (`compileToSql`), so scoring 1,000 leads is one select
+  for fit (which rules matched, for the reason) and one for events. Formulas that cannot compile (cross-object fields,
+  pending-write functions) are refused in Setup.
+- **When.** On every lead write through RecordService (create, update, bulk insert), after the model changes (Setup
+  emits `maintenance.score_recalc`; the worker rescores the tenant in keyset batches), and nightly
+  (`maintenance.score_nightly`, 02:07 UTC) so engagement decays. Capture paths (T19, T21) rescore after recording
+  their events.
+- **Derived columns.** `fit_score`, `engagement_score`, `score`, `grade` are written without a version bump or audit
+  (system fields, like match keys); a `score_history` row records each change with its reasons. History keeps the
+  grade letter (A–D); the lead's picklist value is lower case (a–d).
+- **API.** Setup → Lead scoring CRUD (`/v1/setup/scoring-models`, rules replaced as a whole, one primary) and
+  `GET /v1/records/lead/{id}/score-history` (visible leads; empty when the score field is hidden by FLS).

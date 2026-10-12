@@ -149,3 +149,13 @@ export {
   type SlaTickResult,
 } from './sla.js';
 export { LEAD_RECYCLE_TOPIC, RECYCLE_CATEGORIES, recycleLeads } from './recycle.js';
+export {
+  fitRuleError,
+  gradeOf,
+  rescoreAll,
+  SCORE_NIGHTLY_TOPIC,
+  SCORE_RECALC_TOPIC,
+  scoreRecords,
+  SCORING_EVENTS,
+  type ScoreResult,
+} from './scoring.js';
