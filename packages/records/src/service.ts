@@ -13,6 +13,7 @@ import { sql } from 'kysely';
 import type { RecordContext } from './context.js';
 import { assignRecords, type AssignmentEnv, type AssignmentOutcome } from './assignment.js';
 import { checkDuplicates, type DuplicateAlert } from './duplicates.js';
+import { cancelSlaTimers, meetSlaTimers } from './sla.js';
 import { RecordError, type FieldError } from './errors.js';
 import { syncAfterWrite } from './shares.js';
 import { hasMoney, ident, readStored, toColumns, type StoredRecord } from './storage.js';
@@ -580,6 +581,17 @@ async function write(
       payload: { object: object.apiName, id, changedFields: ['stage'] },
     });
   await outbox.emit(tx, events);
+  // Lead lifecycle and SLA (§7.3): qualifying or converting meets the QUALIFY clock; a lead
+  // marked unqualified leaves play and its clocks stop.
+  if (object.apiName === 'lead' && changedSet.has('status')) {
+    const category = ctx.metadata
+      .field('lead', 'status')
+      ?.picklistValues.find((v) => v.apiValue === values['status'])?.category;
+    const now = ctx.now?.() ?? new Date();
+    if (category === 'QUALIFIED' || category === 'CONVERTED')
+      await meetSlaTimers(tx, 'lead', id, 'QUALIFY', now);
+    if (category === 'UNQUALIFIED') await cancelSlaTimers(tx, 'lead', [id]);
+  }
   return { id, version, recordNumber, changed, ...(duplicates.length ? { duplicates } : {}) };
 }
 

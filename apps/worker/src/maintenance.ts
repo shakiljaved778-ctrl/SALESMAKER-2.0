@@ -7,6 +7,7 @@ import {
   withTenant,
   type CellPrisma,
   type ChainResult,
+  type TenantTransaction,
 } from '@sm/db';
 import { MetadataIndex } from '@sm/metadata';
 import {
@@ -17,8 +18,11 @@ import {
   DUPLICATE_SCHEDULE_TOPIC,
   purgeRecycleBin,
   recalculateCorporateAmounts,
+  assignRecords,
   runDueDuplicateJobs,
   runDuplicateJob,
+  runSlaTick,
+  SLA_TICK_TOPIC,
 } from '@sm/records';
 import type { ControlPlane } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
@@ -263,6 +267,50 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
         else await eachTenant(deps, due);
         return;
       }
+      case SLA_TICK_TOPIC: {
+        const tick = async (tenantId: string) => {
+          const now = new Date();
+          const inTenant = <T>(fn: (tx: TenantTransaction) => Promise<T>) =>
+            withTenant(prisma, { tenantId }, fn, { timeoutMs: 60_000, statementTimeoutMs: 30_000 });
+          for (;;) {
+            const step = await inTenant(async (tx) => {
+              const result = await runSlaTick(tx, now);
+              // Reassignment through the policy's rule, in the same transaction as the step.
+              const byRule = new Map<string, { object: string; ids: string[] }>();
+              for (const r of result.reassign) {
+                const key = `${r.ruleId}|${r.object}`;
+                const entry = byRule.get(key) ?? { object: r.object, ids: [] };
+                entry.ids.push(r.recordId);
+                byRule.set(key, entry);
+              }
+              if (byRule.size) {
+                const settings = await tx.prisma.tenantSettings.findUniqueOrThrow({
+                  where: { tenantId },
+                });
+                const metadata = new MetadataIndex(
+                  await loadTenantMetadata(tx, settings.metadataVersion),
+                );
+                for (const [key, { object, ids }] of byRule)
+                  await assignRecords(
+                    tx,
+                    { metadata, actorId: null, timezone: settings.defaultTimezone, now: () => now },
+                    object,
+                    ids,
+                    { source: 'sla', ruleId: key.split('|')[0] ?? null },
+                  );
+              }
+              return result;
+            });
+            const acted = step.warned + step.breached + step.escalated + step.reassign.length;
+            if (acted)
+              logger.info({ tenantId, ...step, reassign: step.reassign.length }, 'sla steps taken');
+            if (acted === 0) break;
+          }
+        };
+        if (envelope.tenantId) await tick(envelope.tenantId);
+        else await eachTenant(deps, tick);
+        return;
+      }
       case RECYCLE_PURGE_TOPIC: {
         const now = new Date();
         const purge = async (tenantId: string) => {
@@ -313,6 +361,7 @@ export async function scheduleMaintenance(queues: QueueSet): Promise<void> {
     { every: 3_600_000, immediately: true },
     system(DERIVED_BACKFILL_TOPIC),
   );
+  await q.upsertJobScheduler(SLA_TICK_TOPIC, { every: 60_000 }, system(SLA_TICK_TOPIC));
   await q.upsertJobScheduler(
     DUPLICATE_SCHEDULE_TOPIC,
     { every: 3_600_000 },

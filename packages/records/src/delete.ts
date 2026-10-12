@@ -7,6 +7,7 @@ import { sql } from 'kysely';
 import type { RecordContext } from './context.js';
 import { RecordError } from './errors.js';
 import { syncAfterWrite } from './shares.js';
+import { cancelSlaTimers } from './sla.js';
 import { ident, readStored } from './storage.js';
 
 /** Days a deleted record stays restorable (§7.5). */
@@ -142,8 +143,10 @@ export async function deleteRecord(
       cascaded += 1;
     }
   }
-  for (const [name, values, recordId] of gone)
+  for (const [name, values, recordId] of gone) {
     await syncAfterWrite(tx, name, recordId, derivedOf(values), null);
+    await cancelSlaTimers(tx, name, [recordId]);
+  }
   await audit.record(tx, {
     action: 'record.deleted',
     object: objectName,

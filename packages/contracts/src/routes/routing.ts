@@ -402,3 +402,159 @@ export const queueRoutes = {
     },
   }),
 };
+
+// ── SLA policies and timers (§7.3) ──────────────────────────────────────────────────────────
+const Percent = z.number().int();
+export const SlaPolicyDto = z
+  .object({
+    id: Uuid,
+    object: z.literal('lead'),
+    name: z.string(),
+    metric: z.enum(['FIRST_TOUCH', 'QUALIFY']),
+    targetMinutes: z.number().int(),
+    businessHoursId: Uuid.nullable(),
+    ownerTimezone: z.boolean(),
+    criteria: z.unknown().optional(),
+    warnAtPercent: Percent.nullable(),
+    managerAtPercent: Percent.nullable(),
+    reassignAtPercent: Percent.nullable(),
+    reassignRuleId: Uuid.nullable(),
+    active: z.boolean(),
+    sortOrder: z.number().int(),
+    version: z.number().int(),
+  })
+  .meta({ id: 'SlaPolicy' });
+
+const SlaFields = {
+  metric: z.enum(['FIRST_TOUCH', 'QUALIFY']),
+  /** Minutes of (business) time to the target. */
+  targetMinutes: z.number().int().min(1).max(525_600),
+  businessHoursId: Uuid.nullable(),
+  ownerTimezone: z.boolean(),
+  criteria: z.unknown().nullable(),
+  warnAtPercent: z.number().int().min(1).max(99).nullable(),
+  managerAtPercent: z.number().int().min(1).max(500).nullable(),
+  reassignAtPercent: z.number().int().min(1).max(500).nullable(),
+  reassignRuleId: Uuid.nullable(),
+  active: z.boolean(),
+  sortOrder: z.number().int().min(0).max(1000),
+};
+export const CreateSlaPolicyRequest = z
+  .object({
+    object: z.literal('lead').default('lead'),
+    name: Name,
+    metric: SlaFields.metric,
+    targetMinutes: SlaFields.targetMinutes,
+    businessHoursId: SlaFields.businessHoursId.default(null),
+    ownerTimezone: SlaFields.ownerTimezone.default(false),
+    criteria: SlaFields.criteria.optional(),
+    warnAtPercent: SlaFields.warnAtPercent.default(50),
+    managerAtPercent: SlaFields.managerAtPercent.default(100),
+    reassignAtPercent: SlaFields.reassignAtPercent.default(null),
+    reassignRuleId: SlaFields.reassignRuleId.default(null),
+    active: SlaFields.active.default(true),
+    sortOrder: SlaFields.sortOrder.default(0),
+  })
+  .strict();
+export const UpdateSlaPolicyRequest = z
+  .object({
+    name: Name.optional(),
+    metric: SlaFields.metric.optional(),
+    targetMinutes: SlaFields.targetMinutes.optional(),
+    businessHoursId: SlaFields.businessHoursId.optional(),
+    ownerTimezone: SlaFields.ownerTimezone.optional(),
+    criteria: SlaFields.criteria.optional(),
+    warnAtPercent: SlaFields.warnAtPercent.optional(),
+    managerAtPercent: SlaFields.managerAtPercent.optional(),
+    reassignAtPercent: SlaFields.reassignAtPercent.optional(),
+    reassignRuleId: SlaFields.reassignRuleId.optional(),
+    active: SlaFields.active.optional(),
+    sortOrder: SlaFields.sortOrder.optional(),
+    version: Version,
+  })
+  .strict();
+
+export const SlaTimerDto = z
+  .object({
+    id: Uuid,
+    policy: z.object({ id: Uuid, name: z.string(), metric: z.enum(['FIRST_TOUCH', 'QUALIFY']) }),
+    ownerId: Uuid,
+    startedAt: z.iso.datetime(),
+    warnAt: z.iso.datetime().nullable(),
+    dueAt: z.iso.datetime(),
+    metAt: z.iso.datetime().nullable(),
+    breachedAt: z.iso.datetime().nullable(),
+    status: z.enum(['RUNNING', 'MET', 'BREACHED', 'CANCELLED']),
+    /** For chips: running and past the warning point is at risk. */
+    state: z.enum(['on_track', 'at_risk', 'breached', 'met', 'cancelled']),
+  })
+  .meta({ id: 'SlaTimer' });
+
+export const SlaStatusRequest = z
+  .object({ object: z.literal('lead'), ids: z.array(Uuid).min(1).max(200) })
+  .strict();
+
+const LeadParam = z.object({ id: Uuid });
+export const slaRoutes = {
+  ...setupCrud(
+    '/v1/setup/sla-policies',
+    'setup',
+    'SLA policy',
+    {
+      list: 'listSlaPolicies',
+      get: 'getSlaPolicy',
+      create: 'createSlaPolicy',
+      update: 'updateSlaPolicy',
+      remove: 'deleteSlaPolicy',
+    },
+    {
+      item: SlaPolicyDto,
+      detail: SlaPolicyDto,
+      create: CreateSlaPolicyRequest,
+      update: UpdateSlaPolicyRequest,
+    },
+  ),
+  touchLead: defineRoute({
+    method: 'post',
+    path: '/v1/records/lead/{id}/touch',
+    operationId: 'touchLead',
+    summary: 'Record a first touch on a lead (stops its first-touch SLA clocks)',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { params: LeadParam },
+    responses: {
+      200: { description: 'Clocks stopped', body: z.object({ met: z.number().int() }) },
+      403: { description: 'Edit access to the lead is needed' },
+    },
+  }),
+  recordSla: defineRoute({
+    method: 'get',
+    path: '/v1/records/lead/{id}/sla',
+    operationId: 'getLeadSla',
+    summary: 'A lead’s SLA clocks',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { params: LeadParam },
+    responses: { 200: { description: 'Clocks', body: z.object({ items: z.array(SlaTimerDto) }) } },
+  }),
+  slaStatus: defineRoute({
+    method: 'post',
+    path: '/v1/sla/status',
+    operationId: 'slaStatus',
+    summary: 'SLA chips for a page of records (only records the caller can see)',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { body: SlaStatusRequest },
+    responses: {
+      200: {
+        description: 'Clocks per record',
+        body: z.object({
+          items: z.array(z.object({ recordId: Uuid, timers: z.array(SlaTimerDto) })),
+        }),
+      },
+    },
+  }),
+};

@@ -66,6 +66,8 @@ import {
 import { RoutingSetupService } from './setup/routing-setup.service.js';
 import { AssignmentController, AssignmentRulesController } from './setup/assignment.controller.js';
 import { AssignmentSetupService } from './setup/assignment-setup.service.js';
+import { SlaController, SlaPoliciesController } from './setup/sla.controller.js';
+import { SlaSetupService } from './setup/sla-setup.service.js';
 import {
   DuplicateCandidatesController,
   DuplicateJobsController,
@@ -137,6 +139,8 @@ export class AppModule {
         AssignmentRulesController,
         AssignmentController,
         QueuesController,
+        SlaPoliciesController,
+        SlaController,
         SharingSetupController,
         CurrencyController,
         MetadataSetupController,
@@ -193,6 +197,7 @@ export class AppModule {
         DedupeSetupService,
         RoutingSetupService,
         AssignmentSetupService,
+        SlaSetupService,
         SystemPermissionGuard,
       ],
       exports: [

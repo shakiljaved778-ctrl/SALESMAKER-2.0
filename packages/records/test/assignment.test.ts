@@ -286,7 +286,7 @@ describe('assignment methods (§7.3)', () => {
       p.outboxEvent.findMany({ where: { aggregateId: id ?? '' }, select: { topic: true } }),
     );
     expect(events.map((e) => e.topic)).toEqual(
-      expect.arrayContaining(['automation.owner_changed', 'assignment.assigned']) as unknown,
+      expect.arrayContaining(['automation.owner_changed']) as unknown,
     );
   });
 });

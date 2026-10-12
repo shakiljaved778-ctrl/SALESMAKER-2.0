@@ -137,3 +137,14 @@ export {
   type AssignmentOutcome,
   type EntrySettings,
 } from './assignment.js';
+export {
+  cancelSlaTimers,
+  meetSlaTimers,
+  notify,
+  runSlaTick,
+  SLA_TICK_TOPIC,
+  startSlaTimers,
+  stepInstants,
+  type SlaStep,
+  type SlaTickResult,
+} from './sla.js';

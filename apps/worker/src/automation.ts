@@ -8,6 +8,10 @@ export const RECORD_EVENTS = new Set([
   'automation.record_restored',
   'automation.owner_changed',
   'automation.stage_changed',
+  'automation.record_merged',
+  'automation.lead_converted',
+  // In-app notifications (P03): the realtime gateway's cue to refresh a user's bell.
+  'automation.notification_created',
 ]);
 
 /**

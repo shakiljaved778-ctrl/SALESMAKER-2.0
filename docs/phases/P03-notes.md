@@ -263,3 +263,28 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   (409 when no queue owns the record any more). Both need edit on the object. Queue views themselves are list views
   filtered on the owner: queue members already see what their queues own (the visibility closure includes queue
   ownership and is rebuilt on membership changes).
+
+### T13 — SLA policies and timers
+
+- **Clocks start at assignment** (the assignment engine and queue pick-up call `startSlaTimers` in the same
+  transaction): every active lead policy whose criteria match starts once per record (a cancelled clock may start
+  again). Its ladder is computed at start in UTC with business-time arithmetic over the policy's business hours (or
+  every minute without), in the owner's time zone when the policy says so: warn at `warn_at_percent`, breach at
+  100 %, the manager at `manager_at_percent` (up to 500 %), reassign at `reassign_at_percent` through the chosen rule.
+  Open clocks (running, or breached and not yet met) follow the record to a new owner and keep running.
+- **Stopping.** First touch: `POST /v1/records/lead/{id}/touch` (edit access; P04's activity logging will call the
+  same `meetSlaTimers`). Qualify: a lead moved to a QUALIFIED or CONVERTED status. A clock stopped late stays BREACHED
+  with its `met_at`. Unqualified or deleted leads cancel their running clocks.
+- **Worker** `maintenance.sla_tick` every minute, per tenant: claims due timers `FOR UPDATE SKIP LOCKED` in batches
+  of 500 and acts on each step once (`steps_done`): notifications (`sla_warning`, `sla_breach`, `sla_escalation` to
+  the owner's manager; queue owners get none), breach status and audit, and reassignment through the assignment
+  engine with source `sla`. Loops until nothing is due.
+- **API.** Setup → SLA policies CRUD (criteria checked, business hours and reassignment rule must exist, a
+  reassignment step needs a rule; clearing criteria applies the policy to every lead), `GET /v1/records/lead/{id}/sla`
+  and `POST /v1/sla/status` (up to 200 ids, only visible ones) with a chip state: on track, at risk (past the warning),
+  breached, met, cancelled.
+- **Notifications** are written now (`notify`: rows plus an `automation.notification_created` cue per user); the
+  read API is T14. New owners get an `assignment` notification unless they assigned themselves.
+- **Found on the way:** the automation consumer rejected `automation.lead_converted` (P02) and would have rejected
+  `automation.record_merged` (T08), sending them to the dead-letter queue. Both are acknowledged now, and a test
+  checks every `automation.*` topic RecordService emits against the consumer.

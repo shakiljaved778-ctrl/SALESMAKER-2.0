@@ -11,6 +11,7 @@ import { sql, type RawBuilder } from 'kysely';
 
 import { isOpen, localParts, type WeeklyHours } from './calendar.js';
 import { activeRules } from './service.js';
+import { notify, startSlaTimers } from './sla.js';
 import { syncAccountShares, syncOpportunityShares } from './shares.js';
 import { ident } from './storage.js';
 
@@ -578,6 +579,20 @@ async function writeOwners(
     FROM (VALUES ${values}) AS v (id, owner_id)
     WHERE r.tenant_id = ${tenantId}::uuid AND r.id = v.id`.execute(tx.kysely);
   const ids = changes.map((c) => c.recordId);
+  // SLA clocks start (or follow the record to its new owner), and new owners hear about it.
+  await startSlaTimers(tx, env.metadata, object, changes, env.now?.() ?? new Date());
+  await notify(
+    tx,
+    changes
+      .filter((c) => c.ownerType === 'USER' && c.ownerId !== env.actorId)
+      .map((c) => ({
+        userId: c.ownerId,
+        kind: 'assignment',
+        params: { method: c.method, reason: c.reason },
+        object: object.apiName,
+        recordId: c.recordId,
+      })),
+  );
   const ownerField = object.fields.find((f) => f.apiName === 'owner_id');
   if (ownerField?.trackHistory)
     await tx.prisma.fieldHistory.createMany({
@@ -624,26 +639,12 @@ async function writeOwners(
   );
   await outbox.emit(
     tx,
-    changes.flatMap((c) => [
-      {
-        topic: 'automation.owner_changed',
-        aggregateType: object.apiName,
-        aggregateId: c.recordId,
-        payload: { object: object.apiName, id: c.recordId, changedFields: ['owner_id'] },
-      },
-      {
-        topic: 'assignment.assigned',
-        aggregateType: object.apiName,
-        aggregateId: c.recordId,
-        payload: {
-          object: object.apiName,
-          id: c.recordId,
-          ownerType: c.ownerType,
-          ownerId: c.ownerId,
-          previousOwnerId: c.previousOwnerId,
-        },
-      },
-    ]),
+    changes.map((c) => ({
+      topic: 'automation.owner_changed',
+      aggregateType: object.apiName,
+      aggregateId: c.recordId,
+      payload: { object: object.apiName, id: c.recordId, changedFields: ['owner_id'] },
+    })),
   );
 }
 
