@@ -12,10 +12,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  CreateRecycleRuleRequest,
   CreateSlaPolicyRequest,
   SetupIdParam,
   slaRoutes,
   SlaStatusRequest,
+  UpdateRecycleRuleRequest,
   UpdateSlaPolicyRequest,
   type SlaTimerDto,
 } from '@sm/contracts';
@@ -43,6 +45,7 @@ import { RecordContextService } from '../records/record-context.service.js';
 import { translating } from '../records/record-errors.js';
 import { CurrentTenant, TenantContextGuard } from '../tenancy/tenant-context.guard.js';
 import { PRISMA } from '../tokens.js';
+import { RecycleSetupService } from './recycle-setup.service.js';
 import { SlaSetupService, timerDto } from './sla-setup.service.js';
 
 type Id = z.infer<typeof SetupIdParam>;
@@ -199,5 +202,55 @@ export class SlaController {
       const timers = await this.timers(tx, visible);
       return { items: visible.map((id) => ({ recordId: id, timers: timers.get(id) ?? [] })) };
     });
+  }
+}
+
+/** Setup → Lead recycling (§7.3). Reading needs view_setup, changes customize_application. */
+@Controller('v1/setup/recycle-rules')
+@UseGuards(AuthGuard, TenantContextGuard, SystemPermissionGuard)
+@RequireSystemPermission('view_setup')
+export class RecycleRulesController {
+  constructor(
+    @Inject(PRISMA) private readonly prisma: CellPrisma,
+    private readonly recycle: RecycleSetupService,
+  ) {}
+
+  private run<T>(ctx: TenantContext, fn: (tx: TenantTransaction) => Promise<T>) {
+    return withTenant(this.prisma, ctx, fn);
+  }
+
+  @Get()
+  async list(@CurrentTenant() ctx: TenantContext) {
+    return { items: await this.run(ctx, (tx) => this.recycle.list(tx)) };
+  }
+  @Get(':id')
+  get(@CurrentTenant() ctx: TenantContext, @Param(new ZodPipe(SetupIdParam)) p: Id) {
+    return this.run(ctx, (tx) => this.recycle.get(tx, p.id));
+  }
+  @Post()
+  @RequireSystemPermission('customize_application')
+  create(
+    @CurrentTenant() ctx: TenantContext,
+    @Body(new ZodPipe(CreateRecycleRuleRequest)) body: Out<typeof CreateRecycleRuleRequest>,
+  ) {
+    return this.run(ctx, (tx) => this.recycle.create(tx, body));
+  }
+  @Patch(':id')
+  @RequireSystemPermission('customize_application')
+  update(
+    @CurrentTenant() ctx: TenantContext,
+    @Param(new ZodPipe(SetupIdParam)) p: Id,
+    @Body(new ZodPipe(UpdateRecycleRuleRequest)) body: Out<typeof UpdateRecycleRuleRequest>,
+  ) {
+    return this.run(ctx, (tx) => this.recycle.update(tx, p.id, body));
+  }
+  @Delete(':id')
+  @HttpCode(204)
+  @RequireSystemPermission('customize_application')
+  async remove(
+    @CurrentTenant() ctx: TenantContext,
+    @Param(new ZodPipe(SetupIdParam)) p: Id,
+  ): Promise<void> {
+    await this.run(ctx, (tx) => this.recycle.remove(tx, p.id));
   }
 }

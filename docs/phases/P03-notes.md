@@ -299,3 +299,16 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Realtime.** Every write emits `automation.notification_created` per user (acknowledged by the automation
   consumer). The WebSocket gateway (`apps/realtime`, not built yet) will turn it into the "refresh your bell"
   invalidation; until then the bell refreshes when fetched.
+
+### T15 — lead recycling
+
+- **`recycleLeads`** (RecordService) per rule: leads in a status of the rule's categories (Unqualified, Nurture),
+  untouched for `after_days` (no change of any kind: `updated_at`, since lead status is not history-tracked by
+  default), not converted, matching the rule's criteria, in batches of 500 claimed `FOR UPDATE SKIP LOCKED`. They move
+  to the rule's open status (the unqualified reason is cleared) set-based with version, status history when tracked,
+  audit `record.recycled` (system actor) and events, then are routed again through the rule's assignment rule (or the
+  default), which logs them with source `recycle`, notifies the new owner and starts SLA clocks. Validation rules are
+  not run: recycling is the platform acting on stale records, not a user edit.
+- **Worker** `maintenance.lead_recycle` nightly (03:23 UTC), every tenant with active rules, until nothing is left.
+- **Setup → Lead recycling** CRUD (`/v1/setup/recycle-rules`): the target must be an open lead status, criteria must
+  compile, the assignment rule must be a lead rule; clearing criteria applies the rule to every lead.

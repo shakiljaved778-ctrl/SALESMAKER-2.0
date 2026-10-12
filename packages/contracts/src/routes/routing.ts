@@ -558,3 +558,72 @@ export const slaRoutes = {
     },
   }),
 };
+
+// ── Lead recycling (§7.3) ───────────────────────────────────────────────────────────────────
+export const RecycleRuleDto = z
+  .object({
+    id: Uuid,
+    object: z.literal('lead'),
+    name: z.string(),
+    active: z.boolean(),
+    fromCategories: z.array(z.enum(['UNQUALIFIED', 'NURTURE'])),
+    /** Days in that status without any change. */
+    afterDays: z.number().int(),
+    criteria: z.unknown().optional(),
+    /** The status set on recycle (an open one). */
+    targetStatus: z.string(),
+    assignmentRuleId: Uuid.nullable(),
+    sortOrder: z.number().int(),
+    version: z.number().int(),
+  })
+  .meta({ id: 'RecycleRule' });
+
+const Categories = z
+  .array(z.enum(['UNQUALIFIED', 'NURTURE']))
+  .min(1)
+  .max(2);
+export const CreateRecycleRuleRequest = z
+  .object({
+    object: z.literal('lead').default('lead'),
+    name: Name,
+    active: z.boolean().default(true),
+    fromCategories: Categories,
+    afterDays: z.number().int().min(1).max(3650),
+    criteria: z.unknown().nullable().optional(),
+    targetStatus: z.string().min(1).max(80),
+    assignmentRuleId: Uuid.nullable().default(null),
+    sortOrder: z.number().int().min(0).max(1000).default(0),
+  })
+  .strict();
+export const UpdateRecycleRuleRequest = z
+  .object({
+    name: Name.optional(),
+    active: z.boolean().optional(),
+    fromCategories: Categories.optional(),
+    afterDays: z.number().int().min(1).max(3650).optional(),
+    criteria: z.unknown().nullable().optional(),
+    targetStatus: z.string().min(1).max(80).optional(),
+    assignmentRuleId: Uuid.nullable().optional(),
+    sortOrder: z.number().int().min(0).max(1000).optional(),
+    version: Version,
+  })
+  .strict();
+
+export const recycleRoutes = setupCrud(
+  '/v1/setup/recycle-rules',
+  'setup',
+  'recycle rule',
+  {
+    list: 'listRecycleRules',
+    get: 'getRecycleRule',
+    create: 'createRecycleRule',
+    update: 'updateRecycleRule',
+    remove: 'deleteRecycleRule',
+  },
+  {
+    item: RecycleRuleDto,
+    detail: RecycleRuleDto,
+    create: CreateRecycleRuleRequest,
+    update: UpdateRecycleRuleRequest,
+  },
+);

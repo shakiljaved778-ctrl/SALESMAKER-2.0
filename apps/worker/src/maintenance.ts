@@ -19,6 +19,8 @@ import {
   purgeRecycleBin,
   recalculateCorporateAmounts,
   assignRecords,
+  LEAD_RECYCLE_TOPIC,
+  recycleLeads,
   runDueDuplicateJobs,
   runDuplicateJob,
   runSlaTick,
@@ -311,6 +313,44 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
         else await eachTenant(deps, tick);
         return;
       }
+      case LEAD_RECYCLE_TOPIC: {
+        const recycle = async (tenantId: string) => {
+          const inTenant = <T>(fn: (tx: TenantTransaction) => Promise<T>) =>
+            withTenant(prisma, { tenantId }, fn, { timeoutMs: 60_000, statementTimeoutMs: 30_000 });
+          const setup = await inTenant(async (tx) => {
+            const settings = await tx.prisma.tenantSettings.findUnique({ where: { tenantId } });
+            if (!settings) return null;
+            const rules = await tx.prisma.recycleRule.findMany({
+              where: { active: true },
+              orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+              select: { id: true },
+            });
+            if (rules.length === 0) return null;
+            const metadata = new MetadataIndex(
+              await loadTenantMetadata(tx, settings.metadataVersion),
+            );
+            return { metadata, timezone: settings.defaultTimezone, rules: rules.map((r) => r.id) };
+          });
+          if (!setup) return;
+          let total = 0;
+          for (const ruleId of setup.rules)
+            for (;;) {
+              const n = await inTenant((tx) =>
+                recycleLeads(
+                  tx,
+                  { metadata: setup.metadata, actorId: null, timezone: setup.timezone },
+                  ruleId,
+                ),
+              );
+              total += n;
+              if (n === 0) break;
+            }
+          if (total) logger.info({ tenantId, recycled: total }, 'leads recycled');
+        };
+        if (envelope.tenantId) await recycle(envelope.tenantId);
+        else await eachTenant(deps, recycle);
+        return;
+      }
       case RECYCLE_PURGE_TOPIC: {
         const now = new Date();
         const purge = async (tenantId: string) => {
@@ -360,6 +400,11 @@ export async function scheduleMaintenance(queues: QueueSet): Promise<void> {
     DERIVED_BACKFILL_TOPIC,
     { every: 3_600_000, immediately: true },
     system(DERIVED_BACKFILL_TOPIC),
+  );
+  await q.upsertJobScheduler(
+    LEAD_RECYCLE_TOPIC,
+    { pattern: '23 3 * * *' },
+    system(LEAD_RECYCLE_TOPIC),
   );
   await q.upsertJobScheduler(SLA_TICK_TOPIC, { every: 60_000 }, system(SLA_TICK_TOPIC));
   await q.upsertJobScheduler(

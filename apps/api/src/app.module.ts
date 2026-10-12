@@ -67,7 +67,12 @@ import {
 import { RoutingSetupService } from './setup/routing-setup.service.js';
 import { AssignmentController, AssignmentRulesController } from './setup/assignment.controller.js';
 import { AssignmentSetupService } from './setup/assignment-setup.service.js';
-import { SlaController, SlaPoliciesController } from './setup/sla.controller.js';
+import { RecycleSetupService } from './setup/recycle-setup.service.js';
+import {
+  RecycleRulesController,
+  SlaController,
+  SlaPoliciesController,
+} from './setup/sla.controller.js';
 import { SlaSetupService } from './setup/sla-setup.service.js';
 import {
   DuplicateCandidatesController,
@@ -143,6 +148,7 @@ export class AppModule {
         SlaPoliciesController,
         SlaController,
         NotificationsController,
+        RecycleRulesController,
         SharingSetupController,
         CurrencyController,
         MetadataSetupController,
@@ -200,6 +206,7 @@ export class AppModule {
         RoutingSetupService,
         AssignmentSetupService,
         SlaSetupService,
+        RecycleSetupService,
         SystemPermissionGuard,
       ],
       exports: [
