@@ -1,8 +1,14 @@
-import { IMPORT_DRY_RUN_TOPIC, IMPORT_RUN_TOPIC, IMPORT_UNDO_TOPIC } from '@sm/imports';
+import {
+  IMPORT_DRY_RUN_TOPIC,
+  IMPORT_RUN_TOPIC,
+  IMPORT_UNDO_TOPIC,
+  INBOUND_EMAIL_TOPIC,
+} from '@sm/imports';
 import { FakeStorageProvider } from '@sm/integrations';
 import { MASS_ACTION_TOPIC } from '@sm/records';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { createEmailSyncHandler } from '../src/inbound-email.js';
 import { createImportHandler, importHandler } from '../src/mass-actions.js';
 import { startTestWorker, type TestWorker } from './support.js';
 
@@ -64,6 +70,34 @@ describe('the import queue', () => {
     );
     await expect(
       importHandler(envelope(IMPORT_RUN_TOPIC, tenant, { jobId }), ctx()),
+    ).rejects.toThrow(/not configured/);
+  });
+});
+
+describe('the email-sync queue', () => {
+  const ctx = () => ({ prisma: w.prisma, logger: w.logger, job: undefined as never });
+  const emailId = '01920000-0000-7000-8000-00000000f004';
+
+  it('processes inbound emails (one that no longer exists is done)', async () => {
+    const handler = createEmailSyncHandler({ storage: new FakeStorageProvider() });
+    await expect(
+      handler(envelope(INBOUND_EMAIL_TOPIC, tenant, { emailId }), ctx()),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects malformed jobs and runs only with storage', async () => {
+    const handler = createEmailSyncHandler({ storage: new FakeStorageProvider() });
+    await expect(handler(envelope('email-sync.other', tenant, {}), ctx())).rejects.toThrow(
+      /unknown email-sync job/,
+    );
+    await expect(handler(envelope(INBOUND_EMAIL_TOPIC, null, { emailId }), ctx())).rejects.toThrow(
+      /needs a tenant/,
+    );
+    await expect(handler(envelope(INBOUND_EMAIL_TOPIC, tenant, {}), ctx())).rejects.toThrow(
+      /needs an emailId/,
+    );
+    await expect(
+      createEmailSyncHandler()(envelope(INBOUND_EMAIL_TOPIC, tenant, { emailId }), ctx()),
     ).rejects.toThrow(/not configured/);
   });
 });

@@ -31,3 +31,12 @@ export {
   TurnstileVerifier,
   type CaptchaVerifier,
 } from './captcha/captcha-verifier.js';
+export {
+  parseEmail,
+  SecretInboundSource,
+  SesSnsInboundSource,
+  type InboundDelivery,
+  type InboundEmailSource,
+  type InboundResult,
+  type ParsedEmail,
+} from './email/inbound.js';

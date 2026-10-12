@@ -23,3 +23,9 @@ export {
   type ImportDeps,
   type InTenant,
 } from './run.js';
+export {
+  companyFromDomain,
+  INBOUND_EMAIL_TOPIC,
+  leadFromEmail,
+  processInboundEmail,
+} from './inbound.js';

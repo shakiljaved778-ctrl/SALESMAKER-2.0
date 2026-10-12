@@ -466,3 +466,35 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   and the embed on another (loopback) site with its height reported. Chromium's Private Network Access blocks
   public pages from loading scripts from `localhost`, so the test's "customer site" is a loopback server; deployed,
   the forms host is public.
+
+### T21 — email-to-lead
+
+- **Addresses** (Setup → Email-to-lead, `/v1/setup/inbound-addresses`, view_setup / customize_application,
+  audited): `leads-{token}@{INBOUND_EMAIL_DOMAIN}`, with a run-as user (active, can create leads and set every
+  default), defaults and a lead assignment rule; `rotateAddress` issues a new address and the old one stops working.
+  Mail reaches the cell before it knows the workspace, and row-level security needs a tenant before any lookup, so
+  the token carries the tenant id (16 bytes) plus 10 random bytes in lower-case base32 (42 characters, like API keys
+  carry theirs); it must still match a stored ACTIVE address.
+- **Inbound adapter** (`@sm/integrations`, `InboundEmailSource`): **SES** in cells — a receipt rule stores the message
+  in the cell's bucket (S3 action) or inlines it (SNS action, Base64) and notifies an SNS topic subscribed to
+  `POST /v1/inbound/email`; `SesSnsInboundSource` accepts only the configured topic (`INBOUND_SES_TOPIC_ARN`), a valid
+  SNS signature (v1 SHA1 / v2 SHA256, certificate fetched only from `sns.*.amazonaws.com` and cached), less than an
+  hour old, and confirms its subscription itself. **Shared secret** locally and in tests (`INBOUND_EMAIL_SECRET`,
+  `x-sm-inbound-secret`, `{ recipients, raw }` base64). Anything else is 401. No real AWS call happens in CI.
+- **Delivery** stores, per recipient that is an ACTIVE address in this cell, the raw message under the tenant's
+  storage prefix and an `inbound_email` row (sender, name, subject, Message-ID; once per Message-ID, idempotent), and
+  emits `email-sync.inbound_lead`. Unknown, inactive or rotated addresses are dropped silently; messages over
+  `INBOUND_EMAIL_MAX_BYTES` (10 MB) are dropped and logged.
+- **Processing** (worker `email-sync` queue → `@sm/imports` `processInboundEmail`): the row is claimed
+  (`FOR UPDATE SKIP LOCKED`, RECEIVED only), the MIME parsed with **mailparser** (MIT; HTML-only mail converted with
+  html-to-text, MIT; its nodemailer dependency is MIT-0 as accepted in P00, mailsplit MIT-or-EUPL taken as MIT). A
+  **known sender** (an open lead, else a contact, by email) gets the email stored on that record (`MATCHED`; P04
+  turns these into activities) and a lead is rescored. Otherwise a lead goes through the capture pipeline as the
+  run-as user: name split from the display name (else the local part), company from a business domain
+  (`acme-group.co.uk` → `Acme-group`; mailbox providers say nothing), else the address's default, else the sender
+  stands in; subject and text in `description`; `captured_via` = `email`, `lead_source` = `email` unless defaulted.
+  `CREATED`, `MATCHED` (a Block duplicate rule linked it to an existing lead) or `FAILED` with the reason. Signature
+  parsing is P07 (AI).
+- **On records:** `GET /v1/records/{lead|contact}/{id}/inbound-emails` (and `/{emailId}` with the text, parsed
+  from the stored original) for callers who can see the record (404 otherwise) and read its email field (else an
+  empty list).

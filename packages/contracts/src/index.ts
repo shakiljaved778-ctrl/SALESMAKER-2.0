@@ -16,6 +16,7 @@ export * from './routes/duplicates.js';
 export * from './routes/routing.js';
 export * from './routes/notifications.js';
 export * from './routes/imports.js';
+export * from './routes/inbound-email.js';
 export * from './routes/scoring.js';
 export * from './routes/web-forms.js';
 export * from './routes/currency.js';

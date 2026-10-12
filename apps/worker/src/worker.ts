@@ -15,6 +15,7 @@ import { startConsumers } from './consumers.js';
 import { FairScheduler } from './fairness.js';
 import type { Handlers } from './jobs.js';
 import { createMaintenanceHandler, scheduleMaintenance } from './maintenance.js';
+import { createEmailSyncHandler } from './inbound-email.js';
 import { createImportHandler } from './mass-actions.js';
 import { createQueues, type QueueSet } from './queues.js';
 import { OutboxRelay } from './relay.js';
@@ -74,11 +75,13 @@ export async function createWorker(
     sweepSeconds: config.RELAY_SWEEP_SECONDS,
   });
   let workers: Worker[] = [];
+  const storage = deps.storage ?? s3StorageFrom(config);
   const handlers: Handlers = deps.handlers ?? {
     maintenance: createMaintenanceHandler({ auditPrisma, redis, controlPlane }),
     sharing: sharingHandler,
     automation: automationHandler,
-    import: createImportHandler({ storage: deps.storage ?? s3StorageFrom(config) }),
+    import: createImportHandler({ storage }),
+    'email-sync': createEmailSyncHandler({ storage }),
   };
 
   return {

@@ -43,6 +43,18 @@ export const ApiConfigSchema = z.object({
   FORM_RATE_BURST: z.coerce.number().int().positive().default(5),
   FORM_RATE_PER_HOUR: z.coerce.number().int().positive().default(20),
 
+  // ── Email-to-lead (§7.1): addresses are leads-{token}@{INBOUND_EMAIL_DOMAIN} ──
+  INBOUND_EMAIL_DOMAIN: z.string().min(3).default('in.salesmaker.localhost'),
+  /** Shared-secret delivery (locally, tests): `x-sm-inbound-secret`. Off when unset. */
+  INBOUND_EMAIL_SECRET: z.string().min(24).optional(),
+  /** SES receipt notifications through this SNS topic (cells). Off when unset. */
+  INBOUND_SES_TOPIC_ARN: z.string().startsWith('arn:aws:sns:').optional(),
+  INBOUND_EMAIL_MAX_BYTES: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(10 * 1024 * 1024),
+
   // ── Session tokens (§6.1) ──────────────────────────────────────────────────
   /** Ed25519 private key (PKCS#8 PEM) that signs access tokens; or give AUTH_JWT_PRIVATE_KEY_PATH. */
   AUTH_JWT_PRIVATE_KEY_PEM: z.string().includes('PRIVATE KEY'),

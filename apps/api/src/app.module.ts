@@ -89,6 +89,12 @@ import { DuplicatesController } from './records/duplicates.controller.js';
 import { QueuesController } from './records/queues.controller.js';
 import { DuplicatesService } from './records/duplicates.service.js';
 import { ImportsController } from './records/imports.controller.js';
+import {
+  InboundAddressesController,
+  InboundDeliveryController,
+  RecordInboundEmailsController,
+} from './capture/inbound-email.controller.js';
+import { InboundEmailService } from './capture/inbound-email.service.js';
 import { PublicFormsService } from './capture/public-forms.service.js';
 import { PublicFormsController, WebFormsController } from './capture/web-forms.controller.js';
 import { WebFormsSetupService } from './capture/web-forms-setup.service.js';
@@ -161,6 +167,9 @@ export class AppModule {
         ImportsController,
         WebFormsController,
         PublicFormsController,
+        InboundAddressesController,
+        InboundDeliveryController,
+        RecordInboundEmailsController,
         BusinessHoursController,
         UserRoutingController,
         AssignmentRulesController,
@@ -222,6 +231,7 @@ export class AppModule {
         ImportsService,
         WebFormsSetupService,
         PublicFormsService,
+        InboundEmailService,
         FieldSetupService,
         LayoutSetupService,
         IdempotencyService,
