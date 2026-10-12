@@ -10,3 +10,4 @@ export const CONTROL_PLANE = Symbol('ControlPlane');
 export const RATE_LIMITER = Symbol('RateLimiter');
 export const BREACHED_PASSWORDS = Symbol('BreachedPasswordChecker');
 export const RECORD_TABLES = Symbol('RecordTables');
+export const STORAGE = Symbol('StorageProvider');

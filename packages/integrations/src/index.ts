@@ -16,7 +16,9 @@ export {
 export {
   FakeStorageProvider,
   S3StorageProvider,
+  s3StorageFrom,
   storageKey,
+  type S3StorageConfig,
   type S3StorageOptions,
   type StorageProvider,
 } from './storage/storage-provider.js';

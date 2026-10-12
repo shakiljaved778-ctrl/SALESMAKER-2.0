@@ -30,6 +30,13 @@ export const ApiConfigSchema = z.object({
   BREACHED_PASSWORD_API_URL: z.url(),
   EMAIL_ROUTING_PEPPER: z.string().min(16),
 
+  // ── Object storage (§3.12): imports and their results. Off when unset. ────
+  S3_ENDPOINT: z.url().optional(),
+  S3_REGION: z.string().min(1).default('eu-central-1'),
+  S3_ACCESS_KEY_ID: z.string().min(1).optional(),
+  S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  S3_BUCKET: z.string().min(1).optional(),
+
   // ── Session tokens (§6.1) ──────────────────────────────────────────────────
   /** Ed25519 private key (PKCS#8 PEM) that signs access tokens; or give AUTH_JWT_PRIVATE_KEY_PATH. */
   AUTH_JWT_PRIVATE_KEY_PEM: z.string().includes('PRIVATE KEY'),

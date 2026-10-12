@@ -2,7 +2,11 @@ import { generateKeyPairSync, randomBytes } from 'node:crypto';
 
 import { withTenant, type CellPrisma } from '@sm/db';
 import { createTestCellDatabase, type TestCellDatabase } from '@sm/db/testing';
-import { FakeBreachedPasswordChecker, FakeEmailSender } from '@sm/integrations';
+import {
+  FakeBreachedPasswordChecker,
+  FakeEmailSender,
+  FakeStorageProvider,
+} from '@sm/integrations';
 import { FakeControlPlane } from '@sm/testing';
 import { uuidv7 } from 'uuidv7';
 import { inject } from 'vitest';
@@ -20,6 +24,7 @@ export interface TestApi extends ApiApp {
   db: TestCellDatabase;
   config: ApiConfig;
   email: FakeEmailSender;
+  storage: FakeStorageProvider;
   controlPlane: FakeControlPlane;
   /** Create a workspace (tenant_settings) directly in the cell database. */
   seedTenant(slug: string, tenantId?: string): Promise<string>;
@@ -77,9 +82,11 @@ export async function startTestApi(
     ...overrides,
   });
   const email = new FakeEmailSender();
+  const storage = new FakeStorageProvider();
   const controlPlane = new FakeControlPlane(config.CELL_ID);
   const api = await createApiApp(config, {
     email,
+    storage,
     breachedPasswords: new FakeBreachedPasswordChecker(),
     controlPlane,
     ...deps,
@@ -90,6 +97,7 @@ export async function startTestApi(
     db,
     config,
     email,
+    storage,
     controlPlane,
     async seedTenant(slug, tenantId = uuidv7()) {
       await withTenant(prisma, { tenantId }, ({ prisma: tx }) =>

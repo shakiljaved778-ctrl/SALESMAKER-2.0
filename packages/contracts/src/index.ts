@@ -15,6 +15,7 @@ export * from './routes/api-keys.js';
 export * from './routes/duplicates.js';
 export * from './routes/routing.js';
 export * from './routes/notifications.js';
+export * from './routes/imports.js';
 export * from './routes/scoring.js';
 export * from './routes/currency.js';
 export * from './routes/list-views.js';

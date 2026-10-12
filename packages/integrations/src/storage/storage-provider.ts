@@ -45,6 +45,28 @@ export interface S3StorageOptions {
   forcePathStyle?: boolean;
 }
 
+/** S3 settings as the apps read them from the environment (all optional: storage is off without them). */
+export interface S3StorageConfig {
+  S3_ENDPOINT?: string | undefined;
+  S3_REGION: string;
+  S3_ACCESS_KEY_ID?: string | undefined;
+  S3_SECRET_ACCESS_KEY?: string | undefined;
+  S3_BUCKET?: string | undefined;
+}
+
+/** S3 storage from an app's config; undefined when it is not configured. */
+export function s3StorageFrom(config: S3StorageConfig): S3StorageProvider | undefined {
+  if (!config.S3_BUCKET || !config.S3_ACCESS_KEY_ID || !config.S3_SECRET_ACCESS_KEY)
+    return undefined;
+  return new S3StorageProvider({
+    region: config.S3_REGION,
+    bucket: config.S3_BUCKET,
+    accessKeyId: config.S3_ACCESS_KEY_ID,
+    secretAccessKey: config.S3_SECRET_ACCESS_KEY,
+    ...(config.S3_ENDPOINT ? { endpoint: config.S3_ENDPOINT } : {}),
+  });
+}
+
 /** S3 (and S3-compatible) storage through the AWS SDK. */
 export class S3StorageProvider implements StorageProvider {
   private readonly client: S3Client;

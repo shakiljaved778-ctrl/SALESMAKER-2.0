@@ -359,3 +359,33 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   S3-compatible stores) is used when `S3_*` is configured. Without it the worker still runs mass actions and refuses
   import jobs. The fake keeps bytes in memory for tests. The record test harness moved to `@sm/records/testing` so
   other packages' tests share it.
+
+### T18 — imports API
+
+- **Flow.** `POST /v1/imports` creates the job and returns a 15-minute pre-signed `PUT` URL for exactly the declared
+  size (§3.12; the file never passes through the API). `POST /v1/imports/{id}/analyse` reads the uploaded file
+  outside any transaction: XLSX sheets, the header row (chosen by the user, default 1) and five sample rows, then
+  stores the headers and suggests a mapping. `PATCH` sets mapping, duplicate mode, matching rule, assignment and
+  defaults (optimistic `version`); `dry-run`, `start`, `cancel` and `undo` queue the T17 worker jobs; `rows` pages
+  the per-row outcomes; `results` gives a 5-minute download URL; `/v1/import-templates` saves mappings.
+- **Suggestions.** The caller's last completed import of a file with the same headers wins; otherwise API names,
+  labels in the caller's language and synonyms. Only fields the caller can edit (FLS) are suggested or accepted.
+  Saved templates whose header signature matches are listed with the analysis.
+- **Validation.** Columns within the header row, each field once, transforms only on fields of their type
+  (`values` on picklists, `dateOrder` on dates, `phoneCountry` on phones, `ownerBy` on owner), defaults only on
+  editable fields, matching and assignment rules of the same object; SKIP/UPDATE need a matching rule. Any change
+  clears an earlier dry run. Unreadable files are `file: unreadable_file`; a header row with nothing in it
+  `headerRow: no_headers`.
+- **Limits.** CSV up to 500 MB (streamed), XLSX up to 100 MB (read whole: it is a zip). Wholly blank rows are not
+  data and are skipped by the engine for CSV too (XLSX already dropped them).
+- **Access.** Every route needs `import_records` (System Administrator by default; Standard User does not hold
+  it). A job belongs to the user who started it: only they configure, run, cancel or undo it, since the worker
+  runs it as them. Holders of `view_setup` read everyone's history (`?mine=true` narrows it) and get 403 on
+  changes; other users and tenants get 404. Importing into an object needs Create on it (403; 404 when it cannot
+  be read). Templates are shared by everyone who can import into the object.
+- **Storage.** The API takes `S3_*` like the worker (`s3StorageFrom` in `@sm/integrations`, shared); without it
+  import routes that need files answer 503. Tests inject the fake. Uploading from the browser to the local S3
+  store needs CORS on the bucket; T22 sets that up with the wizard.
+- `import.started` and `import.undone` go to the Setup audit trail; the records themselves are audited by
+  RecordService as for any write. Undo now stamps `undone_at` (it overwrote `finished_at`, which the 72-hour
+  window is measured from).

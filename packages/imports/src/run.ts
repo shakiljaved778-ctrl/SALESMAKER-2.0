@@ -223,7 +223,7 @@ async function processBatch(
   return rows.map((r) => outcomes.get(r.rowNumber) as RowOutcome);
 }
 
-/** The file's data rows (after the header row), mapped, in batches. */
+/** The file's data rows (after the header row, blank rows left out), mapped, in batches. */
 async function* batches(
   deps: ImportDeps,
   job: Job,
@@ -240,6 +240,8 @@ async function* batches(
   for await (const cells of readRows(stream, job.fileType as FileType, job.sheet)) {
     line += 1;
     if (line <= job.headerRow) continue;
+    // Wholly blank rows (trailing ones, separators) are not data; XLSX already drops them.
+    if (cells.every((c) => c.trim() === '')) continue;
     batch.push(mapRow(ctxObject, mapping, cells, line, defaults));
     taken += 1;
     if (batch.length >= size || (limit !== undefined && taken >= limit)) {
@@ -497,7 +499,7 @@ export async function undoImport(
   await deps.inTenant((tx) =>
     tx.prisma.importJob.update({
       where: { tenantId_id: { tenantId: tx.context.tenantId, id: jobId } },
-      data: { status: 'UNDONE', finishedAt: now() },
+      data: { status: 'UNDONE', undoneAt: now() },
     }),
   );
   return { deleted, kept };

@@ -3,6 +3,7 @@ import { createCellPrisma, disposeCellPrisma } from '@sm/db';
 import {
   OpenIdConnectProvider,
   RangeApiBreachedPasswordChecker,
+  s3StorageFrom,
   SmtpEmailSender,
 } from '@sm/integrations';
 import {
@@ -79,6 +80,7 @@ export async function createApiApp(
     logger,
     limiter,
     email: overrides.email ?? new SmtpEmailSender(config.SMTP_URL, config.EMAIL_FROM),
+    storage: overrides.storage ?? s3StorageFrom(config),
     breachedPasswords:
       overrides.breachedPasswords ??
       new RangeApiBreachedPasswordChecker(config.BREACHED_PASSWORD_API_URL),

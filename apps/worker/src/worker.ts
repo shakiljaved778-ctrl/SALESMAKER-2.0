@@ -5,7 +5,7 @@ import {
   importEd25519PrivateKey,
   type ControlPlane,
 } from '@sm/server-kit';
-import { S3StorageProvider, type StorageProvider } from '@sm/integrations';
+import { s3StorageFrom, type StorageProvider } from '@sm/integrations';
 import type { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import type { Logger } from 'pino';
@@ -38,19 +38,6 @@ export interface CellWorker {
   logger: Logger;
   start(): Promise<void>;
   stop(): Promise<void>;
-}
-
-/** S3 storage from config, when it is configured. */
-function storageFrom(config: WorkerConfig): StorageProvider | undefined {
-  if (!config.S3_BUCKET || !config.S3_ACCESS_KEY_ID || !config.S3_SECRET_ACCESS_KEY)
-    return undefined;
-  return new S3StorageProvider({
-    region: config.S3_REGION,
-    bucket: config.S3_BUCKET,
-    accessKeyId: config.S3_ACCESS_KEY_ID,
-    secretAccessKey: config.S3_SECRET_ACCESS_KEY,
-    ...(config.S3_ENDPOINT ? { endpoint: config.S3_ENDPOINT } : {}),
-  });
 }
 
 /** Build the worker from config. Connections open now; nothing is consumed or relayed until `start()`. */
@@ -91,7 +78,7 @@ export async function createWorker(
     maintenance: createMaintenanceHandler({ auditPrisma, redis, controlPlane }),
     sharing: sharingHandler,
     automation: automationHandler,
-    import: createImportHandler({ storage: deps.storage ?? storageFrom(config) }),
+    import: createImportHandler({ storage: deps.storage ?? s3StorageFrom(config) }),
   };
 
   return {

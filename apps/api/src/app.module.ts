@@ -1,6 +1,6 @@
 import { Module, type DynamicModule } from '@nestjs/common';
 import type { CellPrisma } from '@sm/db';
-import type { BreachedPasswordChecker, EmailSender } from '@sm/integrations';
+import type { BreachedPasswordChecker, EmailSender, StorageProvider } from '@sm/integrations';
 import type { ControlPlane, SecretBox, TokenBucketRateLimiter } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
@@ -83,6 +83,8 @@ import {
 import { DuplicatesController } from './records/duplicates.controller.js';
 import { QueuesController } from './records/queues.controller.js';
 import { DuplicatesService } from './records/duplicates.service.js';
+import { ImportsController } from './records/imports.controller.js';
+import { ImportsService } from './records/imports.service.js';
 import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
@@ -98,6 +100,7 @@ import {
   RECORD_TABLES,
   REDIS,
   SECRET_BOX,
+  STORAGE,
 } from './tokens.js';
 import { MetadataService } from './metadata/metadata.service.js';
 
@@ -109,6 +112,8 @@ export interface ApiDependencies {
   redis: Redis;
   logger: Logger;
   email: EmailSender;
+  /** Object storage; imports answer 503 without it. */
+  storage?: StorageProvider | undefined;
   breachedPasswords: BreachedPasswordChecker;
   secretBox: SecretBox;
   oidcProviders: OidcProviders;
@@ -142,6 +147,7 @@ export class AppModule {
         DuplicatesController,
         DuplicateJobsController,
         DuplicateCandidatesController,
+        ImportsController,
         BusinessHoursController,
         UserRoutingController,
         AssignmentRulesController,
@@ -169,6 +175,7 @@ export class AppModule {
         { provide: REDIS, useValue: deps.redis },
         { provide: LOGGER, useValue: deps.logger },
         { provide: EMAIL_SENDER, useValue: deps.email },
+        { provide: STORAGE, useValue: deps.storage ?? null },
         { provide: BREACHED_PASSWORDS, useValue: deps.breachedPasswords },
         { provide: SECRET_BOX, useValue: deps.secretBox },
         { provide: OIDC_PROVIDERS, useValue: deps.oidcProviders },
@@ -198,6 +205,7 @@ export class AppModule {
         AccessService,
         MetadataService,
         CurrencyService,
+        ImportsService,
         FieldSetupService,
         LayoutSetupService,
         IdempotencyService,

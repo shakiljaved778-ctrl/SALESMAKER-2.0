@@ -24,6 +24,7 @@
     "@sm/emails": "workspace:*",
     "@sm/formula": "workspace:*",
     "@sm/i18n": "workspace:*",
+    "@sm/imports": "workspace:*",
     "@sm/integrations": "workspace:*",
     "@sm/metadata": "workspace:*",
     "@sm/permissions": "workspace:*",

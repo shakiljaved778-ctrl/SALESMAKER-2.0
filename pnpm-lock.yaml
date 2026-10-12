@@ -54,6 +54,9 @@ importers:
       '@sm/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@sm/imports':
+        specifier: workspace:*
+        version: link:../../packages/imports
       '@sm/integrations':
         specifier: workspace:*
         version: link:../../packages/integrations
