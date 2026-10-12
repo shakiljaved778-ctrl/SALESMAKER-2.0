@@ -204,3 +204,19 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   records the caller can all see (live records while a group is open), with their names through the Query Engine.
   `POST /v1/duplicate-candidates/{id}/dismiss` needs edit on the object (audited as `duplicate.dismissed`); merging
   from the queue goes through `POST /v1/records/{object}/merge`, which resolves the group as MERGED.
+
+### T11 — business hours and availability
+
+- **Business-time library** (`@sm/records` `calendar.ts`, pure): weekly open intervals (`HH:MM`, end exclusive,
+  `24:00` allowed) in an IANA zone, one-off and recurring holidays; `isOpen`, `addBusinessMinutes` (zero minutes
+  from a closed instant is the next opening; null for a calendar that never opens, after three years of looking),
+  `businessMinutesBetween`, `zonedInstant` and `localParts`. Daylight saving through `Intl` with no library: a
+  wall time that happens twice takes the earlier instant, one that never happens lands just after the gap. Tested
+  in Doha (no DST, Sunday–Thursday with a lunch break) and New York across both changes.
+- **`loadCalendar(tx, id | null)`**: the given set, else the default set, else always open in the organisation's
+  time zone.
+- **Setup → Business hours** (`/v1/setup/business-hours`, CRUD with holidays replaced as a whole, one default,
+  optimistic versions, Setup audit; a set used by SLA policies cannot be deleted).
+- **Users' routing settings** `GET|PUT /v1/users/{id}/routing`: working hours (null: whenever not out of office),
+  out of office with an optional end, skills and per-object capacity. Users read and change their own availability;
+  `view_setup` reads anyone's; skills and capacity need `manage_users`. Audited.

@@ -60,6 +60,11 @@ import { ApiKeysController } from './setup/api-keys.controller.js';
 import { DedupeSetupController } from './setup/dedupe-setup.controller.js';
 import { DedupeSetupService } from './setup/dedupe-setup.service.js';
 import {
+  BusinessHoursController,
+  UserRoutingController,
+} from './setup/routing-setup.controller.js';
+import { RoutingSetupService } from './setup/routing-setup.service.js';
+import {
   DuplicateCandidatesController,
   DuplicateJobsController,
 } from './records/dedupe-queue.controller.js';
@@ -124,6 +129,8 @@ export class AppModule {
         DuplicatesController,
         DuplicateJobsController,
         DuplicateCandidatesController,
+        BusinessHoursController,
+        UserRoutingController,
         SharingSetupController,
         CurrencyController,
         MetadataSetupController,
@@ -178,6 +185,7 @@ export class AppModule {
         RecordPageService,
         DuplicatesService,
         DedupeSetupService,
+        RoutingSetupService,
         SystemPermissionGuard,
       ],
       exports: [

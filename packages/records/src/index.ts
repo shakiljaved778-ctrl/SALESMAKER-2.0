@@ -107,3 +107,22 @@ export {
   runDueDuplicateJobs,
   runDuplicateJob,
 } from './duplicate-jobs.js';
+export {
+  addBusinessMinutes,
+  ALWAYS_OPEN,
+  businessMinutesBetween,
+  hoursErrors,
+  isHoliday,
+  isOpen,
+  isValidTimezone,
+  localParts,
+  openIntervals,
+  WEEKDAYS,
+  zonedInstant,
+  type Calendar,
+  type Holiday,
+  type LocalParts,
+  type Weekday,
+  type WeeklyHours,
+} from './calendar.js';
+export { loadCalendar } from './calendars.js';
