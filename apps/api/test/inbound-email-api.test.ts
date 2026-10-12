@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import { withTenant, type TenantTransaction } from '@sm/db';
 import { processInboundEmail } from '@sm/imports';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -14,7 +16,8 @@ let f: SetupFixture;
 type Json = Record<string, unknown>;
 const json = (res: { body: string }) => JSON.parse(res.body) as Json;
 const firstError = (res: { body: string }) => (json(res)['errors'] as Json[] | undefined)?.[0];
-const SECRET = 'inbound-test-secret-0123456789';
+// Generated per run: nothing secret-looking is committed (gitleaks).
+const SECRET = randomBytes(18).toString('hex');
 
 beforeAll(async () => {
   f = await setupFixture('inbound', {}, { INBOUND_EMAIL_SECRET: SECRET });
@@ -153,7 +156,7 @@ describe('delivery and the record’s emails', () => {
   it('stores mail for active addresses once, then files it as a lead', async () => {
     const a = await create({ name: 'Leads inbox' });
     const raw = mime('"Nadia Karim" <nadia@karim-logistics.example>', 'Fleet quote', 'm1');
-    expect((await deliver([a.address], raw, 'wrong-secret-value-0123456')).statusCode).toBe(401);
+    expect((await deliver([a.address], raw, randomBytes(18).toString('hex'))).statusCode).toBe(401);
     expect(
       (await f.api.app.inject({ method: 'POST', url: '/v1/inbound/email', payload: {} }))
         .statusCode,
