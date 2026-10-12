@@ -10269,7 +10269,8 @@
               "type": "string",
               "enum": [
                 "en",
-                "ar"
+                "en-XA",
+                "ar-XB"
               ]
             }
           }

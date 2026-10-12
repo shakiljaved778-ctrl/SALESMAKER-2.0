@@ -19,7 +19,22 @@ const config: NextConfig = {
   // Workspace packages ship compiled ESM; CSS from @sm/ui is processed by this app's Tailwind.
   transpilePackages: ['@sm/ui'],
   headers() {
-    return Promise.resolve([{ source: '/:path*', headers: securityHeaders }]);
+    return Promise.resolve([
+      // Hosted web forms (/f/…) are framed by the embed snippet: their CSP sets frame-ancestors.
+      { source: '/((?!f/).*)', headers: securityHeaders },
+      {
+        source: '/f/:path*',
+        headers: securityHeaders.filter((h) => h.key !== 'X-Frame-Options'),
+      },
+      // The embed script is loaded by other sites.
+      {
+        source: '/forms/embed.js',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=300' },
+          { key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
+        ],
+      },
+    ]);
   },
 };
 

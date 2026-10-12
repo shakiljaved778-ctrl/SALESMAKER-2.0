@@ -45,7 +45,8 @@ function themeVars(theme: 'light' | 'dark'): Record<string, string> {
 
 /**
  * Render every design token as CSS custom properties (§9). Light is the default; dark applies
- * with data-theme="dark", or data-theme="system" when the OS prefers dark. Density applies via
+ * with data-theme="dark", or data-theme="system" when the OS prefers dark; data-theme-scope does the
+ * same for a subtree. Density applies via
  * data-density. The output is committed as src/styles/tokens.css and checked by a test.
  */
 export function renderTokensCss(): string {
@@ -77,9 +78,15 @@ export function renderTokensCss(): string {
       { ...constants, ...themeVars('light'), ...densityVars('default') },
       '  color-scheme: light;\n',
     ),
-    block(":root[data-theme='dark']", themeVars('dark'), '  color-scheme: dark;\n'),
+    // A subtree can carry its own theme (data-theme-scope), e.g. a hosted web form (§7.1).
+    block("[data-theme-scope='light']", themeVars('light'), '  color-scheme: light;\n'),
+    block(
+      ":root[data-theme='dark'],\n[data-theme-scope='dark']",
+      themeVars('dark'),
+      '  color-scheme: dark;\n',
+    ),
     `@media (prefers-color-scheme: dark) {\n${block(
-      ":root[data-theme='system']",
+      ":root[data-theme='system'],\n[data-theme-scope='system']",
       themeVars('dark'),
       '  color-scheme: dark;\n',
     )

@@ -1640,5 +1640,36 @@
       "emptyBody": "Records you delete show up here for 30 days.",
       "back": "Back to Home"
     }
+  },
+  "forms": {
+    "submit": "Submit",
+    "sending": "Sending…",
+    "required": "required",
+    "selectPlaceholder": "Choose…",
+    "thanks": "Thank you. We have received your details.",
+    "turnstileLabel": "Security check",
+    "notFound": {
+      "title": "This form is not available",
+      "body": "It may have been closed, or the link may be wrong."
+    },
+    "unavailable": {
+      "title": "This form is briefly unavailable",
+      "body": "Please try again in a moment."
+    },
+    "errors": {
+      "summary": "Some fields need attention.",
+      "required": "This field is required.",
+      "invalidEmail": "Enter an email address.",
+      "disposableEmail": "Use a permanent email address.",
+      "invalidValue": "Choose one of the options.",
+      "invalidNumber": "Enter a number.",
+      "invalidDate": "Enter a date.",
+      "invalidUrl": "Enter a web address starting with http:// or https://.",
+      "tooLong": "This is too long.",
+      "invalidType": "Check this value.",
+      "captchaFailed": "Please complete the security check again.",
+      "rateLimited": "Too many submissions from your network. Please try again later.",
+      "generic": "Something went wrong. Please try again."
+    }
   }
 }

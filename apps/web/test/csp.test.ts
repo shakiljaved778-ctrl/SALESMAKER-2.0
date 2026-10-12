@@ -19,3 +19,17 @@ describe('contentSecurityPolicy', () => {
     expect(csp).not.toContain('upgrade-insecure-requests');
   });
 });
+
+describe('contentSecurityPolicy for hosted web forms', () => {
+  it('lets any site frame the form and Turnstile load, and nothing more', () => {
+    const csp = contentSecurityPolicy('n', { dev: false, https: true, embeddable: true });
+    expect(csp).toContain('frame-ancestors *');
+    expect(csp).not.toContain("frame-ancestors 'none'");
+    expect(csp).toContain(
+      "script-src 'self' 'nonce-n' 'strict-dynamic' https://challenges.cloudflare.com",
+    );
+    expect(csp).toContain('frame-src https://challenges.cloudflare.com');
+    expect(csp).toContain("connect-src 'self' https://challenges.cloudflare.com");
+    expect(contentSecurityPolicy('n', { dev: false, https: true })).not.toContain('challenges');
+  });
+});

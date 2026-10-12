@@ -266,7 +266,8 @@ export const webFormRoutes = {
     visibility: 'internal',
     request: {
       params: PublicFormParams,
-      query: z.object({ locale: z.enum(['en', 'ar']).default('en') }).strict(),
+      // The UI locales (§9.12): English and its two pseudo-locales.
+      query: z.object({ locale: z.enum(['en', 'en-XA', 'ar-XB']).default('en') }).strict(),
     },
     responses: { 200: { description: 'The form', body: PublicWebFormDto } },
   }),

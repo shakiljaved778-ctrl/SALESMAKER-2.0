@@ -21,7 +21,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T17** `feat(import): import engine`
 - [x] **T18** `feat(api): imports`
 - [x] **T19** `feat(forms): web-to-lead`
-- [ ] **T20** `feat(web): hosted forms and embed`
+- [x] **T20** `feat(web): hosted forms and embed`
 - [ ] **T21** `feat(email): email-to-lead`
 - [ ] **T22** `feat(web): import wizard (T6)`
 - [ ] **T23** `feat(web): duplicates`

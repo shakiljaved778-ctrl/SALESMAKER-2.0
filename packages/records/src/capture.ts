@@ -1,4 +1,5 @@
 import type { TenantTransaction } from '@sm/db';
+import { normaliseValue } from '@sm/metadata';
 import { sql } from 'kysely';
 
 import { loadRecordContext } from './load-context.js';
@@ -46,6 +47,19 @@ export interface CaptureResult {
 }
 
 const DEFAULT_LEAD_SOURCE: Record<CapturedVia, string> = { web_form: 'web', email: 'email' };
+/** Attribution from the wild: dropped when its field will not take it, never a refused lead. */
+const ATTRIBUTION = [
+  'lead_source_detail',
+  'utm_source',
+  'utm_medium',
+  'utm_campaign',
+  'utm_term',
+  'utm_content',
+  'referrer',
+  'landing_page',
+  'gclid',
+  'fbclid',
+];
 const empty = (v: unknown) => v === undefined || v === null || v === '';
 /** Text fields are 255 long; URLs and click ids from the wild are cut, never refused. */
 const clip = (v: string | undefined, max = 255) => (v ? v.slice(0, max) : undefined);
@@ -142,7 +156,16 @@ async function create(
   ctx: Awaited<ReturnType<typeof loadRecordContext>>,
   input: CaptureInput,
 ): Promise<CaptureResult> {
-  const values = captureValues(input);
+  const lead = ctx.metadata.object('lead');
+  const accepted = (key: string, value: unknown) => {
+    const f = lead?.fields.find((x) => x.apiName === key);
+    return f !== undefined && normaliseValue(f, value).ok;
+  };
+  const values = Object.fromEntries(
+    Object.entries(captureValues(input)).filter(
+      ([k, v]) => !ATTRIBUTION.includes(k) || accepted(k, v),
+    ),
+  );
   const utmCampaign = input.source.utm?.campaign;
   if (empty(values['campaign_id']) && utmCampaign) {
     const campaignId = await campaignNamed(tx, utmCampaign);

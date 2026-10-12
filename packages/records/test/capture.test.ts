@@ -90,6 +90,34 @@ describe('the capture pipeline', () => {
     });
   });
 
+  it('drops attribution its field will not take instead of refusing the lead', async () => {
+    const out = await h.inTenant((tx) =>
+      captureLead(
+        tx,
+        input(
+          { last_name: 'Local', company: 'L' },
+          {
+            source: {
+              capturedVia: 'web_form',
+              detail: 'Contact',
+              landingPage: 'http://localhost:3000/f/x',
+              referrer: 'https://partner.example/page',
+            },
+          },
+        ),
+      ),
+    );
+    expect(out.status).toBe('CREATED');
+    const lead = await h.inTenant(async (tx) => {
+      const object = (await h.context(tx, rep)).metadata.object('lead');
+      return object ? readStored(tx, object, out.recordId ?? '') : null;
+    });
+    expect(lead?.values).toMatchObject({
+      landing_page: null,
+      referrer: 'https://partner.example/page',
+    });
+  });
+
   it('reports refusals without losing the caller’s transaction', async () => {
     const result = await h.inTenant(async (tx) => {
       const r = await captureLead(tx, input({ company: 'No surname' }));
