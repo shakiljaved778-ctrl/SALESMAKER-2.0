@@ -1,0 +1,34 @@
+{
+  "name": "@sm/imports",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Data import (§7.1, P03 T17): CSV and XLSX parsing, column mapping and transforms, and the import run (duplicates, assignment, dry run, results, undo) through RecordService's set-based path.",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@sm/db": "workspace:*",
+    "@sm/integrations": "workspace:*",
+    "@sm/metadata": "workspace:*",
+    "@sm/records": "workspace:*",
+    "csv-parse": "7.0.3",
+    "fflate": "0.8.3",
+    "kysely": "0.29.6",
+    "saxes": "6.0.0"
+  },
+  "devDependencies": {
+    "@sm/config": "workspace:*",
+    "@types/node": "26.6.2",
+    "eslint": "10.11.0",
+    "typescript": "6.0.3",
+    "vitest": "5.0.2"
+  }
+}

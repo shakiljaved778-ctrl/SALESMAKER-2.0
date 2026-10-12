@@ -5,7 +5,8 @@
   "type": "module",
   "description": "RecordService (\u00a73.7): the only write path for CRM records. Permission, FLS and record-access checks, defaults, auto-numbers, validation rules, optimistic concurrency, money, field history, audit and outbox events, in the caller's tenant transaction.",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./testing": "./dist/testing.js"
   },
   "types": "./dist/index.d.ts",
   "scripts": {

@@ -1,7 +1,9 @@
+import { IMPORT_DRY_RUN_TOPIC, IMPORT_RUN_TOPIC, IMPORT_UNDO_TOPIC } from '@sm/imports';
+import { FakeStorageProvider } from '@sm/integrations';
 import { MASS_ACTION_TOPIC } from '@sm/records';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { importHandler } from '../src/mass-actions.js';
+import { createImportHandler, importHandler } from '../src/mass-actions.js';
 import { startTestWorker, type TestWorker } from './support.js';
 
 let w: TestWorker;
@@ -50,5 +52,18 @@ describe('the import queue', () => {
     await expect(
       importHandler(envelope(MASS_ACTION_TOPIC, tenant, { jobRunId: 'x' }), ctx()),
     ).rejects.toThrow();
+  });
+
+  it('runs import jobs with object storage (a job that no longer exists is done)', async () => {
+    const handler = createImportHandler({ storage: new FakeStorageProvider() });
+    const jobId = '01920000-0000-7000-8000-00000000f003';
+    for (const topic of [IMPORT_RUN_TOPIC, IMPORT_DRY_RUN_TOPIC, IMPORT_UNDO_TOPIC])
+      await expect(handler(envelope(topic, tenant, { jobId }), ctx())).resolves.toBeUndefined();
+    await expect(handler(envelope(IMPORT_RUN_TOPIC, tenant, {}), ctx())).rejects.toThrow(
+      /needs a jobId/,
+    );
+    await expect(
+      importHandler(envelope(IMPORT_RUN_TOPIC, tenant, { jobId }), ctx()),
+    ).rejects.toThrow(/not configured/);
   });
 });

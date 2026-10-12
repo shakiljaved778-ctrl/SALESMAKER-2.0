@@ -331,3 +331,31 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   grade letter (A–D); the lead's picklist value is lower case (a–d).
 - **API.** Setup → Lead scoring CRUD (`/v1/setup/scoring-models`, rules replaced as a whole, one primary) and
   `GET /v1/records/lead/{id}/score-history` (visible leads; empty when the score field is hidden by FLS).
+
+### T17 — import engine
+
+- **`@sm/imports`.** Reading (`parse.ts`), mapping (`mapping.ts`) and running (`run.ts`) imports, on the worker's
+  `import` queue (`import.run`, `import.dry_run`, `import.undo`, payload `{ jobId }`).
+- **Files.** CSV is streamed by `csv-parse` (delimiter `,` `;` or tab, BOM stripped). XLSX is read with `fflate`
+  (MIT, unzip) and `saxes` (ISC, SAX XML): sheets in workbook order, shared and inline strings, booleans, and dates
+  decided by the cell's number format. `exceljs` was rejected on licence grounds (it pulls in Unlicense, Zlib and
+  unlicensed transitive packages, which §0.3 rules out).
+- **Mapping.** Each column → field with picklist value maps (any case; labels match too), date order (DMY/MDY/YMD;
+  ISO always), a default phone country, owners by email/name/id, numbers with either decimal separator, currency
+  symbols and `%`, and checkboxes in words. Unconvertible cells are row errors; job defaults fill empty fields.
+  `suggestMappings` (API names, labels, synonyms) and `headersSignature` (saved templates) serve T18.
+- **Run.** The job is claimed `QUEUED → RUNNING` once. Rows go in batches of 1,000, one transaction each, through
+  `bulkInsert`/`bulkUpdate` as the importing user (validation, FLS, duplicates, assignment, scoring, audit, events all
+  as for any write). Duplicate handling uses the job's matching rule: **SKIP** the row, **UPDATE** the best match the importer can see
+  (a match they cannot see is a row error, never touched), or **CREATE** regardless. A batch that loses a deadlock or serialization
+  race (40P01/40001) is retried up to 3 times. Each row's outcome is stored (`import_row_result`) and a results CSV
+  (row, status, record id, errors) is written to object storage when the job finishes.
+- **Dry run.** The first 100 rows run in one transaction that is then rolled back (a `DryRunDone` throw carries the
+  outcomes out); the counts and row errors are kept on the job, which becomes READY.
+- **Undo.** Within 72 hours of finishing, the job moves to UNDOING (API, T18), then the worker moves its CREATED
+  records to the recycle bin as the importing user, skipping records already gone, and marks it UNDONE. Updated
+  records are not reverted; their field history shows what the import changed.
+- **Storage.** `StorageProvider` gained `putObject`/`getObject`; `S3StorageProvider` (AWS SDK v3, path-style for
+  S3-compatible stores) is used when `S3_*` is configured. Without it the worker still runs mass actions and refuses
+  import jobs. The fake keeps bytes in memory for tests. The record test harness moved to `@sm/records/testing` so
+  other packages' tests share it.

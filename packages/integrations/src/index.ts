@@ -13,7 +13,13 @@ export {
   sha1Upper,
   type BreachedPasswordChecker,
 } from './passwords/breached-password-checker.js';
-export { FakeStorageProvider, type StorageProvider } from './storage/storage-provider.js';
+export {
+  FakeStorageProvider,
+  S3StorageProvider,
+  storageKey,
+  type S3StorageOptions,
+  type StorageProvider,
+} from './storage/storage-provider.js';
 export {
   OpenIdConnectProvider,
   type OpenIdConnectProviderOptions,
