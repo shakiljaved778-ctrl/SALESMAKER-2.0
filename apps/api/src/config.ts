@@ -37,6 +37,12 @@ export const ApiConfigSchema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   S3_BUCKET: z.string().min(1).optional(),
 
+  // ── Web-to-lead (§7.1): Turnstile when both keys are set; per-IP submission limit per form ──
+  TURNSTILE_SITE_KEY: z.string().min(1).optional(),
+  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+  FORM_RATE_BURST: z.coerce.number().int().positive().default(5),
+  FORM_RATE_PER_HOUR: z.coerce.number().int().positive().default(20),
+
   // ── Session tokens (§6.1) ──────────────────────────────────────────────────
   /** Ed25519 private key (PKCS#8 PEM) that signs access tokens; or give AUTH_JWT_PRIVATE_KEY_PATH. */
   AUTH_JWT_PRIVATE_KEY_PEM: z.string().includes('PRIVATE KEY'),

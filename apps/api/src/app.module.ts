@@ -1,6 +1,11 @@
 import { Module, type DynamicModule } from '@nestjs/common';
 import type { CellPrisma } from '@sm/db';
-import type { BreachedPasswordChecker, EmailSender, StorageProvider } from '@sm/integrations';
+import type {
+  BreachedPasswordChecker,
+  CaptchaVerifier,
+  EmailSender,
+  StorageProvider,
+} from '@sm/integrations';
 import type { ControlPlane, SecretBox, TokenBucketRateLimiter } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
 import type { Logger } from 'pino';
@@ -84,12 +89,16 @@ import { DuplicatesController } from './records/duplicates.controller.js';
 import { QueuesController } from './records/queues.controller.js';
 import { DuplicatesService } from './records/duplicates.service.js';
 import { ImportsController } from './records/imports.controller.js';
+import { PublicFormsService } from './capture/public-forms.service.js';
+import { PublicFormsController, WebFormsController } from './capture/web-forms.controller.js';
+import { WebFormsSetupService } from './capture/web-forms-setup.service.js';
 import { ImportsService } from './records/imports.service.js';
 import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
 import { TenantContextGuard } from './tenancy/tenant-context.guard.js';
 import {
   BREACHED_PASSWORDS,
+  CAPTCHA,
   CONFIG,
   CONTROL_PLANE,
   EMAIL_SENDER,
@@ -114,6 +123,8 @@ export interface ApiDependencies {
   email: EmailSender;
   /** Object storage; imports answer 503 without it. */
   storage?: StorageProvider | undefined;
+  /** Turnstile for web forms; forms cannot turn it on without it. */
+  captcha?: CaptchaVerifier | undefined;
   breachedPasswords: BreachedPasswordChecker;
   secretBox: SecretBox;
   oidcProviders: OidcProviders;
@@ -148,6 +159,8 @@ export class AppModule {
         DuplicateJobsController,
         DuplicateCandidatesController,
         ImportsController,
+        WebFormsController,
+        PublicFormsController,
         BusinessHoursController,
         UserRoutingController,
         AssignmentRulesController,
@@ -176,6 +189,7 @@ export class AppModule {
         { provide: LOGGER, useValue: deps.logger },
         { provide: EMAIL_SENDER, useValue: deps.email },
         { provide: STORAGE, useValue: deps.storage ?? null },
+        { provide: CAPTCHA, useValue: deps.captcha ?? null },
         { provide: BREACHED_PASSWORDS, useValue: deps.breachedPasswords },
         { provide: SECRET_BOX, useValue: deps.secretBox },
         { provide: OIDC_PROVIDERS, useValue: deps.oidcProviders },
@@ -206,6 +220,8 @@ export class AppModule {
         MetadataService,
         CurrencyService,
         ImportsService,
+        WebFormsSetupService,
+        PublicFormsService,
         FieldSetupService,
         LayoutSetupService,
         IdempotencyService,

@@ -4,6 +4,7 @@ import { withTenant, type CellPrisma } from '@sm/db';
 import { createTestCellDatabase, type TestCellDatabase } from '@sm/db/testing';
 import {
   FakeBreachedPasswordChecker,
+  FakeCaptchaVerifier,
   FakeEmailSender,
   FakeStorageProvider,
 } from '@sm/integrations';
@@ -87,6 +88,7 @@ export async function startTestApi(
   const api = await createApiApp(config, {
     email,
     storage,
+    captcha: new FakeCaptchaVerifier(),
     breachedPasswords: new FakeBreachedPasswordChecker(),
     controlPlane,
     ...deps,

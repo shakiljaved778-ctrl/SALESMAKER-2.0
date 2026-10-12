@@ -26,3 +26,8 @@ export {
   OpenIdConnectProvider,
   type OpenIdConnectProviderOptions,
 } from './oidc/openid-connect-provider.js';
+export {
+  FakeCaptchaVerifier,
+  TurnstileVerifier,
+  type CaptchaVerifier,
+} from './captcha/captcha-verifier.js';

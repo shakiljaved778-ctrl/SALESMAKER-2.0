@@ -389,3 +389,43 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - `import.started` and `import.undone` go to the Setup audit trail; the records themselves are audited by
   RecordService as for any write. Undo now stamps `undone_at` (it overwrote `finished_at`, which the 72-hour
   window is measured from).
+
+### T19 — web-to-lead
+
+- **Capture pipeline** (`@sm/records` `captureLead`, shared with email-to-lead in T21). The lead is created through
+  RecordService as the capture point's run-as user, inside a savepoint so a refusal never aborts the caller's
+  transaction. Values: the visitor's, then the capture point's defaults for what is empty, then the source fields
+  (`lead_source` defaulting to `web`/`email`, `lead_source_detail` = the form's or address's name, `captured_via`,
+  UTM fields, `referrer`, `landing_page`, `gclid`, `fbclid`; long values are cut, never refused). **Campaign
+  attribution:** a `campaign_id` default wins; otherwise a campaign whose name equals `utm_campaign` (any case), when
+  exactly one does. Duplicate rules run as for any write; when a **Block** rule stops the lead, the submission is
+  `DUPLICATE` and linked to the existing lead (best match under the active matching rules, whatever the run-as user
+  can see). The caller stores its event (submission, inbound email) and then the lead is rescored, so the event
+  counts towards engagement on the new or the existing lead. The capture point's assignment rule routes it.
+- **Setup → Web forms** (`/v1/setup/web-forms`, view_setup / customize_application, audited): fields from lead
+  metadata with label overrides, required flags, hidden fields with values, picklist subsets; consents (up to 5,
+  keyed, optionally required); theme, button label, thank-you message or https redirect; Turnstile; extra blocked
+  domains; defaults; assignment rule; auto-responder. Everything that would make submissions fail is refused up
+  front: a run-as user who is inactive, cannot create leads or cannot edit a field the form sets; visible fields
+  of types visitors cannot fill (lookups come from hidden fields or defaults); hidden fields without values;
+  picklist values that are not active; a required lead field nobody fills (the owner and picklist defaults count,
+  as RecordService fills them); Turnstile without keys; an auto-responder without an email field. Submissions are
+  listed per form with their attribution, never the visitor's values, IP hash or user agent.
+- **Public endpoints** (`/v1/public/forms/{tenantId}/{formId}`, no session; tenant by id like every pre-auth route,
+  the web resolves the slug): `GET` describes an ACTIVE form (visible fields only, labels in `en`/`ar`, options);
+  `POST …/submissions` → 202. Order: tenant and ACTIVE form (else 404, nothing leaks); per-IP token bucket per
+  form (`FORM_RATE_BURST`, `FORM_RATE_PER_HOUR`; 429 with `retry-after`; fails open); **honeypot** (`website`
+  filled → stored `REJECTED`, answered exactly like a success); **Turnstile** when the form uses it (400
+  `captcha_failed`); values checked against the form (unknown fields, required, types, picklist subset, email and
+  URL shapes, **disposable domains** from the bundled list plus the form's own, required consents) → 400 with every
+  problem, nothing stored; then the submission is **committed** (`RECEIVED`, payload, attribution, a keyed hash of
+  the IP, user agent) before a second transaction captures the lead and sets `CREATED`/`DUPLICATE`/`FAILED`. An
+  unexpected error marks it `FAILED` (`internal_error`) and the visitor still gets 202: the submission is safe.
+- **Auto-responder** after commit through EmailSender (Mailpit locally), plain text with `{first_name}` /
+  `{last_name}`, HTML-escaped, idempotent per submission; failures are logged, never surfaced.
+- **Turnstile** behind `CaptchaVerifier` (`TurnstileVerifier` posting to `siteverify` with the token and IP only;
+  `FakeCaptchaVerifier` in tests: `pass` passes). On when `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are set.
+- **Disposable domains:** the hand-made list (33 well-known services) in `capture/disposable-domains.ts`, matched on
+  the domain and its parents, plus each form's `blockedDomains` (approved plan decision; no CC0 list).
+- T20 note: the hosted page and embed call these endpoints; browser calls from other origins need CORS and the web
+  server must forward the visitor's IP (trusted proxy) so the per-IP limit sees visitors, not the web server.

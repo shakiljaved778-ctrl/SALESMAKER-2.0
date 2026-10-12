@@ -159,3 +159,11 @@ export {
   SCORING_EVENTS,
   type ScoreResult,
 } from './scoring.js';
+export {
+  captureLead,
+  captureValues,
+  type CapturedVia,
+  type CaptureInput,
+  type CaptureResult,
+  type CaptureSource,
+} from './capture.js';

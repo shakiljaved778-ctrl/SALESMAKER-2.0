@@ -5,6 +5,7 @@ import {
   RangeApiBreachedPasswordChecker,
   s3StorageFrom,
   SmtpEmailSender,
+  TurnstileVerifier,
 } from '@sm/integrations';
 import {
   createFastifyApp,
@@ -81,6 +82,11 @@ export async function createApiApp(
     limiter,
     email: overrides.email ?? new SmtpEmailSender(config.SMTP_URL, config.EMAIL_FROM),
     storage: overrides.storage ?? s3StorageFrom(config),
+    captcha:
+      overrides.captcha ??
+      (config.TURNSTILE_SITE_KEY && config.TURNSTILE_SECRET_KEY
+        ? new TurnstileVerifier(config.TURNSTILE_SITE_KEY, config.TURNSTILE_SECRET_KEY)
+        : undefined),
     breachedPasswords:
       overrides.breachedPasswords ??
       new RangeApiBreachedPasswordChecker(config.BREACHED_PASSWORD_API_URL),
