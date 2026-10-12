@@ -262,7 +262,9 @@ async function write(
           make(from + k),
         );
         // A batch of 200 through the full pipeline can outlast the request default (10 s) when
-        // several run at once on a busy machine; a seed may wait longer.
+        // several run at once on a busy machine; a seed may wait longer. Concurrent batches also
+        // queue on the record-number counter row (held until each batch commits), so a statement
+        // may wait past the 5 s default too.
         return retryOnConflict(() =>
           withTenant(
             c.prisma,
@@ -272,7 +274,7 @@ async function write(
               ctx ??= await loadRecordContext(tx, c.ownerId);
               return bulkCreate(tx, ctx, object, inputs);
             },
-            { timeoutMs: 120_000 },
+            { timeoutMs: 120_000, statementTimeoutMs: 120_000 },
           ),
         );
       }),
