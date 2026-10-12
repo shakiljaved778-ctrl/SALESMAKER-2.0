@@ -589,7 +589,8 @@
       "setupAudit": "Setup audit trail",
       "objects": "Object manager",
       "currencies": "Currencies & rates",
-      "dataImport": "Data import history"
+      "dataImport": "Data import history",
+      "duplicates": "Matching & duplicate rules"
     },
     "forbidden": {
       "title": "Setup is for administrators",
@@ -1180,6 +1181,111 @@
     "dataImport": {
       "title": "Data import history",
       "description": "Every import in this workspace. Open one to see its results or undo it."
+    },
+    "duplicates": {
+      "title": "Matching & duplicate rules",
+      "description": "How records are compared, what happens when a new or changed record matches another, and scans for duplicates already stored.",
+      "tabs": {
+        "matching": "Matching rules",
+        "duplicate": "Duplicate rules",
+        "jobs": "Duplicate jobs"
+      },
+      "objects": {
+        "lead": "Leads",
+        "contact": "Contacts",
+        "account": "Accounts"
+      },
+      "methods": {
+        "exact": "Exact",
+        "fuzzy": "Similar",
+        "phone": "Phone number",
+        "email": "Email address",
+        "emailDomainName": "Email domain and name",
+        "company": "Company name"
+      },
+      "matching": {
+        "title": "Matching rules",
+        "new": "New matching rule",
+        "none": "No matching rules yet.",
+        "name": "Name",
+        "object": "Object",
+        "conditions": "Conditions",
+        "conditionsHint": "Records match when every condition matches.",
+        "status": "Status",
+        "actions": "Actions",
+        "active": "Active",
+        "inactive": "Inactive",
+        "edit": "Edit {name}",
+        "delete": "Delete {name}",
+        "inUse": "A duplicate rule uses this matching rule. Change that rule first.",
+        "editTitle": "Edit {name}",
+        "newTitle": "New matching rule",
+        "field": "Field",
+        "method": "Compare as",
+        "threshold": "Similarity",
+        "removeCondition": "Remove condition",
+        "addCondition": "Add condition",
+        "matchBlank": "Blank values match each other",
+        "test": "Try it",
+        "testHint": "Type values to see which stored records the rule finds.",
+        "runTest": "Find matches",
+        "testFound": "{n, plural, one {# match} other {# matches}}: {names}",
+        "testNone": "No matches."
+      },
+      "duplicate": {
+        "title": "Duplicate rules",
+        "new": "New duplicate rule",
+        "none": "No duplicate rules yet.",
+        "name": "Name",
+        "object": "Object",
+        "matchingRule": "Matching rule",
+        "action": "When a record matches",
+        "status": "Status",
+        "actions": "Actions",
+        "block": "Block",
+        "alert": "Alert",
+        "blockLong": "Block the save",
+        "alertLong": "Save, and show the possible duplicates",
+        "active": "Active",
+        "inactive": "Inactive",
+        "edit": "Edit {name}",
+        "delete": "Delete {name}",
+        "deleteRefused": "This rule could not be deleted.",
+        "editTitle": "Edit {name}",
+        "newTitle": "New duplicate rule",
+        "chooseRule": "Choose a matching rule",
+        "noMatching": "Create a matching rule for this object first.",
+        "when": "Check records",
+        "onCreate": "When they are created",
+        "onEdit": "When they are changed",
+        "bypass": "Profiles that may save anyway"
+      },
+      "jobs": {
+        "title": "Duplicate jobs",
+        "scan": "Scan for duplicates",
+        "hint": "A scan compares stored records with one matching rule and adds the groups it finds to the review queue of that object.",
+        "none": "No scans yet.",
+        "rule": "Matching rule",
+        "object": "Object",
+        "status": "Status",
+        "scanned": "Scanned",
+        "found": "Groups found",
+        "schedule": "Repeat",
+        "finished": "Finished",
+        "once": "Once",
+        "daily": "Every day",
+        "weekly": "Every week",
+        "statuses": {
+          "queued": "Queued",
+          "running": "Running",
+          "succeeded": "Finished",
+          "failed": "Failed"
+        },
+        "scanTitle": "Scan for duplicates",
+        "chooseRule": "Choose a matching rule",
+        "start": "Start scan",
+        "started": "Scan started"
+      }
     }
   },
   "settings": {
@@ -1467,7 +1573,8 @@
       "saveFailed": "Couldn't save {field}.",
       "keyboardHint": "J and K move, X selects, E edits, Enter opens",
       "name": "Name",
-      "import": "Import"
+      "import": "Import",
+      "duplicates": "Review duplicates"
     },
     "views": {
       "saveTitle": "Save list view",
@@ -1575,7 +1682,10 @@
         "invalidReference": "Choose a record you can see for {field}.",
         "readOnly": "{field} can't be changed.",
         "invalid": "Check {field}."
-      }
+      },
+      "blockedTitle": "Not saved: the duplicate rule “{rule}” found a matching record.",
+      "blockedUnnamed": "Unnamed record",
+      "blockedHidden": "The matching records are not shared with you. Ask an administrator."
     },
     "convert": {
       "title": "Convert {name}",
@@ -1849,6 +1959,47 @@
         "by": "By",
         "when": "Started"
       }
+    }
+  },
+  "duplicates": {
+    "merge": {
+      "title": "Merge {n} {objects}",
+      "description": "Choose the record that stays, then the value it keeps where they differ. The others go to the recycle bin and their related records move to it.",
+      "merge": "Merge",
+      "merged": "{n} records merged",
+      "conflict": "One of these records changed or can no longer be merged. Close and try again.",
+      "caption": "Values of the records being merged",
+      "field": "Field",
+      "survivor": "Record that stays",
+      "keep": "Keep {name}",
+      "identical": "These records have the same values; merging keeps them.",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "panel": {
+      "title": "{n, plural, one {This {object} may duplicate # record} other {This {object} may duplicate # records}}",
+      "pick": "Select {name} for merging",
+      "unnamed": "Unnamed record",
+      "match": "{rule} · {score}% match",
+      "merge": "{n, plural, other {Merge # records}}"
+    },
+    "review": {
+      "pageTitle": "Duplicate review",
+      "title": "Possible duplicate {objects}",
+      "count": "{n, plural, =0 {Nothing to review} one {# group to review} other {# groups to review}}",
+      "backTo": "Back to {objects}",
+      "unavailable": "The review queue is not available.",
+      "emptyTitle": "Nothing to review",
+      "emptyBody": "Duplicate jobs add groups here when they find records that look alike.",
+      "groups": "Groups to review",
+      "unnamed": "Unnamed",
+      "score": "{score}% alike · {n} records",
+      "groupTitle": "{n} records that look alike",
+      "dismiss": "Not duplicates",
+      "dismissed": "Marked as not duplicates",
+      "merge": "Merge…",
+      "caption": "The records compared",
+      "field": "Field"
     }
   }
 }

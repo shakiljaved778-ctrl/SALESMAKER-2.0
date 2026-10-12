@@ -1,6 +1,11 @@
 'use client';
 
-import type { CreateLayoutDto, RecordPageDto, SearchResultDto } from '@sm/contracts';
+import type {
+  CreateLayoutDto,
+  DuplicateCheckResult,
+  RecordPageDto,
+  SearchResultDto,
+} from '@sm/contracts';
 import {
   Banner,
   Button,
@@ -18,12 +23,14 @@ import {
   type FieldEditorValue,
   type LookupValue,
 } from '@sm/ui';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { z } from 'zod';
 
 import { cellApi } from '../../lib/cell-api';
+import { DEDUPE_OBJECTS } from '../duplicates/objects';
 import {
   cellValue,
   editorValue,
@@ -38,6 +45,7 @@ import {
 } from './fields';
 import { useRecordLabels } from './use-record-labels';
 
+type DuplicateCheck = z.infer<typeof DuplicateCheckResult>;
 type Layout = z.infer<typeof CreateLayoutDto>;
 type Page = z.infer<typeof RecordPageDto>;
 type Section = Layout['sections'][number];
@@ -186,6 +194,11 @@ export function RecordEditor({
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [conflict, setConflict] = useState(false);
+  // A Block duplicate rule refused the save: the rule and the matches the caller can see.
+  const [blocked, setBlocked] = useState<{
+    rule: string;
+    matches: { id: string; name: string | null }[];
+  } | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [failed, setFailed] = useState(false);
   // One key per form: a retried create (double click, flaky network) makes one record.
@@ -343,6 +356,7 @@ export function RecordEditor({
       setFormError(t('fixErrors'));
       return;
     }
+    setBlocked(null);
     const out: Record<string, unknown> = {};
     for (const [name, v] of Object.entries(values)) {
       const field = fields.get(name);
@@ -393,6 +407,23 @@ export function RecordEditor({
     }
     if (r.problem?.code === 'version_conflict') {
       setConflict(true);
+      return;
+    }
+    const block = r.problem?.errors?.find((e) => e.code === 'duplicate_blocked');
+    if (block && DEDUPE_OBJECTS.has(object)) {
+      const check = await cellApi<DuplicateCheck>(
+        'POST',
+        `/v1/records/${object}/duplicates/check`,
+        {
+          fields: out,
+          ...(id ? { id } : {}),
+        },
+      );
+      const matches = check.ok
+        ? check.data.groups.filter((g) => g.action === 'BLOCK').flatMap((g) => g.matches)
+        : [];
+      setBlocked({ rule: block.message, matches });
+      setFormError('');
       return;
     }
     const keyed: Record<string, string> = {};
@@ -482,7 +513,27 @@ export function RecordEditor({
             : t('newTitle', { object: describe.label })
         }
         onSubmit={() => void save()}
-        errors={formError ? <Banner tone="danger">{formError}</Banner> : null}
+        errors={
+          blocked ? (
+            <Banner tone="danger" title={t('blockedTitle', { rule: blocked.rule })}>
+              {blocked.matches.length ? (
+                <ul className="mt-1 flex flex-col gap-1">
+                  {blocked.matches.map((m) => (
+                    <li key={m.id}>
+                      <Link href={`/${section}/${m.id}`} className="text-link">
+                        {m.name ?? t('blockedUnnamed')}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                t('blockedHidden')
+              )}
+            </Banner>
+          ) : formError ? (
+            <Banner tone="danger">{formError}</Banner>
+          ) : null
+        }
         footer={
           <>
             <Button type="button" onClick={cancel}>

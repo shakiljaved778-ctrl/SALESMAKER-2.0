@@ -17,7 +17,8 @@ export type SetupItemKey =
   | 'setupAudit'
   | 'objects'
   | 'currencies'
-  | 'dataImport';
+  | 'dataImport'
+  | 'duplicates';
 export type SetupGroupKey = 'usersAccess' | 'sharing' | 'customize' | 'data' | 'security';
 
 export interface SetupItem {
@@ -58,7 +59,10 @@ export const SETUP_TREE: SetupGroup[] = [
   },
   {
     key: 'data',
-    items: [{ key: 'dataImport', href: '/setup/data-import' }],
+    items: [
+      { key: 'duplicates', href: '/setup/duplicates' },
+      { key: 'dataImport', href: '/setup/data-import' },
+    ],
   },
   {
     key: 'security',

@@ -29,6 +29,7 @@ import { cellApi } from '../../lib/cell-api';
 import { useShell } from '../shell/app-shell';
 import { useWorkspaceTab } from '../shell/workspace-tabs';
 import { AccountHierarchy } from './account-hierarchy';
+import { PotentialDuplicates } from '../duplicates/potential-duplicates';
 import { ConvertDialog } from './convert-dialog';
 import {
   cellValue,
@@ -621,6 +622,17 @@ export function RecordPage({
             : {})}
         />
       ) : null}
+      <PotentialDuplicates
+        object={object}
+        id={id}
+        section={section}
+        describe={describe}
+        canMerge={describe.access.edit && describe.access.delete}
+        onMerged={(survivor) => {
+          if (survivor === id) void load();
+          else router.push(`/${section}/${survivor}`);
+        }}
+      />
       <Tabs
         label={t('tabs')}
         value={tab}

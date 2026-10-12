@@ -523,3 +523,26 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **CI e2e** now starts SeaweedFS (`s3`), runs `pnpm storage:setup`, and starts the **worker** (imports, dry runs
   and undo run there). New journey `e2e/imports.spec.ts`: upload, auto-mapping, skip a duplicate by a matching rule,
   the test run's counts, the run (2 created, 1 skipped, 1 failed), failed rows, undo, history, axe on each screen.
+
+### T23 — duplicates UI
+
+- **Record pages** (lead, contact, account) show a warning banner when the active duplicate rules find visible
+  matches: each match with its rule and score, links, and — for users who can edit and delete — up to two picked for
+  a merge. Nothing is shown when there are none.
+- **Block in forms:** a save refused by a Block rule shows the rule's name and the matches the user can see (from
+  `duplicates/check` with the typed values; "not shared with you" when none are visible), instead of a generic error.
+- **Merge modal:** 2–3 records side by side; the record that stays, then a winner per field among the editable
+  fields whose values differ (default: the survivor's value, else the first non-empty one); sends only the fields won
+  by another record, with the survivor's version.
+- **Duplicate review** (`/{leads|contacts|accounts}/duplicates`, template T7, More list actions → Review
+  duplicates): open groups from duplicate jobs in a 360 px list, the selected group's records compared on key fields,
+  **Merge…** and **Not duplicates**.
+- **Setup → Matching & duplicate rules** (Data management): matching rules with a condition builder (field, compare
+  as exact/similar/phone/email/email domain and name/company, similarity threshold), match-blank, active, and a
+  "try it" preview with typed values; duplicate rules (matching rule of the same object, Block or Alert, on create
+  and/or edit, bypass profiles for Block, active); duplicate jobs (scan once, daily or weekly; status, scanned,
+  groups found).
+- Server pages may only import constants from plain modules (`duplicates/objects.ts`): from a `'use client'` file
+  they arrive as client references (`DEDUPE_OBJECTS.has is not a function` in SSR).
+- e2e `duplicates.spec.ts`: rules made in Setup, a Block naming the rule and linking the match, an Alert's banner,
+  a merge from the record page (the other record gone), a scan feeding the review queue, Not duplicates; axe.

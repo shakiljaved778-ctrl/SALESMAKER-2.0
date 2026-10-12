@@ -54,6 +54,7 @@ import {
   type RecordRow,
 } from './fields';
 import { ColumnChooser, MassActionDialog, SaveViewDialog, type MassKind } from './list-dialogs';
+import { DEDUPE_OBJECTS } from '../duplicates/objects';
 import { IMPORTABLE } from '../imports/types';
 import { RecordEditor } from './record-editor';
 import { RecordPreview } from './record-preview';
@@ -150,6 +151,7 @@ export function ObjectList({ object, section }: { object: string; section: strin
   const pathname = usePathname();
   const params = useSearchParams();
   const { user } = useShell();
+  const canImport = Boolean(user?.permissions.includes('import_records'));
   const locale = user?.locale ?? undefined;
   const timeZone = user?.timezone ?? undefined;
   const canShare = Boolean(user?.permissions.includes('customize_application'));
@@ -426,7 +428,7 @@ export function ObjectList({ object, section }: { object: string; section: strin
   };
 
   const menu: MenuEntry[] = [
-    ...(describe?.access.create && IMPORTABLE.has(object)
+    ...(describe?.access.create && IMPORTABLE.has(object) && canImport
       ? [
           {
             type: 'item' as const,
@@ -435,8 +437,21 @@ export function ObjectList({ object, section }: { object: string; section: strin
               router.push(`/${section}/import`);
             },
           },
-          { type: 'separator' as const },
         ]
+      : []),
+    ...(DEDUPE_OBJECTS.has(object)
+      ? [
+          {
+            type: 'item' as const,
+            label: t('duplicates'),
+            onSelect: () => {
+              router.push(`/${section}/duplicates`);
+            },
+          },
+        ]
+      : []),
+    ...(IMPORTABLE.has(object) || DEDUPE_OBJECTS.has(object)
+      ? [{ type: 'separator' as const }]
       : []),
     ...(view && pinnedId !== view.id
       ? [{ type: 'item' as const, label: t('pin'), onSelect: () => void pin() }]
