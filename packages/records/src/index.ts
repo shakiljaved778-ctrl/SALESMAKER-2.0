@@ -3,6 +3,7 @@ export { RecordError, type FieldError, type RecordErrorCode } from './errors.js'
 export {
   createRecord,
   hasAccess,
+  assignmentEnv,
   updateRecord,
   type WriteInput,
   type WriteOptions,
@@ -126,3 +127,12 @@ export {
   type WeeklyHours,
 } from './calendar.js';
 export { loadCalendar } from './calendars.js';
+export {
+  ASSIGNMENT_OBJECTS,
+  assignRecords,
+  entryCriteriaError,
+  type AssignmentEnv,
+  type AssignmentMethod,
+  type AssignmentOutcome,
+  type EntrySettings,
+} from './assignment.js';

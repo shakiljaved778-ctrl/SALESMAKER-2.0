@@ -64,6 +64,8 @@ import {
   UserRoutingController,
 } from './setup/routing-setup.controller.js';
 import { RoutingSetupService } from './setup/routing-setup.service.js';
+import { AssignmentController, AssignmentRulesController } from './setup/assignment.controller.js';
+import { AssignmentSetupService } from './setup/assignment-setup.service.js';
 import {
   DuplicateCandidatesController,
   DuplicateJobsController,
@@ -131,6 +133,8 @@ export class AppModule {
         DuplicateCandidatesController,
         BusinessHoursController,
         UserRoutingController,
+        AssignmentRulesController,
+        AssignmentController,
         SharingSetupController,
         CurrencyController,
         MetadataSetupController,
@@ -186,6 +190,7 @@ export class AppModule {
         DuplicatesService,
         DedupeSetupService,
         RoutingSetupService,
+        AssignmentSetupService,
         SystemPermissionGuard,
       ],
       exports: [

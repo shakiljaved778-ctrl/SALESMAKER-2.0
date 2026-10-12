@@ -42,6 +42,7 @@ export {
   compileQuery,
   COUNT_CAP,
   countQuery,
+  fieldExpr,
   MAX_RELATIONSHIP_DEPTH,
   QueryError,
   runQuery,

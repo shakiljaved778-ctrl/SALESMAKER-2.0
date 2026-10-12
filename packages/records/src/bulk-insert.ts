@@ -6,10 +6,12 @@ import { sql, type RawBuilder } from 'kysely';
 
 import { bulkCreate, type RowResult } from './bulk.js';
 import type { RecordContext } from './context.js';
+import { assignRecords, type AssignmentOutcome } from './assignment.js';
 import { batchDuplicates } from './duplicates.js';
 import { RecordError, type FieldError } from './errors.js';
 import {
   activeRules,
+  assignmentEnv,
   corporateColumns,
   LOOKUPS,
   missingRequired,
@@ -171,7 +173,11 @@ export async function bulkInsert(
   ctx: RecordContext,
   objectName: string,
   inputs: readonly WriteInput[],
-  options: { duplicates?: 'enforce' | 'skip' } = {},
+  options: {
+    duplicates?: 'enforce' | 'skip';
+    /** Run the assignment rule on the created records (§7.3). */
+    assign?: { source: string; ruleId?: string | null };
+  } = {},
 ): Promise<RowResult[]> {
   if (inputs.length > BULK_INSERT_BATCH)
     throw new RecordError('invalid', [{ field: '_batch', code: 'batch_too_large' }]);
@@ -302,14 +308,28 @@ export async function bulkInsert(
   }
 
   await afterInsert(tx, ctx, object, inserted);
+  const assigned = options.assign
+    ? new Map(
+        (
+          await assignRecords(
+            tx,
+            assignmentEnv(ctx),
+            object.apiName,
+            inserted.map((r) => r.id),
+            { source: options.assign.source, ruleId: options.assign.ruleId ?? null },
+          )
+        ).map((a) => [a.recordId, a]),
+      )
+    : new Map<string, AssignmentOutcome>();
   for (const row of inserted) {
     const alerts = duplicates.alerts.get(row.index);
     results.set(row.index, {
       index: row.index,
       ok: true,
       id: row.id,
-      version: 1,
+      version: assigned.get(row.id)?.changed ? 2 : 1,
       ...(alerts?.length ? { duplicates: alerts } : {}),
+      ...(assigned.has(row.id) ? { assignment: assigned.get(row.id) } : {}),
     });
   }
   return inputs.map((_, index) => results.get(index) as RowResult);

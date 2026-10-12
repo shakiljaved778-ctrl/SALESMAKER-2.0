@@ -4,6 +4,7 @@ import { runQuery, type FilterNode } from '@sm/query-engine';
 import { sql, type RawBuilder } from 'kysely';
 
 import type { RecordContext } from './context.js';
+import type { AssignmentOutcome } from './assignment.js';
 import type { DuplicateAlert } from './duplicates.js';
 import { deleteRecord } from './delete.js';
 import { RecordError, type FieldError } from './errors.js';
@@ -16,7 +17,14 @@ export const BULK_BATCH = 200;
 export const MASS_JOB_LIMIT = 10_000;
 
 export type RowResult =
-  | { index: number; ok: true; id: string; version?: number; duplicates?: DuplicateAlert[] }
+  | {
+      index: number;
+      ok: true;
+      id: string;
+      version?: number;
+      duplicates?: DuplicateAlert[];
+      assignment?: AssignmentOutcome;
+    }
   | { index: number; ok: false; id: string | null; status: number; errors: FieldError[] };
 
 /**

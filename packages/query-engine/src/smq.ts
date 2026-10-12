@@ -137,7 +137,7 @@ function relationshipName(f: FieldMeta): string {
 }
 
 /** SQL for a field of `alias`, as its natural type. */
-function fieldExpr(alias: string, f: FieldMeta): Sql {
+export function fieldExpr(alias: string, f: FieldMeta): Sql {
   if (f.storage.kind === 'column') return sql`${sql.ref(`${alias}.${f.storage.column}`)}`;
   const key = f.storage.key;
   if (f.type === 'multi_picklist') return sql`(${sql.ref(`${alias}.custom`)} -> ${key})`;

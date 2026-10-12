@@ -11,7 +11,7 @@ Tick each box when the task's commit is pushed with CI green. Details are in `P0
 - [x] **T07** `feat(api): duplicates`
 - [x] **T08** `feat(records): merge`
 - [x] **T09** `feat(dedupe): duplicate jobs`
-- [ ] **T10** `feat(routing): assignment engine`
+- [x] **T10** `feat(routing): assignment engine`
 - [x] **T11** `feat(routing): business hours and availability`
 - [ ] **T12** `feat(routing): queue pick-up`
 - [ ] **T13** `feat(sla): SLA policies and timers`

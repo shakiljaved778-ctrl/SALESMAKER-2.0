@@ -162,3 +162,181 @@ export const routingRoutes = {
     responses: { 200: { description: 'Routing settings', body: UserRoutingDto }, ...forbidden },
   }),
 };
+
+// ── Assignment rules (§7.3) ─────────────────────────────────────────────────────────────────
+export const AssignmentMethodEnum = z.enum([
+  'ROUND_ROBIN',
+  'WEIGHTED',
+  'LOAD_BALANCED',
+  'SKILLS_BASED',
+  'STICKY_ACCOUNT',
+  'QUEUE',
+  'SPECIFIC_USER',
+]);
+const AssignmentObject = z.enum(['lead', 'contact', 'account', 'opportunity']);
+
+export const PoolMemberDto = z
+  .object({
+    type: z.enum(['USER', 'QUEUE', 'ORG_UNIT']),
+    id: Uuid,
+    /** WEIGHTED: relative share. */
+    weight: z.number().int().min(1).max(1000).default(1),
+  })
+  .strict()
+  .meta({ id: 'PoolMember' });
+
+export const EntrySettingsDto = z
+  .object({
+    openCategories: z.array(z.string().max(40)).max(10).optional(),
+    skills: z.array(z.string().max(40)).max(20).optional(),
+    skillField: z
+      .string()
+      .regex(/^[a-z][a-z0-9_]{0,62}$/)
+      .optional(),
+    fallback: z
+      .object({ type: z.enum(['USER', 'QUEUE']), id: Uuid })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .meta({ id: 'AssignmentEntrySettings' });
+
+export const AssignmentEntryDto = z
+  .object({
+    name: z.string().trim().max(80).nullable().optional(),
+    /** A filter tree over the record's fields (same shape as list view filters). */
+    criteria: z.unknown().optional(),
+    /** A Boolean formula; with criteria, both must hold. Neither: every record matches. */
+    formula: z.string().max(3900).nullable().optional(),
+    method: AssignmentMethodEnum,
+    settings: EntrySettingsDto.default({}),
+    targetUserId: Uuid.nullable().optional(),
+    targetQueueId: Uuid.nullable().optional(),
+    active: z.boolean().default(true),
+    members: z.array(PoolMemberDto).max(500).default([]),
+  })
+  .strict()
+  .meta({ id: 'AssignmentEntry' });
+
+export const AssignmentRuleDto = z
+  .object({
+    id: Uuid,
+    object: AssignmentObject,
+    name: z.string(),
+    active: z.boolean(),
+    isDefault: z.boolean(),
+    entries: z.array(AssignmentEntryDto.extend({ id: Uuid })),
+    version: z.number().int(),
+  })
+  .meta({ id: 'AssignmentRule' });
+
+export const CreateAssignmentRuleRequest = z
+  .object({
+    object: AssignmentObject,
+    name: Name,
+    active: z.boolean().default(true),
+    isDefault: z.boolean().default(false),
+    entries: z.array(AssignmentEntryDto).max(50).default([]),
+  })
+  .strict();
+export const UpdateAssignmentRuleRequest = z
+  .object({
+    name: Name.optional(),
+    active: z.boolean().optional(),
+    isDefault: z.boolean().optional(),
+    /** Replaces the entries (their turns start afresh). */
+    entries: z.array(AssignmentEntryDto).max(50).optional(),
+    version: Version,
+  })
+  .strict();
+
+export const RunAssignmentRequest = z
+  .object({
+    object: AssignmentObject,
+    recordIds: z.array(Uuid).min(1).max(200),
+    /** A rule other than the object's default. */
+    ruleId: Uuid.optional(),
+  })
+  .strict();
+
+export const AssignmentOutcomeDto = z
+  .object({
+    recordId: Uuid,
+    ok: z.boolean(),
+    /** When ok: the owner chosen (or kept) and why; absent when no entry matched. */
+    ownerType: z.enum(['USER', 'QUEUE']).optional(),
+    ownerId: Uuid.optional(),
+    method: AssignmentMethodEnum.nullable().optional(),
+    reason: z.string().optional(),
+    changed: z.boolean().optional(),
+    /** When not ok: why the caller may not reassign the record. */
+    error: z.enum(['not_found', 'forbidden']).optional(),
+  })
+  .meta({ id: 'AssignmentOutcome' });
+
+export const AssignmentLogDto = z
+  .object({
+    id: Uuid,
+    assignedAt: z.iso.datetime(),
+    method: AssignmentMethodEnum.nullable(),
+    owner: z.object({ type: z.enum(['USER', 'QUEUE']), id: Uuid, name: z.string().nullable() }),
+    previousOwnerId: Uuid.nullable(),
+    reason: z.string(),
+    source: z.string(),
+    rule: z.object({ id: Uuid, name: z.string().nullable() }).nullable(),
+    candidates: z.array(
+      z.object({ userId: Uuid, name: z.string().nullable(), skipped: z.string().optional() }),
+    ),
+  })
+  .meta({ id: 'AssignmentLogEntry' });
+
+export const assignmentRoutes = {
+  ...setupCrud(
+    '/v1/setup/assignment-rules',
+    'setup',
+    'assignment rule',
+    {
+      list: 'listAssignmentRules',
+      get: 'getAssignmentRule',
+      create: 'createAssignmentRule',
+      update: 'updateAssignmentRule',
+      remove: 'deleteAssignmentRule',
+    },
+    {
+      item: AssignmentRuleDto,
+      detail: AssignmentRuleDto,
+      create: CreateAssignmentRuleRequest,
+      update: UpdateAssignmentRuleRequest,
+    },
+  ),
+  runAssignment: defineRoute({
+    method: 'post',
+    path: '/v1/assignment/run',
+    operationId: 'runAssignment',
+    summary: 'Run an assignment rule on records (transfer_records and Full access on each)',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { body: RunAssignmentRequest },
+    responses: {
+      200: {
+        description: 'Per record',
+        body: z.object({ results: z.array(AssignmentOutcomeDto) }),
+      },
+      ...forbidden,
+    },
+  }),
+  recordAssignment: defineRoute({
+    method: 'get',
+    path: '/v1/records/{object}/{id}/assignment',
+    operationId: 'getRecordAssignment',
+    summary: '"Why was this assigned to me?": the record’s assignment decisions, latest first',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { params: z.object({ object: AssignmentObject, id: Uuid }) },
+    responses: {
+      200: { description: 'Decisions', body: z.object({ items: z.array(AssignmentLogDto) }) },
+    },
+  }),
+};

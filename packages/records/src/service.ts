@@ -11,6 +11,7 @@ import {
 import { sql } from 'kysely';
 
 import type { RecordContext } from './context.js';
+import { assignRecords, type AssignmentEnv, type AssignmentOutcome } from './assignment.js';
 import { checkDuplicates, type DuplicateAlert } from './duplicates.js';
 import { RecordError, type FieldError } from './errors.js';
 import { syncAfterWrite } from './shares.js';
@@ -32,6 +33,8 @@ export interface WriteResult {
   changed: string[];
   /** Alert duplicate rules' visible matches (§7.2); absent when there are none. */
   duplicates?: DuplicateAlert[];
+  /** What the assignment rule decided, when one ran and an entry matched. */
+  assignment?: AssignmentOutcome;
 }
 
 export interface WriteOptions {
@@ -44,6 +47,11 @@ export interface WriteOptions {
   system?: Record<string, unknown>;
   /** `skip` leaves duplicate rules out (merge writes the surviving record; §7.2). */
   duplicates?: 'enforce' | 'skip';
+  /**
+   * Run the object's assignment rule after creating (§7.3): capture paths (import, forms, email,
+   * the API) ask for it; `ruleId` picks a rule other than the default.
+   */
+  assign?: { source: string; ruleId?: string | null };
 }
 
 export const LOOKUPS = new Set(['lookup', 'master_detail', 'user']);
@@ -601,7 +609,26 @@ export async function createRecord(
 ): Promise<WriteResult> {
   const object = objectOf(ctx, objectName);
   if (!objectAccess(ctx.permissions, objectName).create) throw new RecordError('forbidden');
-  return write(tx, ctx, object, null, input, options);
+  const result = await write(tx, ctx, object, null, input, options);
+  if (!options.assign) return result;
+  const [assignment] = await assignRecords(tx, assignmentEnv(ctx), objectName, [result.id], {
+    source: options.assign.source,
+    ruleId: options.assign.ruleId ?? null,
+  });
+  return assignment
+    ? { ...result, ...(assignment.changed ? { version: result.version + 1 } : {}), assignment }
+    : result;
+}
+
+/** The assignment engine's view of a writer's context. */
+export function assignmentEnv(ctx: RecordContext): AssignmentEnv {
+  return {
+    metadata: ctx.metadata,
+    actorId: ctx.userId,
+    timezone: ctx.timezone,
+    ...(ctx.requestId ? { requestId: ctx.requestId } : {}),
+    ...(ctx.now ? { now: ctx.now } : {}),
+  };
 }
 
 /**

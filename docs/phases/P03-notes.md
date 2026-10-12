@@ -220,3 +220,33 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
 - **Users' routing settings** `GET|PUT /v1/users/{id}/routing`: working hours (null: whenever not out of office),
   out of office with an optional end, skills and per-object capacity. Users read and change their own availability;
   `view_setup` reads anyone's; skills and capacity need `manage_users`. Audited.
+
+### T10 — assignment engine
+
+- **`assignRecords(tx, env, object, ids, { source, ruleId? })`** (RecordService): the given rule or the object's
+  active default; entries in order, the first whose criteria match decides. Criteria are a filter tree and/or a
+  Boolean formula compiled to SQL (`filterSqlWith` over `fieldExpr`, `compileToSql`), so each entry is one statement
+  over the batch. An entry that no longer compiles never matches (Setup refuses to save one).
+- **Methods.** ROUND_ROBIN (next eligible user after the cursor's last, in id order), WEIGHTED (the eligible user
+  furthest below their share, counts kept on the cursor), LOAD_BALANCED (fewest open records: leads by status
+  category, default OPEN/WORKING/NURTURE; opportunities not closed), SKILLS_BASED (every required tag, plus
+  `<field>:<value>` from a record field such as `city:doha`; ties by load), STICKY_ACCOUNT (owner of the account
+  the record belongs to, or for a lead the account with the same normalised company; no account → the next entry),
+  QUEUE and SPECIFIC_USER.
+- **Availability and capacity.** A user is skipped when inactive, out of office (until `ooo_until`), outside their
+  working hours (in their time zone), at `max_open` or at `max_new_per_day` (assignment log, organisation's day).
+  Counts include what the same batch has already handed out. Nobody available: the entry's fallback (user or queue),
+  else the owner is kept and the log says so.
+- **Concurrency.** Each entry's `round_robin_cursor` row is created if missing and locked `FOR UPDATE` once per
+  batch, records `FOR UPDATE` in id order; concurrent batches take turns in sequence (tested: three batches at once
+  hand out eight records 2/2/2/2).
+- **Writes.** Owners set-based with version, tracked-field history, shares (account children, opportunity and
+  implicit account shares), owner-based sharing rules, audit `record.assigned` (system actor when no user), events
+  `automation.owner_changed` and `assignment.assigned` (consumed by SLA timers and notifications in T13/T14), and one
+  `assignment_log` row per decision with every candidate and why it was skipped. The log is stamped with the real
+  time; the injected clock decides availability only.
+- **Where it runs.** `createRecord(…, { assign: { source } })` and `bulkInsert(…, { assign })` for capture paths
+  (import, forms, email, API in T17–T21); `POST /v1/assignment/run` (needs `transfer_records`; per record Full
+  access, else `not_found` / `forbidden` in the results); `GET /v1/records/{object}/{id}/assignment` explains the
+  last 20 decisions with names. Setup → Assignment rules CRUD (entries and pools replaced as a whole, one default per
+  object, targets and pool members checked, queues must serve the object).
