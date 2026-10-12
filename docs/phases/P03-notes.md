@@ -186,3 +186,21 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   with `merged_into_id`; duplicate-review entries that name any of the records become MERGED. The survivor's
   history gets a `_merged` entry (the merged ids, shown in the history viewer whatever the FLS), and the audit log
   `record.merged` with the fields taken and the number of rows moved.
+
+### T09 — duplicate jobs and the review queue
+
+- **Scan.** `runDuplicateJob` claims a QUEUED job, then walks the object's live records in keyset batches of 500,
+  one transaction each. Per batch a single `INSERT … SELECT` joins the batch with the table on the rule's
+  conditions, both sides reading the indexed match-key columns, and writes new pairs to `duplicate_candidate` with
+  sorted ids (`ON CONFLICT DO NOTHING`, so a pair already open, dismissed or merged is never queued again). Pairs
+  are looked up in both directions because a phone condition is not symmetric (one side's phone against the
+  other's phone and mobile). The job records `scanned`, `found`, its status and, for daily or weekly jobs,
+  `next_run_at`. Groups are pairs; a record duplicated three times appears in three pairs.
+- **Worker.** `maintenance.duplicate_scan` (emitted when a job is created) runs one job; the hourly
+  `maintenance.duplicate_schedule` sweep runs every tenant's due scheduled jobs. Scans run in system context; what a
+  user sees is decided when the queue is read.
+- **API.** `GET|POST /v1/duplicate-jobs` (`view_setup` / `customize_application`, Setup audit).
+  `GET /v1/duplicate-candidates?object=…&status=…` lists, best score first with a keyset cursor, only groups whose
+  records the caller can all see (live records while a group is open), with their names through the Query Engine.
+  `POST /v1/duplicate-candidates/{id}/dismiss` needs edit on the object (audited as `duplicate.dismissed`); merging
+  from the queue goes through `POST /v1/records/{object}/merge`, which resolves the group as MERGED.

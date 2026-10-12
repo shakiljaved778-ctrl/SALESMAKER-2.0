@@ -51,17 +51,14 @@ export class DuplicatesService {
     return stored.values;
   }
 
-  /** Visible matches with their names, through the Query Engine (sharing and FLS again). */
-  async named(
+  /** Display names of records, through the Query Engine (only those the caller can see come back). */
+  async names(
     tx: TenantTransaction,
     ctx: RecordContext,
     object: ObjectMeta,
-    matches: readonly DuplicateMatch[],
-  ): Promise<Match[]> {
-    const visible = matches.filter(
-      (m): m is DuplicateMatch & { id: string } => m.visible && !!m.id,
-    );
-    if (visible.length === 0) return [];
+    ids: readonly string[],
+  ): Promise<Map<string, string | null>> {
+    if (ids.length === 0) return new Map();
     const nameField = object.nameField;
     const readable = fieldAccess(
       ctx.permissions,
@@ -74,13 +71,31 @@ export class DuplicatesService {
       {
         object: object.apiName,
         fields: readable ? ['id', nameField] : ['id'],
-        where: { field: 'id', op: 'in', value: visible.map((m) => m.id) },
-        limit: visible.length,
+        where: { field: 'id', op: 'in', value: [...ids] },
+        limit: ids.length,
       },
-      { ...ctx, maxLimit: 50 },
+      { ...ctx, maxLimit: 500 },
     );
-    const names = new Map(
+    return new Map(
       page.records.map((r) => [r.id, readable ? ((r[nameField] as string | null) ?? null) : null]),
+    );
+  }
+
+  /** Visible matches with their names (sharing and FLS again). */
+  async named(
+    tx: TenantTransaction,
+    ctx: RecordContext,
+    object: ObjectMeta,
+    matches: readonly DuplicateMatch[],
+  ): Promise<Match[]> {
+    const visible = matches.filter(
+      (m): m is DuplicateMatch & { id: string } => m.visible && !!m.id,
+    );
+    const names = await this.names(
+      tx,
+      ctx,
+      object,
+      visible.map((m) => m.id),
     );
     return visible
       .filter((m) => names.has(m.id))

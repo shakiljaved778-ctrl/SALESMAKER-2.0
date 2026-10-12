@@ -89,6 +89,7 @@ export {
   duplicateRules,
   findBatchMatches,
   findMatches,
+  queueStoredPairs,
   MATCH_METHODS,
   type DuplicateAlert,
   type DuplicateMatch,
@@ -99,3 +100,10 @@ export {
   type Probe,
 } from './duplicates.js';
 export { mergeRecords, type MergeInput, type MergeResult } from './merge.js';
+export {
+  DUPLICATE_SCAN_TOPIC,
+  DUPLICATE_SCHEDULE_TOPIC,
+  nextRun,
+  runDueDuplicateJobs,
+  runDuplicateJob,
+} from './duplicate-jobs.js';

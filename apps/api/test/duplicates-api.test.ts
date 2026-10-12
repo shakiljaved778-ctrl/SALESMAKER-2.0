@@ -382,3 +382,99 @@ describe('merge', () => {
     );
   });
 });
+
+describe('duplicate jobs and the review queue', () => {
+  it('queues a scan job (admin) and lists jobs (view_setup)', async () => {
+    const rule = await matchingRule();
+    const res = await f.call('admin', 'POST', '/v1/duplicate-jobs', {
+      matchingRuleId: rule.id,
+      schedule: 'weekly',
+    });
+    expect(res.statusCode, res.body).toBe(201);
+    expect(json(res)).toMatchObject({ status: 'QUEUED', schedule: 'weekly', object: 'lead' });
+    const events = await f.inTenant((tx) =>
+      tx.prisma.outboxEvent.count({ where: { topic: 'maintenance.duplicate_scan' } }),
+    );
+    expect(events).toBeGreaterThan(0);
+    const listed = await f.call('viewer', 'GET', '/v1/duplicate-jobs');
+    expect((json(listed)['items'] as Json[]).map((j) => j['id'])).toContain(json(res)['id']);
+    expect(
+      firstError(
+        await f.call('admin', 'POST', '/v1/duplicate-jobs', {
+          matchingRuleId: f.id('admin'),
+        }),
+      ),
+    ).toMatchObject({ field: 'matchingRuleId' });
+    expect(
+      (
+        await f.call('admin', 'POST', '/v1/duplicate-jobs', {
+          matchingRuleId: rule.id,
+          schedule: 'hourly',
+        })
+      ).statusCode,
+    ).toBe(400);
+    await f.expectGuarded('GET', '/v1/duplicate-jobs', {});
+    await f.expectGuarded('POST', '/v1/duplicate-jobs', { payload: { matchingRuleId: rule.id } });
+    const outsider = await f.call('outsider', 'GET', '/v1/duplicate-jobs');
+    expect(json(outsider)['items']).toEqual([]);
+  });
+
+  it('shows groups whose records the caller can all see, and dismisses them', async () => {
+    const mine1 = await lead('rep', { last_name: 'Q1', company: 'Queue' });
+    const mine2 = await lead('rep', { last_name: 'Q2', company: 'Queue' });
+    const theirs = await lead('peer', { last_name: 'Q3', company: 'Queue' });
+    const group = (a: string, b: string, score: number) => {
+      const ids = [a, b].sort();
+      return {
+        tenantId: f.tenantId,
+        object: 'lead',
+        recordIds: ids,
+        groupKey: ids.join(','),
+        score,
+      };
+    };
+    await f.inTenant((tx) =>
+      tx.prisma.duplicateCandidate.createMany({
+        data: [group(mine1, mine2, 0.9), group(mine1, theirs, 1)],
+      }),
+    );
+    const res = await f.call('rep', 'GET', '/v1/duplicate-candidates?object=lead&limit=1');
+    expect(res.statusCode, res.body).toBe(200);
+    const items = json(res)['items'] as (Json & { id: string; records: Json[] })[];
+    expect(items).toHaveLength(1);
+    expect(items[0]?.records.map((r) => r['name']).sort()).toEqual(['Q1', 'Q2']);
+    expect(json(res)['nextCursor']).toBeNull();
+    // The admin sees both groups, best first, a page at a time.
+    const first = await f.call('admin', 'GET', '/v1/duplicate-candidates?object=lead&limit=1');
+    expect(json(first)['nextCursor']).not.toBeNull();
+    const second = await f.call(
+      'admin',
+      'GET',
+      `/v1/duplicate-candidates?object=lead&limit=1&cursor=${encodeURIComponent(String(json(first)['nextCursor']))}`,
+    );
+    expect((json(second)['items'] as Json[]).length).toBe(1);
+
+    const id = items[0]?.id ?? '';
+    expect(
+      (await f.call('outsider', 'POST', `/v1/duplicate-candidates/${id}/dismiss`)).statusCode,
+    ).toBe(404);
+    const theirGroup = (json(first)['items'] as Json[])[0]?.['id'] as string;
+    expect(
+      (await f.call('rep', 'POST', `/v1/duplicate-candidates/${theirGroup}/dismiss`)).statusCode,
+    ).toBe(404);
+    const dismissed = await f.call('rep', 'POST', `/v1/duplicate-candidates/${id}/dismiss`);
+    expect(dismissed.statusCode, dismissed.body).toBe(200);
+    expect(json(dismissed)).toMatchObject({ status: 'DISMISSED' });
+    expect((await f.call('rep', 'POST', `/v1/duplicate-candidates/${id}/dismiss`)).statusCode).toBe(
+      409,
+    );
+    expect(
+      (await f.call('rep', 'GET', '/v1/duplicate-candidates?object=lead&cursor=bad|x')).statusCode,
+    ).toBe(400);
+    expect(
+      (await f.call('rep', 'GET', '/v1/duplicate-candidates?object=opportunity')).statusCode,
+    ).toBe(400);
+    const left = await f.call('rep', 'GET', '/v1/duplicate-candidates?object=lead');
+    expect(json(left)['items']).toEqual([]);
+  });
+});

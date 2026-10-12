@@ -599,3 +599,47 @@ export function batchDuplicates(tx: TenantTransaction, ctx: RecordContext, objec
     },
   };
 }
+
+/**
+ * Pairs of stored records matching under `rule`, for the records in `ids` (duplicate jobs, §7.2):
+ * both sides read their match-key columns, so every probe uses the indexes. Pairs are looked up in
+ * both directions (a phone condition compares one side's phone with the other's phone and mobile)
+ * and stored once, with their ids sorted. New pairs are written to the review queue in the same
+ * statement; pairs already there (open, dismissed or merged) are left alone. Returns the pairs
+ * added.
+ */
+export async function queueStoredPairs(
+  tx: TenantTransaction,
+  object: ObjectMeta,
+  rule: MatchingRuleDefinition,
+  ids: readonly string[],
+  jobId: string | null,
+): Promise<number> {
+  if (ids.length === 0) return 0;
+  const parts = rule.conditions
+    .map((c) => conditionSql(object, rule, c, storedSide('p'), storedSide('r')))
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+  if (parts.length === 0) return 0;
+  const tenantId = tx.context.tenantId;
+  const score = sql`((${sql.join(
+    parts.map((p) => p.score),
+    sql` + `,
+  )}) / ${parts.length}::numeric)`;
+  const live = (alias: string) =>
+    sql`${sql.ref(`${alias}.deleted_at`)} IS NULL AND ${sql.ref(`${alias}.merged_into_id`)} IS NULL`;
+  const rows = await sql<{ id: string }>`
+    INSERT INTO duplicate_candidate (tenant_id, object, job_id, record_ids, group_key, score)
+    SELECT ${tenantId}::uuid, ${object.apiName}, ${jobId}::uuid,
+      ARRAY[least(p.id, r.id), greatest(p.id, r.id)],
+      least(p.id, r.id)::text || ',' || greatest(p.id, r.id)::text, round(${score}, 4)
+    FROM ${sql.table(ident(object.table))} AS p JOIN ${sql.table(ident(object.table))} AS r
+      ON r.tenant_id = p.tenant_id AND r.id <> p.id AND ${live('r')}
+     AND ${sql.join(
+       parts.map((p) => p.match),
+       sql` AND `,
+     )}
+    WHERE p.tenant_id = ${tenantId}::uuid AND p.id = ANY (${sql.val([...ids])}::uuid[]) AND ${live('p')}
+    ON CONFLICT (tenant_id, object, group_key) DO NOTHING
+    RETURNING id`.execute(tx.kysely);
+  return rows.rows.length;
+}

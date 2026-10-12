@@ -13,8 +13,12 @@ import {
   backfillDerivedColumns,
   CURRENCY_RECALC_TOPIC,
   DERIVED_BACKFILL_TOPIC,
+  DUPLICATE_SCAN_TOPIC,
+  DUPLICATE_SCHEDULE_TOPIC,
   purgeRecycleBin,
   recalculateCorporateAmounts,
+  runDueDuplicateJobs,
+  runDuplicateJob,
 } from '@sm/records';
 import type { ControlPlane } from '@sm/server-kit';
 import type { Redis } from 'ioredis';
@@ -236,6 +240,29 @@ export function createMaintenanceHandler(deps: MaintenanceDeps = {}): JobHandler
         else await eachTenant(deps, backfill);
         return;
       }
+      case DUPLICATE_SCAN_TOPIC: {
+        if (!envelope.tenantId) throw new Error(`${envelope.topic} needs a tenant`);
+        const tenantId = envelope.tenantId;
+        const { jobId } = envelope.payload as { jobId: string };
+        const result = await runDuplicateJob(
+          (fn) =>
+            withTenant(prisma, { tenantId }, fn, { timeoutMs: 60_000, statementTimeoutMs: 30_000 }),
+          jobId,
+        );
+        if (result) logger.info({ tenantId, jobId, ...result }, 'duplicate job finished');
+        return;
+      }
+      case DUPLICATE_SCHEDULE_TOPIC: {
+        const due = async (tenantId: string) => {
+          const ran = await runDueDuplicateJobs((fn) =>
+            withTenant(prisma, { tenantId }, fn, { timeoutMs: 60_000, statementTimeoutMs: 30_000 }),
+          );
+          if (ran) logger.info({ tenantId, ran }, 'scheduled duplicate jobs run');
+        };
+        if (envelope.tenantId) await due(envelope.tenantId);
+        else await eachTenant(deps, due);
+        return;
+      }
       case RECYCLE_PURGE_TOPIC: {
         const now = new Date();
         const purge = async (tenantId: string) => {
@@ -285,6 +312,11 @@ export async function scheduleMaintenance(queues: QueueSet): Promise<void> {
     DERIVED_BACKFILL_TOPIC,
     { every: 3_600_000, immediately: true },
     system(DERIVED_BACKFILL_TOPIC),
+  );
+  await q.upsertJobScheduler(
+    DUPLICATE_SCHEDULE_TOPIC,
+    { every: 3_600_000 },
+    system(DUPLICATE_SCHEDULE_TOPIC),
   );
   await q.upsertJobScheduler(
     RECYCLE_PURGE_TOPIC,

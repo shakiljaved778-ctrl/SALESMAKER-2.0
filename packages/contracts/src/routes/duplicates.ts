@@ -263,3 +263,109 @@ export const dedupeSetupRoutes = {
     },
   ),
 };
+
+// ── Duplicate jobs and the review queue (§7.2) ──────────────────────────────────────────────
+export const DuplicateJobDto = z
+  .object({
+    id: Uuid,
+    object: DedupeObject,
+    matchingRule: z.object({ id: Uuid, name: z.string() }),
+    schedule: z.enum(['daily', 'weekly']).nullable(),
+    status: z.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'FAILED']),
+    scanned: z.number().int(),
+    found: z.number().int(),
+    startedAt: z.iso.datetime().nullable(),
+    finishedAt: z.iso.datetime().nullable(),
+    nextRunAt: z.iso.datetime().nullable(),
+    createdAt: z.iso.datetime(),
+  })
+  .meta({ id: 'DuplicateJob' });
+
+export const CreateDuplicateJobRequest = z
+  .object({
+    matchingRuleId: Uuid,
+    /** Run once now (null) or now and then daily or weekly. */
+    schedule: z.enum(['daily', 'weekly']).nullable().default(null),
+  })
+  .strict();
+
+export const DuplicateCandidateDto = z
+  .object({
+    id: Uuid,
+    object: DedupeObject,
+    score: z.number(),
+    status: z.enum(['OPEN', 'DISMISSED', 'MERGED']),
+    records: z.array(z.object({ id: Uuid, name: z.string().nullable() })),
+    jobId: Uuid.nullable(),
+    createdAt: z.iso.datetime(),
+  })
+  .meta({ id: 'DuplicateCandidate' });
+
+export const DuplicateCandidatesQuery = z
+  .object({
+    object: DedupeObject,
+    status: z.enum(['OPEN', 'DISMISSED', 'MERGED']).default('OPEN'),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+    cursor: z.string().max(100).optional(),
+  })
+  .strict();
+
+export const dedupeQueueRoutes = {
+  listDuplicateJobs: defineRoute({
+    method: 'get',
+    path: '/v1/duplicate-jobs',
+    operationId: 'listDuplicateJobs',
+    summary: 'Duplicate jobs, latest first',
+    tags: ['setup'],
+    auth: 'session',
+    visibility: 'internal',
+    responses: {
+      200: { description: 'Jobs', body: z.object({ items: z.array(DuplicateJobDto) }) },
+      ...forbidden,
+    },
+  }),
+  createDuplicateJob: defineRoute({
+    method: 'post',
+    path: '/v1/duplicate-jobs',
+    operationId: 'createDuplicateJob',
+    summary: 'Scan an object with a matching rule now, and optionally on a schedule',
+    tags: ['setup'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { body: CreateDuplicateJobRequest },
+    responses: { 201: { description: 'The queued job', body: DuplicateJobDto }, ...forbidden },
+  }),
+  listDuplicateCandidates: defineRoute({
+    method: 'get',
+    path: '/v1/duplicate-candidates',
+    operationId: 'listDuplicateCandidates',
+    summary: 'The review queue: groups of live records the caller can all see, best score first',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { query: DuplicateCandidatesQuery },
+    responses: {
+      200: {
+        description: 'A page of groups',
+        body: z.object({
+          items: z.array(DuplicateCandidateDto),
+          nextCursor: z.string().nullable(),
+        }),
+      },
+    },
+  }),
+  dismissDuplicateCandidate: defineRoute({
+    method: 'post',
+    path: '/v1/duplicate-candidates/{id}/dismiss',
+    operationId: 'dismissDuplicateCandidate',
+    summary: 'Mark a group as not duplicates; later scans leave it alone',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { params: z.object({ id: Uuid }) },
+    responses: {
+      200: { description: 'The group', body: DuplicateCandidateDto },
+      409: { description: 'Already resolved' },
+    },
+  }),
+};
