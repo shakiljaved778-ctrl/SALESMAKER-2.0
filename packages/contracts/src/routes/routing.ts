@@ -340,3 +340,65 @@ export const assignmentRoutes = {
     },
   }),
 };
+
+// ── Queue pick-up (§7.3) ────────────────────────────────────────────────────────────────────
+export const MyQueueDto = z
+  .object({
+    id: Uuid,
+    name: z.string(),
+    objects: z.array(z.string()),
+    /** Records waiting in the queue, per object. */
+    waiting: z.record(z.string(), z.number().int()),
+  })
+  .meta({ id: 'MyQueue' });
+
+export const TakeNextRequest = z.object({ object: AssignmentObject }).strict();
+export const TakenDto = z
+  .object({
+    /** The record now owned by the caller; null when the queue was empty. */
+    id: Uuid.nullable(),
+    object: AssignmentObject,
+  })
+  .meta({ id: 'Taken' });
+
+export const queueRoutes = {
+  listMyQueues: defineRoute({
+    method: 'get',
+    path: '/v1/queues/mine',
+    operationId: 'listMyQueues',
+    summary: 'Queues the caller belongs to, with what waits in them',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    responses: { 200: { description: 'Queues', body: z.object({ items: z.array(MyQueueDto) }) } },
+  }),
+  takeNext: defineRoute({
+    method: 'post',
+    path: '/v1/queues/{id}/take-next',
+    operationId: 'takeNext',
+    summary: 'Take the queue’s next record (highest score, then oldest) that nobody else is taking',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { params: z.object({ id: Uuid }), body: TakeNextRequest },
+    responses: {
+      200: { description: 'The record taken, if any', body: TakenDto },
+      403: { description: 'Not a member of the queue' },
+    },
+  }),
+  acceptRecord: defineRoute({
+    method: 'post',
+    path: '/v1/records/{object}/{id}/accept',
+    operationId: 'acceptRecord',
+    summary: 'Take a record a queue of the caller owns',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { params: z.object({ object: AssignmentObject, id: Uuid }) },
+    responses: {
+      200: { description: 'Taken', body: TakenDto },
+      403: { description: 'Not a member of the owning queue' },
+      409: { description: 'No queue owns the record any more (someone took it)' },
+    },
+  }),
+};

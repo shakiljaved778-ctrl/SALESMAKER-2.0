@@ -674,3 +674,59 @@ export function entryCriteriaError(
     ? null
     : 'invalid_criteria';
 }
+
+/**
+ * Queue pick-up (§7.3): a queue member takes a record the queue owns. With `recordId` it is
+ * Accept (409 when the queue no longer owns it); without, Take next: the queue's best record
+ * that no one else is taking at this moment (`FOR UPDATE SKIP LOCKED`), highest score first,
+ * then oldest. Returns the record taken, or null when the queue is empty.
+ */
+export async function takeFromQueue(
+  tx: TenantTransaction,
+  env: AssignmentEnv & { actorId: string },
+  objectName: string,
+  queueId: string,
+  options: { recordId?: string; source: 'accept' | 'take_next' },
+): Promise<string | null> {
+  const object = env.metadata.object(objectName);
+  if (!object) return null;
+  const tenantId = tx.context.tenantId;
+  const order = object.fields.some((f) => f.apiName === 'score')
+    ? sql`r.score DESC NULLS LAST, r.created_at, r.id`
+    : sql`r.created_at, r.id`;
+  const rows = await sql<{ id: string }>`
+    SELECT r.id FROM ${sql.table(ident(object.table))} AS r
+    WHERE r.tenant_id = ${tenantId}::uuid AND r.owner_id = ${queueId}::uuid AND r.deleted_at IS NULL
+      ${options.recordId ? sql`AND r.id = ${options.recordId}::uuid` : sql``}
+    ORDER BY ${order}
+    LIMIT 1
+    FOR UPDATE OF r SKIP LOCKED`.execute(tx.kysely);
+  const id = rows.rows[0]?.id;
+  if (!id) return null;
+  const outcome: AssignmentOutcome = {
+    recordId: id,
+    ownerType: 'USER',
+    ownerId: env.actorId,
+    previousOwnerId: queueId,
+    entryId: null,
+    method: null,
+    reason: options.source === 'accept' ? 'Accepted from the queue' : 'Taken next from the queue',
+    changed: true,
+  };
+  await writeOwners(tx, env, object, [outcome]);
+  await tx.prisma.assignmentLog.create({
+    data: {
+      tenantId,
+      object: objectName,
+      recordId: id,
+      ownerType: 'USER',
+      ownerId: env.actorId,
+      previousOwnerId: queueId,
+      candidates: [],
+      reason: outcome.reason,
+      source: options.source,
+      actorId: env.actorId,
+    },
+  });
+  return id;
+}

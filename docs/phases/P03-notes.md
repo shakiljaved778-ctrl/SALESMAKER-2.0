@@ -250,3 +250,16 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   access, else `not_found` / `forbidden` in the results); `GET /v1/records/{object}/{id}/assignment` explains the
   last 20 decisions with names. Setup → Assignment rules CRUD (entries and pools replaced as a whole, one default per
   object, targets and pool members checked, queues must serve the object).
+
+### T12 — queue pick-up
+
+- **`takeFromQueue`** (RecordService): one statement selects the queue's record `FOR UPDATE OF r SKIP LOCKED`,
+  highest score first (leads), then oldest, so members taking at the same moment each get a different record
+  (tested with two concurrent calls). The owner is written through the same set-based path as assignment (version,
+  history, shares, audit `record.assigned`, events) and logged in `assignment_log` with source `take_next` or
+  `accept`.
+- **API.** `GET /v1/queues/mine` (the caller's queues, with what waits per object), `POST /v1/queues/{id}/take-next`
+  (members only, 403 otherwise; `{ id: null }` when the queue is empty) and `POST /v1/records/{object}/{id}/accept`
+  (409 when no queue owns the record any more). Both need edit on the object. Queue views themselves are list views
+  filtered on the owner: queue members already see what their queues own (the visibility closure includes queue
+  ownership and is rebuilt on membership changes).

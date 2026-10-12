@@ -130,6 +130,7 @@ export { loadCalendar } from './calendars.js';
 export {
   ASSIGNMENT_OBJECTS,
   assignRecords,
+  takeFromQueue,
   entryCriteriaError,
   type AssignmentEnv,
   type AssignmentMethod,

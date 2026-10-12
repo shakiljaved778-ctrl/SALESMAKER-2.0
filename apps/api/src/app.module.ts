@@ -71,6 +71,7 @@ import {
   DuplicateJobsController,
 } from './records/dedupe-queue.controller.js';
 import { DuplicatesController } from './records/duplicates.controller.js';
+import { QueuesController } from './records/queues.controller.js';
 import { DuplicatesService } from './records/duplicates.service.js';
 import { SharingService } from './sharing/sharing.service.js';
 import { SignupService } from './signup/signup.service.js';
@@ -135,6 +136,7 @@ export class AppModule {
         UserRoutingController,
         AssignmentRulesController,
         AssignmentController,
+        QueuesController,
         SharingSetupController,
         CurrencyController,
         MetadataSetupController,

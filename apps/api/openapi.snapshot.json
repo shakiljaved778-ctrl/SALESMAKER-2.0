@@ -9048,6 +9048,211 @@
         }
       }
     },
+    "/v1/queues/{id}/take-next": {
+      "post": {
+        "operationId": "takeNext",
+        "summary": "Take the queue’s next record (highest score, then oldest) that nobody else is taking",
+        "tags": [
+          "records"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The record taken, if any",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Taken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a member of the queue"
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "object": {
+                    "type": "string",
+                    "enum": [
+                      "lead",
+                      "contact",
+                      "account",
+                      "opportunity"
+                    ]
+                  }
+                },
+                "required": [
+                  "object"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/queues/mine": {
+      "get": {
+        "operationId": "listMyQueues",
+        "summary": "Queues the caller belongs to, with what waits in them",
+        "tags": [
+          "records"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Queues",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MyQueue"
+                      }
+                    }
+                  },
+                  "required": [
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/v1/recent-items": {
       "get": {
         "operationId": "listRecentItems",
@@ -9652,6 +9857,113 @@
             }
           }
         }
+      }
+    },
+    "/v1/records/{object}/{id}/accept": {
+      "post": {
+        "operationId": "acceptRecord",
+        "summary": "Take a record a queue of the caller owns",
+        "tags": [
+          "records"
+        ],
+        "x-sm-visibility": "internal",
+        "parameters": [
+          {
+            "name": "object",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "lead",
+                "contact",
+                "account",
+                "opportunity"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Taken"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a member of the owning queue"
+          },
+          "404": {
+            "description": "Not found (also returned for resources in another tenant, so existence is not leaked)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "No queue owns the record any more (someone took it)"
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/records/{object}/{id}/assignment": {
@@ -22706,6 +23018,41 @@
           }
         ]
       },
+      "MyQueue": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/Uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "objects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "waiting": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "objects",
+          "waiting"
+        ],
+        "additionalProperties": false
+      },
       "NewPassword": {
         "type": "string",
         "minLength": 12,
@@ -24888,6 +25235,35 @@
         "required": [
           "object",
           "fields"
+        ],
+        "additionalProperties": false
+      },
+      "Taken": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "object": {
+            "type": "string",
+            "enum": [
+              "lead",
+              "contact",
+              "account",
+              "opportunity"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "object"
         ],
         "additionalProperties": false
       },
