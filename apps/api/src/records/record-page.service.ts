@@ -269,9 +269,11 @@ export class RecordPageService {
     const object = this.object(ctx, objectName);
     await this.records.get(tx, ctx, object.apiName, id, 'id');
     // FLS masks history: changes to fields the caller cannot read are left out entirely.
-    const readable = object.fields
-      .filter((f) => this.readable(ctx, object.apiName, f))
-      .map((f) => f.apiName);
+    // `_merged` marks a merge (§7.2): which records were merged in, never field values.
+    const readable = [
+      ...object.fields.filter((f) => this.readable(ctx, object.apiName, f)).map((f) => f.apiName),
+      '_merged',
+    ];
     const limit = query.limit ?? HISTORY_PAGE;
     const [at, after] = query.cursor ? query.cursor.split('|') : [];
     const before = at ? new Date(at) : null;

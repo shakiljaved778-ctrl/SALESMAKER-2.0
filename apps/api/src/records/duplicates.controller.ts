@@ -9,8 +9,9 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { duplicateRoutes, DuplicateCheckRequest } from '@sm/contracts';
+import { duplicateRoutes, DuplicateCheckRequest, MergeRequest } from '@sm/contracts';
 import { withTenant, type CellPrisma, type TenantContext } from '@sm/db';
+import { mergeRecords } from '@sm/records';
 import { ZodPipe } from '@sm/server-kit';
 import type { FastifyRequest } from 'fastify';
 import type { z } from 'zod';
@@ -46,6 +47,26 @@ export class DuplicatesController {
     return withTenant(this.prisma, t, async (tx) =>
       translating(async () =>
         this.duplicates.check(tx, await this.contexts.forCaller(tx, request.id), p.object, body),
+      ),
+    );
+  }
+
+  @Post('merge')
+  @HttpCode(200)
+  merge(
+    @CurrentTenant() t: TenantContext,
+    @Req() request: FastifyRequest,
+    @Param(new ZodPipe(ObjectParam)) p: z.infer<typeof ObjectParam>,
+    @Body(new ZodPipe(MergeRequest)) body: z.infer<typeof MergeRequest>,
+  ) {
+    return withTenant(this.prisma, t, async (tx) =>
+      translating(async () =>
+        mergeRecords(tx, await this.contexts.forCaller(tx, request.id), p.object, {
+          masterId: body.masterId,
+          duplicateIds: body.duplicateIds,
+          ...(body.fields ? { fields: body.fields } : {}),
+          version: body.version ?? null,
+        }),
       ),
     );
   }

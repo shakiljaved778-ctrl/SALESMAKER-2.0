@@ -98,3 +98,4 @@ export {
   type MatchMethod,
   type Probe,
 } from './duplicates.js';
+export { mergeRecords, type MergeInput, type MergeResult } from './merge.js';

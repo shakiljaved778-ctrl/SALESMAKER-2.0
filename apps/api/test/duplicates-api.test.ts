@@ -313,3 +313,72 @@ describe('duplicate checks on records', () => {
     });
   });
 });
+
+describe('merge', () => {
+  const merge = (user: string, object: string, payload: Json) =>
+    f.call(user, 'POST', `/v1/records/${object}/merge`, payload);
+
+  it('merges leads: the survivor keeps chosen values, the other goes to the bin', async () => {
+    const a = await lead('rep', { last_name: 'Keep', company: 'Merge Co' });
+    const b = await lead('rep', {
+      last_name: 'Gone',
+      company: 'Merge Co',
+      email: 'm@merge.example',
+    });
+    const res = await merge('rep', 'lead', {
+      masterId: a,
+      duplicateIds: [b],
+      fields: { email: b },
+    });
+    expect(res.statusCode, res.body).toBe(200);
+    expect(json(res)).toMatchObject({ id: a, merged: [b] });
+    const kept = await f.call('rep', 'GET', `/v1/records/lead/${a}`);
+    expect(json(kept)).toMatchObject({ last_name: 'Keep', email: 'm@merge.example' });
+    expect((await f.call('rep', 'GET', `/v1/records/lead/${b}`)).statusCode).toBe(404);
+    const history = await f.call('rep', 'GET', `/v1/records/lead/${a}/history`);
+    expect(JSON.stringify(json(history)['items'])).toContain('_merged');
+  });
+
+  it('validates the request', async () => {
+    const a = await lead('rep', { last_name: 'V', company: 'C' });
+    expect((await merge('rep', 'lead', { masterId: a, duplicateIds: [] })).statusCode).toBe(400);
+    expect((await merge('rep', 'opportunity', { masterId: a, duplicateIds: [a] })).statusCode).toBe(
+      400,
+    );
+    expect((await merge('rep', 'lead', { masterId: a, duplicateIds: [a] })).statusCode).toBe(400);
+    const b = await lead('rep', { last_name: 'V2', company: 'C' });
+    const stale = await merge('rep', 'lead', { masterId: a, duplicateIds: [b], version: 99 });
+    expect(stale.statusCode).toBe(409);
+  });
+
+  it('needs Delete with Full access on the merged records', async () => {
+    const mine = await lead('rep', { last_name: 'Mine', company: 'C' });
+    const shared = await lead('admin', { last_name: 'Shared', company: 'C' });
+    // Read/Write shared with rep: visible and editable, not deletable by rep.
+    await f.inTenant(async ({ prisma: p }) => {
+      await p.recordShare.create({
+        data: {
+          tenantId: f.tenantId,
+          object: 'lead',
+          recordId: shared,
+          principalType: 'USER',
+          principalId: f.id('rep'),
+          access: 2,
+          reason: 'MANUAL',
+          sourceId: '00000000-0000-0000-0000-000000000000',
+        },
+      });
+    });
+    const res = await merge('rep', 'lead', { masterId: mine, duplicateIds: [shared] });
+    expect(res.statusCode).toBe(403);
+    expect(firstError(res)).toMatchObject({ code: 'cannot_delete' });
+  });
+
+  it('keeps other workspaces out (404)', async () => {
+    const a = await lead('rep', { last_name: 'X1', company: 'C' });
+    const b = await lead('rep', { last_name: 'X2', company: 'C' });
+    expect((await merge('outsider', 'lead', { masterId: a, duplicateIds: [b] })).statusCode).toBe(
+      404,
+    );
+  });
+});

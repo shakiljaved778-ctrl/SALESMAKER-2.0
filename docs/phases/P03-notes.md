@@ -166,3 +166,23 @@ Deviations from the plan or spec, calls the spec leaves open, and follow-ups, re
   object, existing bypass profiles and at least one of create/edit; a matching rule in use cannot be deleted (409).
   `POST …/matching-rules/{id}/test` previews a rule for a record or typed values.
 - These routes are internal (UI); the published API reports a Block as 409 `duplicate_blocked` on writes.
+
+### T08 — merge
+
+- **`mergeRecords` (RecordService) and `POST /v1/records/{object}/merge`** for leads, contacts and accounts: a
+  survivor and one or two others. It needs Edit access on the survivor and the object's Delete permission with Full
+  access on the others (what deleting them needs); anything the caller cannot see is 404. Converted leads cannot be
+  merged (409 `record_locked`). Records are locked in id order.
+- **Field winners.** `fields` maps a field to the record whose value the survivor keeps (readable fields only;
+  others keep the survivor's). The survivor is written through `updateRecord` as the caller, so FLS, types,
+  validation rules, history and the optimistic lock (`version`) apply; duplicate rules are skipped.
+- **Children move**, set-based, for every lookup on any object that points at the merged object (standard and
+  custom, live or in the bin): version, tracked-field history, audit and `record_updated` events per child,
+  opportunity and account shares recomputed, criteria sharing rules re-evaluated. A record that would point at
+  itself (the survivor's own parent was merged into it) is cleared. Like Salesforce, this does not need access to
+  the children. **Links** (account–contact relations, contact roles, campaign members, account team members) move
+  too, keeping one per counterpart (the survivor's own first).
+- **The others** go to the recycle bin through `deleteRecord` (after their children moved, so nothing cascades)
+  with `merged_into_id`; duplicate-review entries that name any of the records become MERGED. The survivor's
+  history gets a `_merged` entry (the merged ids, shown in the history viewer whatever the FLS), and the audit log
+  `record.merged` with the fields taken and the number of rows moved.

@@ -139,6 +139,29 @@ export const MatchingRuleTestResult = z
   })
   .meta({ id: 'MatchingRuleTest' });
 
+// ── Merge (§7.2) ────────────────────────────────────────────────────────────────────────────
+export const MergeRequest = z
+  .object({
+    /** The record that survives. */
+    masterId: Uuid,
+    /** One or two records merged into it; they go to the recycle bin. */
+    duplicateIds: z.array(Uuid).min(1).max(2),
+    /** Field → the record (master or duplicate) whose value the survivor keeps. */
+    fields: z.record(FieldName, Uuid).optional(),
+    /** The survivor's version as read (optimistic lock). */
+    version: z.number().int().positive().optional(),
+  })
+  .strict();
+export const MergeResultDto = z
+  .object({
+    id: Uuid,
+    version: z.number().int(),
+    merged: z.array(Uuid),
+    /** Child records and links moved to the survivor. */
+    reparented: z.number().int(),
+  })
+  .meta({ id: 'MergeResult' });
+
 const DedupeObjectParam = z.object({ object: DedupeObject });
 const DedupeRecordParam = z.object({ object: DedupeObject, id: Uuid });
 const forbidden = { 403: { description: 'The caller lacks the required system permission' } };
@@ -155,6 +178,22 @@ export const duplicateRoutes = {
     visibility: 'internal',
     request: { params: DedupeObjectParam, body: DuplicateCheckRequest },
     responses: { 200: { description: 'What the rules found', body: DuplicateCheckResult } },
+  }),
+  mergeRecords: defineRoute({
+    method: 'post',
+    path: '/v1/records/{object}/merge',
+    operationId: 'mergeRecords',
+    summary:
+      'Merge two or three records: chosen values win, children move, the others go to the bin',
+    tags: ['records'],
+    auth: 'session',
+    visibility: 'internal',
+    request: { params: DedupeObjectParam, body: MergeRequest },
+    responses: {
+      200: { description: 'The survivor', body: MergeResultDto },
+      403: { description: 'Edit on the survivor and Delete on the others are needed' },
+      409: { description: 'The survivor changed since it was read, or a lead is converted' },
+    },
   }),
   listRecordDuplicates: defineRoute({
     method: 'get',
