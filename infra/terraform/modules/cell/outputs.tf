@@ -32,6 +32,35 @@ output "app_secret_arn" {
   value = aws_secretsmanager_secret.app.arn
 }
 
+output "migrate_secret_arn" {
+  value = aws_secretsmanager_secret.migrate.arn
+}
+
+output "migrate_task" {
+  description = "What the deploy pipeline needs to run the migrate task (aws ecs run-task)."
+  value = {
+    cluster            = aws_ecs_cluster.cell.name
+    task_definition    = aws_ecs_task_definition.migrate.family
+    subnets            = var.private_subnet_ids
+    security_group_ids = [aws_security_group.app.id]
+  }
+}
+
+output "storage_public_origin" {
+  description = "STORAGE_PUBLIC_ORIGIN for the web app's CSP (connect-src)."
+  value       = "https://${aws_s3_bucket.files.bucket_regional_domain_name}"
+}
+
+output "inbound_email" {
+  description = "DNS to publish when inbound email is on: the SES verification TXT record and the MX target."
+  value = var.inbound_email_enabled ? {
+    domain           = var.inbound_email_domain
+    verification_txt = "_amazonses.${var.inbound_email_domain} TXT ${aws_ses_domain_identity.inbound[0].verification_token}"
+    mx               = "10 inbound-smtp.${data.aws_region.current.region}.amazonaws.com"
+    sns_topic_arn    = aws_sns_topic.inbound[0].arn
+  } : null
+}
+
 output "ecr_repositories" {
   value = { for k, r in aws_ecr_repository.service : k => r.repository_url }
 }

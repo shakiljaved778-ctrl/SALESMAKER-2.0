@@ -1,11 +1,25 @@
 # Copy to terraform.tfvars (gitignored). No secrets belong here: secrets live in Secrets Manager.
 web_base_domain               = "staging.salesmaker.app"
 control_api_base_url          = "https://cp.staging.salesmaker.app"
+cell_api_public_url           = "https://api.eu-central-1.staging.salesmaker.app"
 cell_certificate_arn          = "arn:aws:acm:eu-central-1:<account-id>:certificate/<id>"
 control_plane_certificate_arn = "arn:aws:acm:eu-central-1:<account-id>:certificate/<id>"
+email_from                    = "SalesMaker Staging <no-reply@staging.salesmaker.app>"
+
+# Key ids (not keys): they name the keys written into the app secret and change on rotation.
+auth_jwt_kid     = "staging-1"
+cell_service_kid = "staging-eu-central-1-1"
+secrets_key_id   = "staging-1"
+
+# Set by the deploy pipeline (deploy-staging.yml) to the commit being deployed.
 cell_images = {
-  api      = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/api:<git-sha>"
-  worker   = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/worker:<git-sha>"
-  realtime = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/realtime:<git-sha>"
+  api    = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/api:<git-sha>"
+  worker = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/worker:<git-sha>"
 }
+migrate_image     = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/migrate:<git-sha>"
 control_api_image = "<account-id>.dkr.ecr.eu-central-1.amazonaws.com/salesmaker/control-api:<git-sha>"
+
+# Optional features: each needs its secret written first (runbooks/deploy.md).
+# turnstile_site_key       = "<site key>"
+# optional_api_secret_keys = ["TURNSTILE_SECRET_KEY"]
+# inbound_email_enabled    = true

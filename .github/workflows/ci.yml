@@ -71,6 +71,31 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - run: tflint --recursive --config "$GITHUB_WORKSPACE/infra/terraform/.tflint.hcl"
 
+  images:
+    name: image · ${{ matrix.target }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [api, worker, control-api, migrate]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      # Same Dockerfile as deploy-staging.yml (which builds arm64 and pushes); here: amd64, no push.
+      - name: Build
+        run: |
+          if [ "${{ matrix.target }}" = migrate ]; then args="--target migrate"; else args="--target app --build-arg APP=${{ matrix.target }}"; fi
+          docker buildx build -f infra/docker/app/Dockerfile $args \
+            --cache-from type=gha,scope=img-${{ matrix.target }} \
+            --cache-to type=gha,mode=max,scope=img-${{ matrix.target }} \
+            --load -t sm-${{ matrix.target }}:ci .
+      - name: Starts (config validation fails fast without settings)
+        if: matrix.target != 'migrate'
+        run: |
+          out=$(docker run --rm --read-only --tmpfs /tmp sm-${{ matrix.target }}:ci 2>&1 || true)
+          echo "$out" | grep -q ZodError || { echo "$out"; exit 1; }
+
   db:
     name: db · migrate · rls-audit · drift
     runs-on: ubuntu-latest

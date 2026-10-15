@@ -32,6 +32,24 @@ data "aws_iam_policy_document" "kms" {
       values   = ["arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:log-group:/sm/${var.environment}/${var.cell_id}/*"]
     }
   }
+  # SES writes received email to the (SSE-KMS) files bucket and publishes to the encrypted topic.
+  dynamic "statement" {
+    for_each = var.inbound_email_enabled ? [1] : []
+    content {
+      sid       = "SesInboundEmail"
+      actions   = ["kms:GenerateDataKey*", "kms:Decrypt"]
+      resources = ["*"]
+      principals {
+        type        = "Service"
+        identifiers = ["ses.amazonaws.com"]
+      }
+      condition {
+        test     = "StringEquals"
+        variable = "aws:SourceAccount"
+        values   = [data.aws_caller_identity.current.account_id]
+      }
+    }
+  }
 }
 
 resource "aws_kms_key" "cell" {

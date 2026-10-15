@@ -16,6 +16,19 @@ if (!adminUrl) {
   process.exit(1);
 }
 
+// Deployed cells must never get the development passwords.
+const passwordVars = [
+  'SM_MIGRATOR_PASSWORD',
+  'SM_APP_PASSWORD',
+  'SM_REPORTS_PASSWORD',
+  'SM_AUDIT_PASSWORD',
+];
+const missing = passwordVars.filter((name) => !process.env[name]);
+if (process.env.NODE_ENV === 'production' && missing.length > 0) {
+  process.stderr.write(`${missing.join(', ')} required in production\n`);
+  process.exit(1);
+}
+
 const client = new pg.Client({ connectionString: adminUrl });
 await client.connect();
 try {

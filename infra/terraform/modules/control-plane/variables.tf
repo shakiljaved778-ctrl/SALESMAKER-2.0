@@ -50,3 +50,13 @@ variable "desired_count" {
   type    = number
   default = 2
 }
+
+variable "migrate_image" {
+  description = "The migrate image (infra/docker/app/Dockerfile, target migrate)."
+  type        = string
+}
+
+variable "email_from" {
+  description = "EMAIL_FROM for control-plane email (signup verification)."
+  type        = string
+}

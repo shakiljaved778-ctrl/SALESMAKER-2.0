@@ -42,8 +42,9 @@ export interface S3StorageOptions {
   endpoint?: string;
   region: string;
   bucket: string;
-  accessKeyId: string;
-  secretAccessKey: string;
+  /** Static keys (local S3-compatible stores); without them the SDK's default chain applies (ECS task role). */
+  accessKeyId?: string;
+  secretAccessKey?: string;
   /** Path-style URLs (S3-compatible stores such as SeaweedFS locally). */
   forcePathStyle?: boolean;
 }
@@ -57,15 +58,20 @@ export interface S3StorageConfig {
   S3_BUCKET?: string | undefined;
 }
 
-/** S3 storage from an app's config; undefined when it is not configured. */
+/**
+ * S3 storage from an app's config; undefined when no bucket is set. Static keys are used when both
+ * are given (local stores); otherwise credentials come from the environment (the ECS task role).
+ */
 export function s3StorageFrom(config: S3StorageConfig): S3StorageProvider | undefined {
-  if (!config.S3_BUCKET || !config.S3_ACCESS_KEY_ID || !config.S3_SECRET_ACCESS_KEY)
-    return undefined;
+  if (!config.S3_BUCKET) return undefined;
+  const keys =
+    config.S3_ACCESS_KEY_ID && config.S3_SECRET_ACCESS_KEY
+      ? { accessKeyId: config.S3_ACCESS_KEY_ID, secretAccessKey: config.S3_SECRET_ACCESS_KEY }
+      : {};
   return new S3StorageProvider({
     region: config.S3_REGION,
     bucket: config.S3_BUCKET,
-    accessKeyId: config.S3_ACCESS_KEY_ID,
-    secretAccessKey: config.S3_SECRET_ACCESS_KEY,
+    ...keys,
     ...(config.S3_ENDPOINT ? { endpoint: config.S3_ENDPOINT } : {}),
   });
 }
@@ -82,10 +88,14 @@ export class S3StorageProvider implements StorageProvider {
       // Checksums only when S3 requires them: a pre-signed PUT must not carry one computed
       // over an empty body (the browser sends the file; the store would answer BadDigest).
       requestChecksumCalculation: 'WHEN_REQUIRED',
-      credentials: {
-        accessKeyId: options.accessKeyId,
-        secretAccessKey: options.secretAccessKey,
-      },
+      ...(options.accessKeyId && options.secretAccessKey
+        ? {
+            credentials: {
+              accessKeyId: options.accessKeyId,
+              secretAccessKey: options.secretAccessKey,
+            },
+          }
+        : {}),
     });
   }
 

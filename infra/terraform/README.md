@@ -4,12 +4,12 @@ Infrastructure as code for SalesMaker's regional cells and the global control pl
 **Nothing here has been applied yet** (P00 delivers the skeleton; the first apply belongs to the
 staging deploy work).
 
-| Path                        | What                                                                                                                                                                                                                                                     |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `modules/network`           | VPC with public (ALB, NAT), private (ECS tasks) and isolated (RDS, Valkey) subnets per AZ, S3 gateway endpoint, rejected-traffic flow logs                                                                                                               |
-| `modules/cell`              | One regional cell: KMS key, RDS PostgreSQL 16 (Multi-AZ, 35-day PITR, optional reporting replica), ElastiCache Valkey 8 (TLS + AUTH), S3 files bucket, ECR, ECS Fargate services (api, worker, realtime) behind an HTTPS ALB, Secrets Manager containers |
-| `modules/control-plane`     | The global control plane: its own Postgres, Valkey, control-api service and ALB. No CRM data                                                                                                                                                             |
-| `envs/staging-eu-central-1` | Staging: the `eu-central-1` cell plus the control plane                                                                                                                                                                                                  |
+| Path                        | What                                                                                                                                                                                                                                                                                                                                                                  |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `modules/network`           | VPC with public (ALB, NAT), private (ECS tasks) and isolated (RDS, Valkey) subnets per AZ, S3 gateway endpoint, rejected-traffic flow logs                                                                                                                                                                                                                            |
+| `modules/cell`              | One regional cell: KMS key, RDS PostgreSQL 16 (Multi-AZ, 35-day PITR, optional reporting replica), ElastiCache Valkey 8 (TLS + AUTH), S3 files bucket, ECR, ECS Fargate services (api, worker; realtime behind `enable_realtime`) behind an HTTPS ALB, a one-off migrate task, bucket CORS for direct uploads, optional SES email-to-lead, Secrets Manager containers |
+| `modules/control-plane`     | The global control plane: its own Postgres, Valkey, control-api service and ALB. No CRM data                                                                                                                                                                                                                                                                          |
+| `envs/staging-eu-central-1` | Staging: the `eu-central-1` cell plus the control plane                                                                                                                                                                                                                                                                                                               |
 
 ## Conventions
 
@@ -34,9 +34,7 @@ cd envs/staging-eu-central-1 && terraform init -backend=false && terraform valid
 tflint --init && tflint --recursive --config "$PWD/../../.tflint.hcl"
 ```
 
-## First apply (later)
+## First apply
 
-1. Create the state bucket (versioned, SSE-KMS) and copy `backend.hcl.example` → `backend.hcl`.
-2. Copy `terraform.tfvars.example` → `terraform.tfvars` and fill in certificates and image tags.
-3. `terraform init -backend-config=backend.hcl && terraform plan`, reviewed by a second person.
-4. Bootstrap the database roles and write the app secrets (runbooks), then deploy the images.
+Follow `docs/runbooks/deploy.md` ("First deploy"): state bucket, tfvars, ECR repositories first (`-target`), one
+pipeline run to push images, then the full apply, secrets, and a deploy with bootstrap.

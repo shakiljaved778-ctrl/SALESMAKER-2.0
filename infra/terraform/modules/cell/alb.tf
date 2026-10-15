@@ -44,6 +44,7 @@ resource "aws_lb_listener" "https" {
 }
 
 resource "aws_lb_listener_rule" "realtime" {
+  count        = var.enable_realtime ? 1 : 0
   listener_arn = aws_lb_listener.https.arn
   priority     = 10
   action {

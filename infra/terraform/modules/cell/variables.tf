@@ -63,8 +63,19 @@ variable "images" {
   type = object({
     api      = string
     worker   = string
-    realtime = string
+    realtime = optional(string)
   })
+}
+
+variable "migrate_image" {
+  description = "The migrate image (infra/docker/app/Dockerfile, target migrate), same tag as the services."
+  type        = string
+}
+
+variable "enable_realtime" {
+  description = "Run the realtime WebSocket service (needs apps/realtime and images.realtime)."
+  type        = bool
+  default     = false
 }
 
 variable "service_sizes" {
@@ -94,4 +105,64 @@ variable "web_base_domain" {
 variable "log_retention_days" {
   type    = number
   default = 90
+}
+
+variable "email_from" {
+  description = "EMAIL_FROM: the sender of system email, e.g. \"SalesMaker <no-reply@salesmaker.app>\"."
+  type        = string
+}
+
+variable "breached_password_api_url" {
+  description = "BREACHED_PASSWORD_API_URL: a k-anonymity range API (free, no key)."
+  type        = string
+  default     = "https://api.pwnedpasswords.com"
+}
+
+variable "auth_jwt_kid" {
+  description = "AUTH_JWT_KID: the id of the signing key in the app secret (changes on rotation)."
+  type        = string
+}
+
+variable "cell_service_kid" {
+  description = "CELL_SERVICE_KID: the id of this cell's service key, as registered in the control plane's CELLS."
+  type        = string
+}
+
+variable "secrets_key_id" {
+  description = "SECRETS_KEY_ID: the id of the current secrets-at-rest key (changes on rotation)."
+  type        = string
+}
+
+variable "turnstile_site_key" {
+  description = "Cloudflare Turnstile site key for web forms; null leaves CAPTCHA off. The secret key goes in the app secret (TURNSTILE_SECRET_KEY, listed in optional_api_secret_keys)."
+  type        = string
+  default     = null
+}
+
+variable "optional_api_secret_keys" {
+  description = "Extra app-secret keys the api receives, when they are set: OIDC_GOOGLE_CLIENT_SECRET, OIDC_MICROSOFT_CLIENT_SECRET, TURNSTILE_SECRET_KEY, INBOUND_EMAIL_SECRET."
+  type        = list(string)
+  default     = []
+  validation {
+    condition = alltrue([for k in var.optional_api_secret_keys : contains([
+      "OIDC_GOOGLE_CLIENT_SECRET", "OIDC_MICROSOFT_CLIENT_SECRET", "TURNSTILE_SECRET_KEY", "INBOUND_EMAIL_SECRET",
+    ], k)])
+    error_message = "Unknown optional api secret key."
+  }
+}
+
+variable "api_public_url" {
+  description = "The cell API's public https URL (cp_cell.api_base_url), e.g. https://api.eu-central-1.salesmaker.app."
+  type        = string
+}
+
+variable "inbound_email_domain" {
+  description = "INBOUND_EMAIL_DOMAIN: lead addresses are leads-{token}@this domain."
+  type        = string
+}
+
+variable "inbound_email_enabled" {
+  description = "Receive email-to-lead through SES (receipt rule → files bucket → SNS → the API). Needs a region with SES receiving and the domain's MX record."
+  type        = bool
+  default     = false
 }

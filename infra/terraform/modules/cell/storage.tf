@@ -50,6 +50,30 @@ resource "aws_s3_bucket_lifecycle_configuration" "files" {
       noncurrent_days = 90
     }
   }
+  # Raw inbound email (email-to-lead) is only needed until the worker has processed it.
+  rule {
+    id     = "inbound-email"
+    status = "Enabled"
+    filter {
+      prefix = "inbound-email/"
+    }
+    expiration {
+      days = 30
+    }
+  }
+}
+
+# Imports upload and download straight from the browser through pre-signed URLs (§3.12), so the
+# workspace origins may PUT and GET; nothing else is allowed cross-origin.
+resource "aws_s3_bucket_cors_configuration" "files" {
+  bucket = aws_s3_bucket.files.id
+  cors_rule {
+    allowed_methods = ["PUT", "GET"]
+    allowed_origins = ["https://*.${var.web_base_domain}", "https://${var.web_base_domain}"]
+    allowed_headers = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3600
+  }
 }
 
 data "aws_iam_policy_document" "files" {
@@ -66,6 +90,23 @@ data "aws_iam_policy_document" "files" {
       test     = "Bool"
       variable = "aws:SecureTransport"
       values   = ["false"]
+    }
+  }
+  dynamic "statement" {
+    for_each = var.inbound_email_enabled ? [1] : []
+    content {
+      sid       = "SesInboundEmail"
+      actions   = ["s3:PutObject"]
+      resources = ["${aws_s3_bucket.files.arn}/inbound-email/*"]
+      principals {
+        type        = "Service"
+        identifiers = ["ses.amazonaws.com"]
+      }
+      condition {
+        test     = "StringEquals"
+        variable = "aws:SourceAccount"
+        values   = [data.aws_caller_identity.current.account_id]
+      }
     }
   }
 }

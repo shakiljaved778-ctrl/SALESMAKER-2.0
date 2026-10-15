@@ -4,7 +4,7 @@ import type { Readable } from 'node:stream';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { FakeStorageProvider, S3StorageProvider, storageKey } from '../src/index.js';
+import { FakeStorageProvider, S3StorageProvider, s3StorageFrom, storageKey } from '../src/index.js';
 
 const text = async (stream: Readable) => {
   const chunks: Buffer[] = [];
@@ -82,6 +82,21 @@ describe('storage (§3.12)', () => {
     expect(put.searchParams.get('X-Amz-Expires')).toBe('300');
     expect(put.searchParams.get('X-Amz-Signature')).toMatch(/^[0-9a-f]{64}$/);
     expect(new URL(await s3.presignGet('t/k', 60)).searchParams.get('X-Amz-Expires')).toBe('60');
+  });
+
+  it('S3 from config: on with a bucket; static keys optional (the task role in cells)', () => {
+    expect(s3StorageFrom({ S3_REGION: 'eu-central-1' })).toBeUndefined();
+    expect(s3StorageFrom({ S3_REGION: 'eu-central-1', S3_BUCKET: 'files' })).toBeInstanceOf(
+      S3StorageProvider,
+    );
+    expect(
+      s3StorageFrom({
+        S3_REGION: 'eu-central-1',
+        S3_BUCKET: 'files',
+        S3_ACCESS_KEY_ID: 'a',
+        S3_SECRET_ACCESS_KEY: 'b',
+      }),
+    ).toBeInstanceOf(S3StorageProvider);
   });
 
   it('fake: keeps bytes and URLs deterministic', async () => {

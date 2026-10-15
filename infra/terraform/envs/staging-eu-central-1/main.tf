@@ -45,17 +45,27 @@ module "cell" {
   isolated_subnet_ids  = module.cell_network.isolated_subnet_ids
   certificate_arn      = var.cell_certificate_arn
   images               = var.cell_images
+  migrate_image        = var.migrate_image
   control_api_base_url = var.control_api_base_url
   web_base_domain      = var.web_base_domain
+  api_public_url       = var.cell_api_public_url
+  email_from           = var.email_from
+  auth_jwt_kid         = var.auth_jwt_kid
+  cell_service_kid     = var.cell_service_kid
+  secrets_key_id       = var.secrets_key_id
+
+  inbound_email_domain     = "in.${var.web_base_domain}"
+  inbound_email_enabled    = var.inbound_email_enabled
+  turnstile_site_key       = var.turnstile_site_key
+  optional_api_secret_keys = var.optional_api_secret_keys
 
   # Staging sizing; production keeps the module defaults.
   db_instance_class = "db.t4g.medium"
   db_read_replica   = false
   cache_node_type   = "cache.t4g.small"
   service_sizes = {
-    api      = { cpu = 512, memory = 1024, desired = 1 }
-    worker   = { cpu = 512, memory = 1024, desired = 1 }
-    realtime = { cpu = 256, memory = 512, desired = 1 }
+    api    = { cpu = 512, memory = 1024, desired = 1 }
+    worker = { cpu = 512, memory = 1024, desired = 1 }
   }
 }
 
@@ -76,6 +86,8 @@ module "control_plane" {
   isolated_subnet_ids = module.control_plane_network.isolated_subnet_ids
   certificate_arn     = var.control_plane_certificate_arn
   image               = var.control_api_image
+  migrate_image       = var.migrate_image
   web_base_domain     = var.web_base_domain
+  email_from          = var.email_from
   desired_count       = 1
 }

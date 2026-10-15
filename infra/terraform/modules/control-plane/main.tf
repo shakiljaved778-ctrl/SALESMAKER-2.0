@@ -157,6 +157,12 @@ resource "aws_secretsmanager_secret" "app" {
   kms_key_id = aws_kms_key.cp.arn
 }
 
+# CP_DATABASE_URL for the owner role, read only by the migrate task.
+resource "aws_secretsmanager_secret" "migrate" {
+  name       = "${local.name}/migrate"
+  kms_key_id = aws_kms_key.cp.arn
+}
+
 # ── Service ──────────────────────────────────────────────────────────────────────────────
 
 resource "aws_ecr_repository" "control_api" {
@@ -203,7 +209,7 @@ resource "aws_iam_role_policy_attachment" "execution" {
 data "aws_iam_policy_document" "execution_secrets" {
   statement {
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.app.arn]
+    resources = [aws_secretsmanager_secret.app.arn, aws_secretsmanager_secret.migrate.arn]
   }
   statement {
     actions   = ["kms:Decrypt"]
@@ -245,6 +251,7 @@ resource "aws_ecs_task_definition" "control_api" {
         { name = "WEB_BASE_DOMAIN", value = var.web_base_domain },
         { name = "WEB_URL_SCHEME", value = "https" },
         { name = "LOG_LEVEL", value = "info" },
+        { name = "EMAIL_FROM", value = var.email_from },
       ]
       secrets = [
         for key in ["CP_DATABASE_URL", "REDIS_URL", "EMAIL_ROUTING_PEPPER", "SMTP_URL", "CELLS"] :
@@ -318,4 +325,52 @@ resource "aws_ecs_service" "control_api" {
   lifecycle {
     ignore_changes = [task_definition]
   }
+}
+
+# One-off migrations before the service rolls (runbooks/deploy.md): `sm-migrate control-plane`.
+resource "aws_cloudwatch_log_group" "migrate" {
+  name              = "/sm/${var.environment}/cp/migrate"
+  retention_in_days = 90
+}
+
+resource "aws_ecs_task_definition" "migrate" {
+  family                   = "${local.name}-migrate"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  execution_role_arn       = aws_iam_role.execution.arn
+  runtime_platform {
+    operating_system_family = "LINUX"
+    cpu_architecture        = "ARM64"
+  }
+  volume {
+    name = "tmp"
+  }
+  container_definitions = jsonencode([
+    {
+      name                   = "migrate"
+      image                  = var.migrate_image
+      essential              = true
+      command                = ["control-plane"]
+      readonlyRootFilesystem = true
+      user                   = "node"
+      mountPoints            = [{ sourceVolume = "tmp", containerPath = "/tmp", readOnly = false }]
+      environment = [
+        { name = "NODE_ENV", value = "production" },
+        { name = "HOME", value = "/tmp" },
+      ]
+      secrets = [
+        { name = "CP_DATABASE_URL", valueFrom = "${aws_secretsmanager_secret.migrate.arn}:CP_DATABASE_URL::" }
+      ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.migrate.name
+          awslogs-region        = data.aws_region.current.region
+          awslogs-stream-prefix = "migrate"
+        }
+      }
+    }
+  ])
 }
