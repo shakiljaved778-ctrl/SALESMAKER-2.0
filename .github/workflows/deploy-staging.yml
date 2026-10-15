@@ -60,7 +60,7 @@ jobs:
       matrix:
         target: [api, worker, control-api, migrate]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
@@ -86,7 +86,7 @@ jobs:
     environment: staging
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
