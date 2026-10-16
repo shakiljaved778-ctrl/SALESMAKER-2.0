@@ -25,9 +25,9 @@
     "db:seed": "node --env-file=.env scripts/db-seed.mjs"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "5.0.2",
-    "prettier": "3.9.9",
-    "turbo": "2.11.4",
+    "@vitest/coverage-v8": "5.0.4",
+    "prettier": "3.9.10",
+    "turbo": "2.11.7",
     "typescript": "6.0.3"
   },
   "pnpm": {

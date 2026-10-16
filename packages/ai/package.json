@@ -15,13 +15,13 @@
     "test": "vitest run --coverage"
   },
   "dependencies": {
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
-    "@types/node": "26.6.2",
-    "eslint": "10.11.0",
+    "@types/node": "26.6.5",
+    "eslint": "10.12.0",
     "typescript": "6.0.3",
-    "vitest": "5.0.2"
+    "vitest": "5.0.4"
   }
 }
