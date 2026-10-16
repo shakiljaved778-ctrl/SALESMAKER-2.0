@@ -55,7 +55,7 @@
     "vitest": "5.0.2"
   },
   "dependencies": {
-    "@tanstack/react-table": "8.21.3",
+    "@tanstack/react-table": "9.3.1",
     "@tanstack/react-virtual": "3.14.13",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
