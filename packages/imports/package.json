@@ -21,14 +21,14 @@
     "@sm/records": "workspace:*",
     "csv-parse": "7.0.3",
     "fflate": "0.8.3",
-    "kysely": "0.29.6",
+    "kysely": "0.29.7",
     "saxes": "6.0.0"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
-    "@types/node": "26.6.2",
-    "eslint": "10.11.0",
+    "@types/node": "26.6.5",
+    "eslint": "10.13.0",
     "typescript": "6.0.3",
-    "vitest": "5.0.2"
+    "vitest": "5.0.5"
   }
 }

@@ -15,22 +15,22 @@
     "test": "vitest run --coverage"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.1136.0",
-    "@aws-sdk/s3-request-presigner": "3.1136.0",
+    "@aws-sdk/client-s3": "3.1153.0",
+    "@aws-sdk/s3-request-presigner": "3.1153.0",
     "html-to-text": "10.0.1",
-    "mailparser": "3.9.38",
-    "nodemailer": "10.0.10",
+    "mailparser": "3.10.0",
+    "nodemailer": "10.1.7",
     "openid-client": "6.8.8"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
     "@types/html-to-text": "9.0.4",
     "@types/mailparser": "3.9.0",
-    "@types/node": "26.6.2",
+    "@types/node": "26.6.5",
     "@types/nodemailer": "8.0.2",
-    "eslint": "10.11.0",
-    "jose": "6.2.12",
+    "eslint": "10.13.0",
+    "jose": "6.2.13",
     "typescript": "6.0.3",
-    "vitest": "5.0.2"
+    "vitest": "5.0.5"
   }
 }

@@ -18,14 +18,14 @@
     "i18n:check": "node scripts/i18n.js check"
   },
   "dependencies": {
-    "@formatjs/icu-messageformat-parser": "3.5.20",
-    "use-intl": "4.14.7"
+    "@formatjs/icu-messageformat-parser": "3.5.22",
+    "use-intl": "4.14.9"
   },
   "devDependencies": {
     "@sm/config": "workspace:*",
-    "@types/node": "26.6.2",
-    "eslint": "10.11.0",
+    "@types/node": "26.6.5",
+    "eslint": "10.13.0",
     "typescript": "6.0.3",
-    "vitest": "5.0.2"
+    "vitest": "5.0.5"
   }
 }
