@@ -9,7 +9,7 @@ Nothing has been provisioned: the first apply needs the owner decisions below.
 | Infrastructure (AWS)   | `infra/terraform` (cells, control plane) | CI `terraform` (fmt, validate, tflint)                 |
 | Pipeline               | `.github/workflows/deploy-staging.yml`   | manual (`workflow_dispatch`); a no-op until configured |
 | ECS steps              | `infra/deploy/ecs.sh`                    | used by the pipeline (`migrate`, `roll`)               |
-| Web (Vercel, ADR-0003) | `apps/web/vercel.json`                   | Vercel Git integration                                 |
+| Web (Vercel, ADR-0003) | `apps/web/vercel.json`, `deploy-web.yml` | local `vercel build`; production only via the workflow |
 
 ## Decisions the owner makes first (§0.3)
 
@@ -95,8 +95,8 @@ cell's `id`, `region`, `label`, `apiBaseUrl` and service **public** key); Terraf
    plane app and migrate). Register the cell in the control plane's `CELLS`.
 6. **Deploy** with _bootstrap_ ticked: the control plane migrates and rolls, the cell database gets its roles,
    then migrations, then api and worker. Point DNS at the load balancers (outputs).
-7. **Web**: import the repo in Vercel (root `apps/web`; `vercel.json` sets the build), set the variables above
-   and the domains. Smoke the e2e journeys against staging (signup → verify → sign in → create a lead).
+7. **Web**: set up the Vercel project ("Web on Vercel" below) and run **deploy-web**. Smoke the e2e journeys
+   against it (signup → verify → sign in → create a lead).
 8. **Optional features**, each when decided: Turnstile (site key in tfvars, secret key in the app secret and in
    `optional_api_secret_keys`); SES (`inbound_email_enabled = true` **after** the API is healthy, since SNS
    confirms its subscription against it; then publish the TXT and MX records from the `inbound_email` output).
@@ -111,16 +111,49 @@ Run **deploy-staging** on the commit (CI green first). It:
    contraction ships in a later release, after nothing reads the old shape.
 3. **Rolls** control-api, then api and worker: 100% healthy capacity kept, `/health/ready` checks, the circuit
    breaker rolls back failed tasks (and the step fails if it did).
-4. **Smokes** both `/health/ready` endpoints. Vercel deploys the web from the same commit through its Git
-   integration; it only relies on released contracts.
+4. **Smokes** both `/health/ready` endpoints.
+
+When it succeeds, **deploy-web** ships the same commit to Vercel production: the web goes out last, after the
+APIs it calls (it only relies on released contracts).
 
 For production, watch error rates and p95 for 15 minutes after the roll.
+
+## Web on Vercel
+
+The web app is the only part on Vercel. It cannot serve without the APIs: every page asks the control plane which
+workspace a host is, and the browser's calls go through the web's `/api` routes to the cell. Deploy the backend
+first.
+
+**Project (once).**
+
+1. Vercel → Add New → Project → import `SALESMAKER-2.0`. **Root Directory `apps/web`**, with "Include files
+   outside the root directory" on (workspace packages). Framework, install and build commands come from
+   `apps/web/vercel.json`; Node 24 from `engines`.
+2. Environment variables (Production): the four in "Web" above, plus `ENABLE_EXPERIMENTAL_COREPACK=1` so the
+   build uses the repository's pnpm (`packageManager`).
+3. Domains: the apex (`salesmaker.app`), `www.` and the wildcard `*.salesmaker.app` (workspaces at
+   `{slug}.{domain}` and `forms.{domain}` for short web-form links; a wildcard needs the domain on Vercel's
+   nameservers).
+4. Settings → Functions → region **Frankfurt (fra1)**, next to the eu-central-1 cell (also set in `vercel.json`).
+5. `vercel link` locally gives the team and project ids; add them to the GitHub `production` environment with a
+   token: secret `VERCEL_TOKEN`, variables `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`, `WEB_URL`.
+
+**Deploys.** `vercel.json` turns off Vercel's automatic production deploys from `main`, so the web can never
+go out ahead of its APIs; **deploy-web** builds with the project's production settings, uploads the prebuilt
+output and smokes `/api/health` and `/`. Pushes to other branches still get preview deployments, but a preview
+URL (`*.vercel.app`) is neither the apex nor a workspace host, so previews only render when given their own
+`WEB_BASE_DOMAIN` and a wildcard preview domain.
+
+**Startup check.** `src/instrumentation.ts` validates the environment when a function instance starts; a
+missing variable shows up as a `ZodError` naming it in the function logs.
+
+**Rollback.** Vercel → Deployments → the previous production deployment → Promote (instant; no rebuild).
 
 ## Rollback
 
 Roll the ECS services back to the previous task definition (`aws ecs update-service --task-definition <previous>`).
 Because migrations only expand, the previous code works on the migrated schema. Never roll back a migration in
-place; write a forward fix. Vercel: promote the previous deployment.
+place; write a forward fix. Web: see "Web on Vercel".
 
 ## Checklist
 

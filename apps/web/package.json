@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Web app (Next.js App Router): tenant resolution via the control plane, BFF auth route handlers that own the session cookie, and the product UI (§3.1, §9)",
+  "description": "Web app (Next.js App Router): tenant resolution via the control plane, BFF auth route handlers that own the session cookie, and the product UI (\u00a73.1, \u00a79)",
+  "engines": {
+    "node": ">=22.12 <25"
+  },
   "scripts": {
     "dev": "NEXT_TELEMETRY_DISABLED=1 next dev --port 3000",
     "build": "NEXT_TELEMETRY_DISABLED=1 next build",

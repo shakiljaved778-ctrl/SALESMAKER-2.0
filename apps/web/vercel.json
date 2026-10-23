@@ -3,5 +3,11 @@
   "framework": "nextjs",
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "cd ../.. && pnpm turbo run build --filter=@sm/web...",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../packages ../../pnpm-lock.yaml"
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../../packages ../../pnpm-lock.yaml",
+  "regions": ["fra1"],
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  }
 }
