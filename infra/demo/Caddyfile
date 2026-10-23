@@ -1,0 +1,9 @@
+# Demo gateway: one public address for both APIs (docs/runbooks/demo-hosting.md).
+:8080 {
+	handle /cp/* {
+		reverse_proxy control-api:4100
+	}
+	handle {
+		reverse_proxy api:4000
+	}
+}

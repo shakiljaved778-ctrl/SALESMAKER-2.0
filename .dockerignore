@@ -16,3 +16,5 @@
 infra/terraform
 preview
 docs
+infra/demo/demo.env
+infra/demo/.state

@@ -17,3 +17,5 @@ test-results/
 .secrets/
 packages/ui/playwright-report/
 packages/ui/test-results/
+infra/demo/demo.env
+infra/demo/.state/

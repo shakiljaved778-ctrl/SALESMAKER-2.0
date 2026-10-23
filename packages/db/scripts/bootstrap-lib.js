@@ -26,11 +26,17 @@ export async function ensureCellRoles(
     ['sm_support', null, 'NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE'],
   ];
 
+  // Only a superuser may change SUPERUSER/BYPASSRLS on an existing role. A hosted owner (e.g.
+  // Neon) created these roles with those attributes already, so on a re-run it only resets
+  // the password.
+  const { rows } = await client.query('SELECT rolsuper FROM pg_roles WHERE rolname = current_user');
+  const superuser = Boolean(rows[0]?.rolsuper);
   for (const [name, password, attributes] of roles) {
     const exists = await client.query('SELECT 1 FROM pg_roles WHERE rolname = $1', [name]);
-    const verb = exists.rowCount ? 'ALTER' : 'CREATE';
     const pwd = password ? ` PASSWORD ${client.escapeLiteral(password)}` : '';
-    await client.query(`${verb} ROLE ${name} ${attributes}${pwd}`);
+    if (!exists.rowCount) await client.query(`CREATE ROLE ${name} ${attributes}${pwd}`);
+    else if (superuser) await client.query(`ALTER ROLE ${name} ${attributes}${pwd}`);
+    else if (pwd) await client.query(`ALTER ROLE ${name} WITH${pwd}`);
   }
 }
 
@@ -68,6 +74,12 @@ export async function bootstrapCell(client, passwords, { manageRoles = true } = 
   );
   await client.query(`GRANT CREATE ON DATABASE ${ident} TO sm_migrator`);
   await client.query('REVOKE CREATE ON SCHEMA public FROM PUBLIC');
+  // Hosted Postgres (e.g. Neon) bootstraps as a non-superuser owner, which may only hand a schema
+  // to a role it belongs to; it created the role, so it can grant itself membership.
+  const superuser = await client.query(
+    'SELECT rolsuper FROM pg_roles WHERE rolname = current_user',
+  );
+  if (!superuser.rows[0]?.rolsuper) await client.query('GRANT sm_migrator TO CURRENT_USER');
   await client.query('ALTER SCHEMA public OWNER TO sm_migrator');
   await client.query(
     'GRANT USAGE ON SCHEMA public TO sm_app, sm_readonly_reports, sm_support, sm_audit',

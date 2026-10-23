@@ -1,0 +1,116 @@
+# Demo hosting (docs/runbooks/demo-hosting.md): the web app on Vercel, the databases on Neon, and
+# the server programs below on this computer, reachable through one ngrok address. Temporary,
+# owner-approved stand-in for the AWS deployment (ADR-0003); not for real customer data.
+#
+#   docker compose -f infra/demo/docker-compose.yml run --rm init     # once: keys, Neon, migrations
+#   docker compose -f infra/demo/docker-compose.yml up -d --build     # start (and after updates)
+#   docker compose -f infra/demo/docker-compose.yml run --rm seed     # once: demo workspaces
+name: salesmaker-demo
+
+# .state/generated.env is written by `init`; optional so that `run init` can start without it.
+x-env: &env
+  env_file:
+    - demo.env
+    - path: .state/generated.env
+      required: false
+
+x-app: &app
+  <<: *env
+  restart: unless-stopped
+  read_only: true
+  tmpfs: [/tmp]
+  volumes: ['./.state/keys:/keys:ro']
+
+services:
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    volumes: [valkey:/data]
+    healthcheck:
+      test: ['CMD', 'valkey-cli', 'ping']
+      interval: 5s
+      retries: 20
+
+  # Catches every email the demo sends (sign-up verification, invitations): http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports: ['127.0.0.1:8025:8025']
+
+  control-api:
+    <<: *app
+    build:
+      {
+        context: ../..,
+        dockerfile: infra/docker/app/Dockerfile,
+        target: app,
+        args: { APP: control-api },
+      }
+    environment:
+      PORT: '4100'
+
+  api:
+    <<: *app
+    build:
+      { context: ../.., dockerfile: infra/docker/app/Dockerfile, target: app, args: { APP: api } }
+    environment:
+      PORT: '4000'
+    depends_on: [control-api, valkey]
+
+  worker:
+    <<: *app
+    build:
+      {
+        context: ../..,
+        dockerfile: infra/docker/app/Dockerfile,
+        target: app,
+        args: { APP: worker },
+      }
+    depends_on: [control-api, valkey]
+
+  # One address for both APIs: the control plane's routes all start with /cp/, everything else is
+  # the cell API. http://localhost:8080 locally; the tunnel publishes it.
+  gateway:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ['127.0.0.1:8080:8080']
+    volumes: ['./Caddyfile:/etc/caddy/Caddyfile:ro']
+    depends_on: [api, control-api]
+
+  tunnel:
+    image: ngrok/ngrok:alpine
+    restart: unless-stopped
+    entrypoint: ['sh', '-c', 'exec ngrok http gateway:8080 --url "$$NGROK_DOMAIN" --log stdout']
+    env_file: [demo.env]
+    depends_on: [gateway]
+
+  # ── One-off tools ──────────────────────────────────────────────────────────────────────
+  # Keys and secrets (into .state/), Neon roles and extensions, cell and control-plane migrations.
+  init:
+    profiles: [tools]
+    build: { context: ../.., dockerfile: infra/docker/app/Dockerfile, target: migrate }
+    entrypoint: ['node', 'infra/demo/init.mjs']
+    env_file: [demo.env]
+    user: root
+    volumes: ['./.state:/repo/infra/demo/.state']
+
+  # The demo workspaces, then their vercel.app addresses (DEMO_ALIASES).
+  seed:
+    profiles: [tools]
+    build:
+      { context: ../.., dockerfile: infra/docker/app/Dockerfile, target: app, args: { APP: api } }
+    <<: *env
+    entrypoint: ['sh', '-c', 'node dist/seed/main.js --scenario=all']
+    environment:
+      NODE_ENV: staging
+    volumes: ['./.state/keys:/keys:ro']
+    depends_on: [control-api]
+
+  aliases:
+    profiles: [tools]
+    build: { context: ../.., dockerfile: infra/docker/app/Dockerfile, target: migrate }
+    <<: *env
+    entrypoint: ['node', 'infra/demo/aliases.mjs']
+
+volumes:
+  valkey:
