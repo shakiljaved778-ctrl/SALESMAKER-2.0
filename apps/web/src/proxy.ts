@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { contentSecurityPolicy } from './server/csp';
+import { webEnvProblems } from './server/env';
+
+/** Where every page goes while the deployment lacks its required settings. */
+const NOT_CONFIGURED = '/not-configured';
 
 /** `forms.{base}/{slug}/{formId}`: the cells' short form address (§7.1). */
 const SHORT_FORM_PATH = /^\/([a-z0-9][a-z0-9-]{0,62})\/([0-9a-f]{8}-[0-9a-f-]{27})\/?$/i;
@@ -27,6 +31,7 @@ export function proxy(request: NextRequest) {
     url.pathname = `/f/${short[1] ?? ''}/${short[2] ?? ''}`;
     return NextResponse.redirect(url, 308);
   }
+  const misconfigured = webEnvProblems().length > 0;
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
   const csp = contentSecurityPolicy(nonce, {
     dev: process.env.NODE_ENV === 'development',
@@ -37,7 +42,12 @@ export function proxy(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.set('x-nonce', nonce);
   headers.set('content-security-policy', csp);
-  const response = NextResponse.next({ request: { headers } });
+  const response = misconfigured
+    ? NextResponse.rewrite(new URL(NOT_CONFIGURED, request.url), {
+        request: { headers },
+        status: 503,
+      })
+    : NextResponse.next({ request: { headers } });
   response.headers.set('content-security-policy', csp);
   return response;
 }

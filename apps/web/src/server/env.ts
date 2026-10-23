@@ -13,6 +13,18 @@ export type WebEnv = z.infer<typeof WebEnvSchema>;
 
 let cached: WebEnv | undefined;
 
+/**
+ * Names of the variables that are missing or invalid (empty when the environment is valid). Names
+ * only, never values: this is shown on the not-configured page and by /api/health.
+ */
+export function webEnvProblems(env: Record<string, string | undefined> = process.env): string[] {
+  const result = WebEnvSchema.safeParse(env);
+  if (result.success) return [];
+  return [...new Set(result.error.issues.map((issue) => String(issue.path[0] ?? '')))].filter(
+    Boolean,
+  );
+}
+
 /** Validated server environment; fails fast with every problem listed. */
 export function webEnv(): WebEnv {
   cached ??= WebEnvSchema.parse(process.env);

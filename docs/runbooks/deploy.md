@@ -144,8 +144,11 @@ output and smokes `/api/health` and `/`. Pushes to other branches still get prev
 URL (`*.vercel.app`) is neither the apex nor a workspace host, so previews only render when given their own
 `WEB_BASE_DOMAIN` and a wildcard preview domain.
 
-**Startup check.** `src/instrumentation.ts` validates the environment when a function instance starts; a
-missing variable shows up as a `ZodError` naming it in the function logs.
+**Missing settings.** A deployment without valid `CONTROL_API_BASE_URL` and `WEB_BASE_DOMAIN` still starts: every
+page shows "This deployment is not configured yet" (503) naming the variables, `/api/health` answers
+`{"status":"misconfigured","missing":[…]}`, and the function log's first line says the same. Set them in Vercel →
+Settings → Environment Variables (Production) and **redeploy** (variables apply to new deployments only). With them
+set but the control plane unreachable, pages show the maintenance page instead.
 
 **Rollback.** Vercel → Deployments → the previous production deployment → Promote (instant; no rebuild).
 

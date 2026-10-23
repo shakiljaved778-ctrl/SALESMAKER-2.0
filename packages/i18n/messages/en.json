@@ -297,6 +297,11 @@
       "title": "We're making improvements",
       "body": "SalesMaker is briefly unavailable for maintenance. Your data is safe. Please check back soon.",
       "action": "Try again"
+    },
+    "notConfigured": {
+      "title": "This deployment is not configured yet",
+      "body": "Set these environment variables for this deployment, then redeploy: {variables}.",
+      "configured": "The configuration is complete. Reload the page."
     }
   },
   "objects": {
